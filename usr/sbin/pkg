@@ -389,7 +389,8 @@ get_pkg_name(){		# return pkg name with version FUNCLIST
 	# if no exact match, look for $pkg_name-*, then $pkg_name_*
 	full_name=`echo "$repo_contents"| grep -i -m1 "|${pkg_name}|"` \
 		|| full_name=`echo "$repo_contents"|grep -i -m1 "|${pkg_name}-"` \
-		|| full_name=`echo "$repo_contents"|grep -i -m1 "|${pkg_name}_"`
+		|| full_name=`echo "$repo_contents"|grep -i -m1 "|${pkg_name}_"` \
+		|| full_name=`echo "$repo_contents"|grep -i -m1 "|${pkg_name}"`
 		
 	# if we found pkg in repo, keep only the package name ('|pkg-123|pkg|blah|' -> 'pkg-123')
 	[ "$full_name" != '' ] && full_name=`echo $full_name| cut -f2 -d '|' | tr -d '|'`
@@ -1469,7 +1470,8 @@ which_repo(){		# list matching pkg and its repo, in any repo FUNCLIST
 		repo_name="`grep -m1 "$repo_file|" ${HOME}/.pkg/sources | cut -f1 -d'|'`"
 		# create a the entries, example: "vlc slacko14.2"
 		# (each line shows a matching package, then a SPACE, then the name of repo the package lives in)
-		pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep "|$PKGNAME_ONLY|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`\n"
+		pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep "^$PKGNAME|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`\n"
+		[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep "|$PKGNAME_ONLY|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`\n"
 	done
 	
 	# show results
@@ -2222,7 +2224,9 @@ pkg_entry(){		# show pkg repo entry, each field on a new line FUNCLIST
 	PKGNAME=`get_pkg_name "$PKGNAME"`
 	PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
 
-	PKG_ENTRY="`cat ${HOME}/.packages/Packages-* | grep "|$PKGNAME_ONLY|"`"
+	PKG_ENTRY="`cat ${HOME}/.packages/Packages-* | grep "|$PKGNAME|"`"
+	[ "$PKG_ENTRY" = '' ] && PKG_ENTRY="`cat ${HOME}/.packages/Packages-* | grep "|$PKGNAME_ONLY|"`"
+	[ "$PKG_ENTRY" = '' ] && PKG_ENTRY="`cat ${HOME}/.packages/Packages-* | grep "^$PKGNAME|"`"
 	if [ "$PKG_ENTRY" = '' ];then
 		echo "$1 not found in $REPOFILE"
 		exit 1
