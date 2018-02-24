@@ -4982,7 +4982,7 @@ get_deps(){ 		# find, get and install the deps of pkg FUNCLIST
 					fi
 
 					# get deps of deps
-					if [ "$RDCHECK" = "yes" ];then 
+					if [ "$RDCHECK" = "YARP" ];then  ### dont do it (wont = YARP)
 						
 						DEPLIST="`list_deps "$DEPNAME"`"
 
