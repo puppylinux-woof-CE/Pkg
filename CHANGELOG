@@ -1,0 +1,255 @@
+1.9.18
+- fixed: syntax error in /etc/bash_completion.d/pkg
+- fixed: 'what-needs' option was missing from list of cmds in --usage output
+- fixed: list deps, install/uninstall pkg on xenialpup (ubuntu based)
+
+
+1.9.17
+- new: allow override default rc file location (~/.pkg/pkgrc) with $PKGRC env var 
+- new: `pkg --what-needs PKGNAME`, list the pkgs that depend on PKGNAME .. (reverse dep lookup)
+- fixed pkg_install(): clean up .csh files post install, silence output of 'glib-compile-schemas' and 'gio-querymodules'
+- fixed pkg_build(): add error message when trying to build pkg that doesn't exist (using petbuild)
+- fixed list_build_scripts(): dont output empty lines
+- fixed list_dependants(): also list builtins if HIDE_BUILTINS=false
+- fixed find_deps(): remove builtins from list unless HIDE_BUILTINS=false
+- fixed list_deps(): 
+	- (some code moved to find_deps(), see above)
+	- by default --list-deps will list installed deps too, as in earlier versions 
+	- sometimes pkg was listed as it's own dep, now fixed
+- fixed get_pkg_name_only(), more accurate
+- fixed get_deps(): fixed failure to install some already downloaded packages
+- fixed pkg_entry(): can now get pkg repo entries from any repo, not only current, also doesn't need full pkg name
+- fixed print_usage(): 
+	`pkg --usage <option>`
+	- added support for short options (-li,-pi,-ps,-ld,-le, etc)
+	- added usage info for the various supported environment vars
+	- added example cmds to usage output of given cmd, taken from /usr/lib/pkg/docs/examples.txt
+	- added info about seeing current setting if no options given for some cmds
+	- cleanup: sources files in /usr/lib/pkg/docs/usage/* all contain USAGE="", can be sourced properly
+	- fixed usage info of `pkg --add-source`
+	- fixed usage info of `pkg --dir2pet`, added more complete pet.specs example
+- cleanup: better cleanup of tmp files in firstrun(), called by --welcome cmd
+
+
+1.9.16
+- added option: `pkg --welcome` invokes first_run(), prints welcome screen with helpful tips
+- improvement: `pkg -la` (delete all pkgs in WORKDIR) will confirm before deleting all pkgs
+- small fixes, clean ups and updates in man page, README, help text.
+- fixed: create layers-installed [inc devx pkgs if devx loaded] on Pkg load
+    * this also helps removes PetGet as a dependency of Pkg
+- cleanup: always use $HOME not '/root' (except when trying to fix missing repo files on first run)
+    * Pkg should work better when users $HOME dir not /root 
+- fixed list_installed_pkgs(): 
+    * if called with -li, list only user installed pkgs (same as PetGet)
+    * if called with -LI, list all installed pkgs inc builtins [and devx pkgs]
+- cleanup: replace all `expr 2 + 2` with $((2 + 2)) (ash supports it going way back, I think)
+- cleanup and improvements in hide_installed_pkgs_from_search_results():
+    * fixes in using HIDE_INSTALLED - does its job more accurately, less code
+- update: Gpkgdialog 0.4: includes fixes for listing of repo pkgs without installed pkgs
+- update: Pkgdialog 0.6:
+    * new: call as Xpkgdialog to use the Xdialog interface
+    * speedup: set LANG=C for whole script (and set LANG back to prev value at end)
+    * speedup: now using ash, not bash (Search All can still be really sloooow)
+    * nicer styling, removed box shadows, bigger menus
+    * fixed: updated some labels on exit and cancel buttons
+    * fixed: allow override of HIDE_INSTALLED.. Usage: `HIDE_INSTALLED=true|false pkgdialog`
+    * fixed: use --textbox to show help info and current settings config
+    * various fixes to menu navigation in following sections:
+	- fixed: use a --tailbox when installing/removing/updating/converting/combining pkgs
+	- fixed: ask to install/uninstall pkg(s) after pkg selection in 'Search' and 'Downloaded'
+	- fixed: ask to uninstall pkg(s) after pkg selection in 'Installed'
+	- fixed: get pkg lists for combine/convert pkgs
+
+
+1.9.15
+- added msg about enabling TAB auto-completion if not enabled
+- added option: `pkg --no-colour|--no-color|-nc` .. an easier way to disable colours
+    * added usage info in /usr/lib/pkg/docs/usage/no-colour
+    * do `pkg -usage no-colour`
+- cleanup: simpler creation of WORKDIR, simpler exit if fail to find WORKDIR
+- cleanup: when finding avail repos on first run (see 'final checks' section)
+- fixed: was missing usage help info for `--pkg-entry`
+- improvements in CLI interface, more robust, more programmable:
+    * supports passing multiple PKGs to most options, with or without quotes
+    * PKGs can be delimited (separated) by space, comma (or a pipe when in quotes)
+    * you can still pipe (newline or space delimited) lists into Pkg if you give dash (-) as its last option:
+	example: `echo geany vlc | pkg -PS -` will print status of both pkgs
+    * if piping stuff, use -ss and -ssa for pipe-able search output (-s and -s produce fancy ouput)
+- fixed: include devx pkgs in `pkg -LI`, which should list ALL installed pkgs
+- fixes in finding where pkg comes from: 
+    * same fixes applied to: is_usr_pkg(), is_devx_pkg(), is_builtin_pkg(), is_repo_pkg(), is_installed_pkg()
+- fixed repo_file_list(): takes repo name returns name of its repo file,
+    * fixed a failure to return the correct, matching repo file in some cases
+- fixes in pkg_status(): 
+    * show correct install status (user,devx,builtin,layers)
+    * fixed missing repo filenames (see repo_file_list)
+    * standardise output: add 'K' to end of $pkg_size, if not already there
+
+
+
+1.9.14
+- fixed list_dependants(): don't include the pkg being checked in the list, only its dependants
+- fix pkg_download(): nicer output when using --ask
+    * if not called with --ask, then always hide question tags
+    * this fixes internal funcs calls where Pkg disables $ASK internally, but user gave --ask option
+- fix pkg_combine(): fixed some breaking changes from last version, added support for --ask and including BUILTINS
+    * Use  `pkg --pkg-combine|-pc`  to combine a pkg with its deps, not including builtins.
+    * Prefix above cmd with  HIDE_BUILTINS=false  to include builtins too
+    * fixed: use --ask and Pkg will ask which pkgs to put into the final PET/SFS
+- fixes in pkg_install(): better checking local files before install
+- fixes in pkg_get(): works better when --force and --ask used together
+    * dont error if user chooses to skip a download in the loop
+- fixed pkg_update(): dont search or update builtin pkgs, unless  HIDE_BUILTINS=false  given
+- cleanup naming of functions, more consistent
+- cleanup CLI interace: fixed usage msgs not showing, fixed opts not accepting multiple pkgs
+- cleanup code, moved help info to /usr/lib/pkg/docs/, source it in Pkg
+- much nicer usage info: moved into /usr/lib/pkg/docs/usage/<cmd_name>
+    * give cmd (--get, --download, etc) without options to see its usage info
+    * or use `pkg --usage|-usage [CMD]` to see list or usage of available commands
+
+1.9.13
+- added entries for Zesty repos to sources-all (not tested)
+- added --autoclean option: auto-delete pkg files after they've been installed
+	# use  `pkg --autoclean [yes|no]` (defaut is no)
+- cleanup, renamed some funcs, 
+- fixes in various funcs to better support Pkgs ENV vars
+- fixed download_pkg() not finding the pkg to download in current repo
+- fixed call get_pkg() with full pkgname from get_deps()
+- fixed get_deps() output messages, better ordered
+- fixed various funcs: loop over pkgs and deps, dont skip or exit at the wrong time
+- fixes when using --force option:
+    # --force will list all deps, inc builtins
+    # --force will re-download all pkgs, except builtins (by default)
+    # --force will re-install all pkgs,  except builtins (by default)
+    # --force will not install or uninstall builtins (that is coming soon..)
+
+1.9.12
+- fixes in searches using pkg aliases 
+- fixes in is_local_pkg(), more reliable
+- fixes in pkg_contents(), better at looking for WORKDIR/PKGNAME when not in WORKDIR
+- fixes in pkg_contents(), removed error from output when pkgname comes from stdin (`pkg opts | pkg --contents -`)
+- fixes in deb2pet(), now works better, cleaned up, uses the pkg_unpack() func
+- fixed `pkg -go pkgname`: dont install pkgs, just download them
+- fixed `pkg -PS pkgname`: lists deps sorted by missing/installed, more detailed than `pkg -ps pkgname`
+- fixed `pkg --deps-check PKGNAME`: runs ldd on PKGNAME (must be an installed pkg) and prints msg about missing libs
+- fixed TAB completion for --all-pkgs option
+- fixes in RC files: use noarch repo on first run. See /etc/pkg/* and in ~/.pkg/*
+- added new URLs for Trusty, Lucid and Precise repos: http://old-releases.ubuntu.com/ubuntu/
+- added `pkg -pkg-entry PKGNAME`: list repo entry of pkg, each field on new line
+- updated --list-deps,--list-installed: 
+    # --list-deps default behaviour is still to "list all deps of pkg (not inc builtins)"
+    # --list-installed default behaviour is still to "list all installed pkgs (not inc builtins)"
+    # but they now support the env vars: HIDE_USER_PKGS, HIDE_BUILTINS [true or false] .. 
+    # Pkg users can use these in combination to show all, only missing, already builtin, etc
+    # EG:
+     HIDE_USER_PKGS=true  HIDE_BUILTINS=true  pkg -le PKGNAME	# list only deps not yet installed:
+     HIDE_USER_PKGS=true  HIDE_BUILTINS=false pkg -le PKGNAME   # list only the deps of PKGNAME that are already built in
+     HIDE_USER_PKGS=false HIDE_BUILTINS=false pkg -le PKGNAME 	# list all deps of PKGNAME (as listed in its repo, inc builtins)
+     HIDE_USER_PKGS=false HIDE_BUILTINS=false pkg -li PKGNAME 	# list all installed pkgs, inc builtins
+     ...etc
+- added `pkg -LE pkgname`: lists all deps, including builtins
+- added `pkg -LI pkgname`: lists all installed pkgs, including builtins
+- added the new capitalised options to help info [--help|-h|-H]
+- added "NO_INSTALL" env var: replaces DEPINSTALL, GETINSTALL.. used by --get-only, --deps-download, others
+
+1.9.11
+- added a fixed sfs_load called sfs_loadr, with fixes for the --cli option
+- removed /usr/sbin/sfs_load_cli, not needed
+- removed /usr/sbin/sfs_installer, not needed
+- updated `pkg -i file.sfs` to install SFS like pkgs (uses sfs_loadr)
+- updated `pkg -c file.sfs` lists SFS file contents too
+- updated `pkg -u file.sfs` to uninstall SFS file (uses sfs_loadr)
+- updated gpkgdialog to 0.3: cleaned up tailbox output 
+- fixed check bad pkg URLs (404s), dont download 
+- fixed typo preventing .deb pkg install in install_pkg()
+- fixed typo preventing parse correct pkg extension in pkg_unpack()
+- fixes in get_pkg(), only install if pkg contents can be listed by pkg_contents()
+- fixed a 'not getting deps properly' regression (I think)
+- fixes in is_installed_pkg(), more accurate, fewer checks
+- fixes in lucid repo stuff in ~/.pkg/sources-all
+- cleanup download_pkg(), use download_progress script when called by gpkgdialog
+- better error code handling and output .. Pkg fails a bit better
+
+1.9.10
+- removed outdated changelog from top of /usr/sbin/pkg
+- fixes various:		list/return user installed pkgs before builtins and devx pkgs in various places
+- fixed which_pkg(): 	dont falsely list 'busybox' as the pkg from which FILE came
+- fixed get_pkg_ext(): 	added sfs, tbz, tar.bz2, tlz, tar.lzma extensions
+- fixed install_pkg(): 	added support for extracting tbz/tar.bz2 and tlz/tar.lzma
+- fixed install_pkg(): 	call /usr/sbin/sfs_loader as a CLI tool (no gui)
+- fixed unpack_pkg():  	dont exit, only return; now works when called in install_pkg()
+- fixed unpack_pkg(): 	extract SFS files to current dir
+- fixed pkg_contents(): fixed a typo that would prevent skipping the loop
+- fixes in sources-all: added many more repos, using fastest mirrors first, better/safer fallback lists
+
+1.9.9
+- fixed: capitalise the N in the (y/N) tag .. so users know that N is default (any key)
+- fixes for handling .tar.bz2 and .tbz packages.. in get_pkg_ext(), install_pkg()
+- fixes in ~/.pkg/sources-all for some puppy repos (puppy4,puppy5, etc)
+- added: pkg --extract FILE  (unpack pkg file into ./PKGNAME)
+- added: updated help info (--help|-h) and TAB auto-completion
+- added: /usr/sbin/exploderpm added to the PET package
+- added: more repos to list of available repos  in ~/.pkg/sources-all
+
+1.9.8
+- fixes for update_pkg() and install_pkg()
+	# fixes search all repos for newer version of PKGNAME and install
+- fix pkg_repack(), add build number to created PET
+	# get build number from pkgs repo entry, increment it, add to end of pkg name
+- fixes in get_pkg_name()
+	# make sure to search user installed pkgs first
+	# this fixes finding names of pkgs that were installed over builtins
+	# example: --pkg-update may install geany-1.28 (salix repo) over the builtin geany-1.27
+- fixes for pkg_status()
+	# fixed getting info of user installed pkgs which overwrite builtin pkgs
+- fixes in menu_entry_msg()
+	# nicer output, faster
+- fixes in which_repo()
+	# better at finding the repo for pkgs with build numbers like '-1gv'
+
+1.9.7
+- fixes in dir2pet(): 		make better use of existing pet.specs when creating PETs
+- fixes in install_pkg(): 	include pkg size and deps in ~/.packages/user-installed-packages
+- fixes in pkg_status(): 	show size and deps for alien and downloaded pkgs (if poss)
+
+1.9.6
+- updated Gpkgdialog to 0.2
+	# fixed: updated to work with latest Pkg:
+		- fixed pkg listings (available, installed, build scripts)
+		- added support for petbuild as well as buildpet
+		- fixes and updates for most functions
+		- cleaned up code, added comments
+- updated Pkgdialog to 0.5
+	# fixed: skip first run Pkg message
+- Cleanup: remove function testing stuff /usr/sbin/pkg
+
+1.9.5
+
+- fixes for installing/uninstalling local pkgs from outside $WORKDIR:
+	# in install_pkg(), uninstall_pkg(), list_dependants()
+- fixes in is_installed_pkg() checks
+
+1.9.4
+
+- clean up in find_deps() and get_deps():
+	# replaced some code in find_deps() with a call to list_deps()
+	# cleaned up dep name validation, simpler, faster, less code in find_deps()
+	# small cleanup in get_deps()
+	# small cleanup in list_deps()
+	
+- fixes in /etc/bash_completion.d/pkg
+	# fixed context sensitive TAB auto-complete results for
+		--names-all(-na), --search-all(-sa), --names-exact-all(-nea)
+	# added missing entry for txz2* cmds
+
+1.9.3
+
+- fixed default settings in rc file: 
+   # fix prevent correct dep search in first run 
+   # updated, DEPSEARCH='list_all_pkg_names' by default 
+    
+- fixes in dep resolution: 
+   # much faster, less looping, checks fewer deps, more reliable: 
+   # now filtering out installed pkgs in find_deps() and list_deps() all in one go 
+   # so `pkg --list-deps PKGNAME` now lists missing deps, not all deps. 
+   # the same for `pkg --pkg-status PKGNAME` .. only lists missing deps 
