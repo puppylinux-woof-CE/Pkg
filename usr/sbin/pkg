@@ -1803,6 +1803,7 @@ prepare_petbuild(){	# get 01mickos petbuild system from Git, if needed FUNCLIST
 		echo "Alternatively, use a different build tool backend by changing BUILDTOOL= "
 		echo "to one of the options below, in your $PKGRC file:"
 		echo "petbuild, buildpet, sbopkg or src2pkg"
+		echo ""
 
 		rm /tmp/pkg/petbuild_prepared 2>/dev/null && exit 1
 	fi
@@ -1842,14 +1843,19 @@ prepare_petbuild(){	# get 01mickos petbuild system from Git, if needed FUNCLIST
 		if [ "`echo $DISTRO_DB_SUBNAME | grep slacko`" != '' ];then
 			if [ "`echo $DISTRO_DB_SUBNAME | grep '14.2'`" != '' ];then
 				git checkout slacko_142
-				git checkout slacko_142
 			else 
 				git checkout slacko_141
 			fi
-		elif [ "`echo $DISTRO_DB_NAME | grep tahrpup`" ];then
+		elif [ "`echo $DISTRO_DB_SUBNAME | grep tahrpup`" ];then
+			git checkout tahrpup
+		elif [ "`echo $DISTRO_DB_SUBNAME | grep stretch`" ];then
+			git checkout stretch
+		elif [ "`echo $DISTRO_DB_SUBNAME | grep xenialpup`" ];then
+			git checkout xenialpup
+		elif [ "$DISTRO_DB_SUBNAME" != '' ];then
 			git checkout tahrpup
 		else 
-			echo "No pet builds available for your system ($DISTRO_DB_NAME),"
+			echo "No pet builds available for your system ($DISTRO_DB_SUBNAME),"
 			echo "using buildpet instead.."
 			rm -rf /usr/share/petbuild 2>/dev/null
 		fi
@@ -2658,6 +2664,8 @@ pkg_download(){ 	# download a pkg to WORKDIR FUNCLIST
 	local NET=''			# 1 or 0 if net connection available
 	local curr_repo=''		# name of current repo in the loop
 	local curr_repo_ext=''	# pkg ext for the current repo in the loop
+	local prev_repo_url=''	# holder for the prev checked url we know is working
+	local curr_repo_url=''	# mirror that is used to download the pkg
 	local curr_repo_url1=''	# mirror1 for the current repo in the loop
 	local curr_repo_url2=''	# mirror2 for the current repo in the loop
 	local curr_repo_url3=''	# mirror3 for the current repo in the loop
@@ -2687,7 +2695,7 @@ pkg_download(){ 	# download a pkg to WORKDIR FUNCLIST
 		DONE=false
 
 		# exit if no internet connection
-		NET="`check_net`"; [ $NET -eq 1 ] && echo "You need an internet connection" && exit 2
+		#NET="`check_net`"; [ $NET -eq 1 ] && echo "You need an internet connection" && exit 2
 		
 		# for each repo, starting with current repo 
 		list_sources_files | while read repo_file
@@ -2704,6 +2712,7 @@ pkg_download(){ 	# download a pkg to WORKDIR FUNCLIST
 			if [ "$pkg_in_this_repo" != "" ];then #if true, its an exact match
 
 				# get name of current repo in loop
+				prev_repo="$curr_repo" 
 				curr_repo="`LANG=C grep $repo_file $sources_file 2>/dev/null | cut -f1 -d'|'`" 
 
 				# get ext of cur repo, it might be different
@@ -2777,19 +2786,23 @@ pkg_download(){ 	# download a pkg to WORKDIR FUNCLIST
 						pkg_ext="$curr_repo_ext" 
 						
 						# get the best repo mirror
-						echo "Checking '$curr_repo' repo mirrors..."
-						for URL in $curr_repo_url_list
-						do
-							LANG=C ping -W2 -c1 -q `echo  ${URL} | awk -F/ '{print $3}'` &>/dev/null
-							REPLY=$?
-							if [ "$REPLY" = 0 ];then
-								# set the current URL
-								curr_repo_url="$URL"
-								echo "$curr_repo_url" > $TMPDIR/curr_repo_url
-								break
-							fi
-						done
-						
+						if [ "$prev_repo" != "$current_repo"  -a -f $TMPDIR/curr_repo_url ] || [ ! -f $TMPDIR/curr_repo_url ];then
+							echo "Checking '$curr_repo' repo mirrors..."
+							for URL in $curr_repo_url_list
+							do
+								LANG=C ping -W2 -c1 -q `echo  ${URL} | awk -F/ '{print $3}'` &>/dev/null
+								REPLY=$?
+								if [ "$REPLY" = 0 ];then
+									# set the current URL
+									curr_repo_url="$URL"
+									echo "$curr_repo_url" > $TMPDIR/curr_repo_url
+									break
+								fi
+							done
+						else
+							curr_repo_url="`cat $TMPDIR/curr_repo_url`"
+						fi
+
 						# lets build our DOWNLOAD_URL: set it to the working repo mirror we found above
 						DOWNLOAD_URL="${curr_repo_url}"
 						
@@ -2925,12 +2938,13 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 	pkg_ext=`get_pkg_ext "$1"`
 	#get pkg name only, no extension or path
 	PKGNAME="$(basename "$1" .$pkg_ext)" 
-	
 	# get name with version
 	PKGNAME=`get_pkg_name "$PKGNAME"`
-	# get name without version
+	PKGNAME_LOCAL=`list_downloaded_pkgs "$PKGNAME" | head -1`
+	[ "$PKGNAME_LOCAL" != '' ] && PKGNAME="`basename $PKGNAME_LOCAL .$pkg_ext`"
+	# get name without version	
 	PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
-	
+
 	# exit if no valid option
 	[ "$PKGNAME" = '' ] && print_usage install && exit 1
 	
@@ -2984,10 +2998,10 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 		if [ "`is_installed_pkg $PKGNAME`" = false -o "$FORCE" = true ];then
 
 			# get filename from download file
-			PKGNAME="`get_pkg_name "$PKGFILE"`"
-			[ "$PKGNAME" = "" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}"  | head -1`"
-			[ "$PKGNAME" = "" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}-" | head -1`"
+			[ "$PKGNAME" = "" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}" | head -1`"
 			[ "$PKGNAME" = "" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}_" | head -1`"
+			[ "$PKGNAME" = "" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}-" | head -1`"
+			[ "$PKGNAME" = "" ] && PKGNAME="`get_pkg_name "$PKGFILE"`"
 
 			# ask/inform user before install
 			echo -n "Install package ${PKGNAME}$QTAG:  "
@@ -4381,7 +4395,6 @@ clean_pkgs(){		# delete downloaded pkg files of installed pkgs FUNCLIST
 
 
 # dependency funcs
-
 list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	[ "$1" = '' -o "$1" = "-" ] && print_usage list-deps && exit 1
 	
@@ -4450,6 +4463,13 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 		# add builtins to list of pkgs to remove from final output
 		cut -f2 -d'|' $HOME/.packages/woof-installed-packages | sort | uniq >> $TMPDIR/installed_pkgs
 		# remove any deps in installed pkgs list from all deps.. to leave only missing deps
+		
+		sort -u ${TMPDIR}all_deps > ${TMPDIR}all_deps_sorted
+		mv ${TMPDIR}all_deps_sorted ${TMPDIR}all_deps
+		
+		sort -u ${TMPDIR}installed_pkgs > ${TMPDIR}installed_pkgs_sorted
+		mv ${TMPDIR}installed_pkgs_sorted ${TMPDIR}installed_pkgs
+	
 		comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs > ${TMPDIR}missing_deps
 	else
 		# list all deps we found as missing
@@ -4459,10 +4479,251 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	# get the new deps list
 	deps="`LANG=C cat ${TMPDIR}missing_deps | grep -v "^\$" | grep -v "^ \$" | sort | tr '\n' ' '`"
 	
-	[ "$deps" != "" ] && echo "$deps"
+	# get ALL deps from the list above (steals from /usr/local/petget/dependencies.sh)
+
+	deps_on_new_lines_surrounded_by_pipes="`echo $deps | tr ' ' '\n' | sed -e 's/$/|/g' -e 's/^/|/g'`"
+	echo "$deps_on_new_lines_surrounded_by_pipes" > ${TMPDIR}deps_on_new_lines_surrounded_by_pipes
+
+	deps="$deps"
+	more_deps="`list_all_deps "$PKGNAME"`"
+	
+	[ "`echo $more_deps`" != '' ] && deps="${deps} ${more_deps}"
+
+	[ "$deps" != "" ] && echo "$deps" | sed -e 's/  / /g'
 	
 	# clean up
 	rm ${TMPDIR}missing_deps ${TMPDIR}installed_pkgs ${TMPDIR}all_deps 2>/dev/null
+}
+
+
+list_all_deps(){
+
+	local PKGNAME=''
+	local PKGNAME_ONLY=''
+	local pkg_ext=''
+	local repo_files=''
+	local deps_list=''
+	local deps=''
+	local repo_of_pkg=''
+	local repo_file_of_pkg=''
+
+	# get pkg extension
+	pkg_ext=`get_pkg_ext "$1"`
+	
+	#pkg name only ,no path, no extension
+	PKGNAME="$(LANG=C basename "$1" .$pkg_ext)" 
+	PKGNAME=`get_pkg_name "$PKGNAME"`
+	PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
+
+	#DB_MAIN      the current repo file name
+	#DB_OTHERS    the other repo filenames, each on a new line (FALLBACKS)
+	DB_MAIN=`print_repo_info | grep 'Repo file' | cut -f2 -d':' | sed 's/[[:space:]]//g'`
+	DB_OTHERS="`repo_file_list | grep -v $DB_MAIN`"
+
+	#100711 moved from findmissingpkgs.sh...
+	if [ ! -f ${TMPDIR}inst_pkgs_on_new_lines_surrounded_by_pipes ];then
+	 INSTALLED_PATTERNS_SYS="`cat ${HOME}/.packages/layers-installed-packages | cut -f 2 -d '|' | sed -e 's%^%|%' -e 's%$%|%' -e 's%\\-%\\\\-%g'`"
+	 echo "$INSTALLED_PATTERNS_SYS" > ${TMPDIR}inst_pkgs_on_new_lines_surrounded_by_pipes
+	 #PKGS_SPECS_TABLE also has system-installed names, some of them are generic combinations of pkgs...
+	 INSTALLED_PATTERNS_GEN="`echo "$PKGS_SPECS_TABLE" | grep '^yes' | cut -f 2 -d '|' |  sed -e 's%^%|%' -e 's%$%|%' -e 's%\\-%\\\\-%g'`"
+	 echo "$INSTALLED_PATTERNS_GEN" >> ${TMPDIR}inst_pkgs_on_new_lines_surrounded_by_pipes
+	 sort -u ${TMPDIR}inst_pkgs_on_new_lines_surrounded_by_pipes > ${TMPDIR}inst_pkgs_on_new_lines_surrounded_by_pipesx
+	 mv -f ${TMPDIR}inst_pkgs_on_new_lines_surrounded_by_pipesx ${TMPDIR}inst_pkgs_on_new_lines_surrounded_by_pipes
+	fi
+	
+	#100711 this code repeated in findmissingpkgs.sh...
+	cp -f ${TMPDIR}inst_pkgs_on_new_lines_surrounded_by_pipes ${TMPDIR}all_inst_pkgs_on_new_lines_surrounded_by_pipes
+	INSTALLED_PATTERNS_USER="`cat ${HOME}/.packages/user-installed-packages | cut -f 2 -d '|' | sed -e 's%^%|%' -e 's%$%|%' -e 's%\\-%\\\\-%g'`"
+	echo "$INSTALLED_PATTERNS_USER" >> ${TMPDIR}all_inst_pkgs_on_new_lines_surrounded_by_pipes
+
+	#process name aliases into patterns (used in filterpkgs.sh, findmissingpkgs.sh) ... 100126...
+	xPKG_NAME_ALIASES="`echo "$PKG_NAME_ALIASES" | tr ' ' '\n' | grep -v '^$' | sed -e 's%^%|%' -e 's%$%|%' -e 's%,%|,|%g' -e 's%\\*%.*%g'`"
+	echo "$xPKG_NAME_ALIASES" > ${TMPDIR}pkg_name_aliases_patterns_raw #110706
+	cp -f ${TMPDIR}pkg_name_aliases_patterns_raw ${TMPDIR}pkg_name_aliases_patterns #110706 _raw see findmissingpkgs.sh
+
+	sed -e 's%\\%%g' ${TMPDIR}all_inst_pkgs_on_new_lines_surrounded_by_pipes > ${TMPDIR}all_inst_pkgs_on_new_lines_surrounded_by_pipes2 #101220 hack bugfix, \- should be just -.
+
+	#100711 above has a problem as it has wildcards. need to expand...
+	#ex: PKG_NAME_ALIASES has an entry 'cxxlibs,glibc*,libc-*', the above creates '|cxxlibs|,|glibc.*|,|libc\-.*|',
+	#    after expansion: '|cxxlibs|,|glibc|,|libc-|,|glibc|,|glibc_dev|,|glibc_locales|,|glibc-solibs|,|glibc-zoneinfo|'
+	echo -n "" > ${TMPDIR}pkg_name_aliases_patterns_expanded
+	for ONEALIASLINE in `cat ${TMPDIR}pkg_name_aliases_patterns | tr '\n' ' '` #ex: |cxxlibs|,|glibc.*|,|libc\-.*|
+	do
+	 echo -n "" > ${TMPDIR}pkg_name_aliases_tmp
+	 for PARTONELINE in `echo -n "$ONEALIASLINE" | tr ',' ' '`
+	 do
+		grep "$PARTONELINE" ${TMPDIR}all_inst_pkgs_on_new_lines_surrounded_by_pipes2 >> ${TMPDIR}pkg_name_aliases_tmp #101220 hack see above.
+	 done
+	 ZZZ="`echo "$ONEALIASLINE" | sed -e 's%\.\*%%g' | tr -d '\\'`"
+	 [ -s ${TMPDIR}pkg_name_aliases_tmp ] && ZZZ="${ZZZ},`cat ${TMPDIR}pkg_name_aliases_tmp | tr '\n' ',' | tr -s ',' | tr -d '\\'`"
+	 ZZZ="`echo -n "$ZZZ" | sed -e 's%,$%%'`"
+	 echo "$ZZZ" >> ${TMPDIR}pkg_name_aliases_patterns_expanded
+	done
+	cp -f ${TMPDIR}pkg_name_aliases_patterns_expanded ${TMPDIR}pkg_name_aliases_patterns
+
+	#w480 PKG_NAME_IGNORE is definedin PKGS_MANAGEMENT file... 100126...
+	xPKG_NAME_IGNORE="`echo "$PKG_NAME_IGNORE" | tr ' ' '\n' | grep -v '^$' | sed -e 's%^%|%' -e 's%$%|%' -e 's%,%|,|%g' -e 's%\\*%.*%g'`"
+	echo "$xPKG_NAME_IGNORE" > ${TMPDIR}pkg_name_ignore_patterns
+	#######100718 end copied code block#######
+	
+
+
+
+
+	SIZE2=0 #120907
+	echo -n "" > ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc #120903
+	echo -n "" > ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc0 #120903
+	cp -f ${TMPDIR}deps_on_new_lines_surrounded_by_pipes ${TMPDIR}deps_on_new_lines_surrounded_by_pipesx
+
+	for ONELEVEL in 1 2 3 4 5 6 7 8 9 10 11
+	do
+	 echo -n "" > ${TMPDIR}deps_on_new_lines_surrounded_by_pipes2
+	 for depPATTERN in `cat ${TMPDIR}deps_on_new_lines_surrounded_by_pipesx`
+	 do
+		ONEDEP="`echo -n "$depPATTERN" | sed -e 's%|%%g'`" #convert to exact name, ex: abiword
+		depPATTERN="`echo -n "$depPATTERN" | sed -e 's%\\-%\\\\-%g'`" #backslash '-'
+		#find database entry for this package...
+		for ONEDB in $DB_MAIN $DB_OTHERS
+		do
+		 DB_dependencies="`cat ${HOME}/.packages/$ONEDB | cut -f 1,2,9 -d '|' | grep "$depPATTERN" | cut -f 3 -d '|' | head -n 1 | sed -e 's%,$%%'`"
+		 xDB_dependencies="" #120903
+
+		 if [ "$DB_dependencies" != "" ];then
+			xDB_dependencies="`echo -n "$DB_dependencies" | tr ',' '\n' | cut -f 1 -d '&' | tr '\n' ','`" #120903 chop off any versioning info.
+			ALLDEPS_PATTERNS="`echo -n "$xDB_dependencies" | tr ',' '\n' | grep '^+' | sed -e 's%^+%%' -e 's%$%|%' -e 's%^%|%'`" #put '|' on each end.
+			echo "$ALLDEPS_PATTERNS" > ${TMPDIR}subpkg_deps_patterns
+			cp -f ${TMPDIR}all_inst_pkgs_on_new_lines_surrounded_by_pipes ${TMPDIR}all_inst_pkgs_on_new_lines_surrounded_by_pipesxx #120907
+			cat ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc >> ${TMPDIR}all_inst_pkgs_on_new_lines_surrounded_by_pipesxx #120907 greatly speeds search, improves hierarchy view.
+			MISSINGDEPS_PATTERNS="`grep --file=${TMPDIR}all_inst_pkgs_on_new_lines_surrounded_by_pipesxx -v ${TMPDIR}subpkg_deps_patterns`"
+			echo "$MISSINGDEPS_PATTERNS" >> ${TMPDIR}deps_on_new_lines_surrounded_by_pipes2
+			break
+		 fi
+		done
+	 done
+	 cp -f ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc-prev #120907
+	 sort -u ${TMPDIR}deps_on_new_lines_surrounded_by_pipes2 > ${TMPDIR}deps_on_new_lines_surrounded_by_pipesx0
+	 grep -v '^$' ${TMPDIR}deps_on_new_lines_surrounded_by_pipesx0 > ${TMPDIR}deps_on_new_lines_surrounded_by_pipesx
+	 cat ${TMPDIR}deps_on_new_lines_surrounded_by_pipesx >> ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc0 #accumulate them.
+	 sort -u ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc0 > ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc
+	 #120907 get out of loop when no more missing deps found...
+	 SIZE1=$(cat ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc-prev | wc -l)
+	 SIZE2=$(cat ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc | wc -l)
+	 [ $SIZE1 -eq $SIZE2 ] && break
+	done
+
+	DB_dependencies="`pkg_entry "$PKG_NAME"| head -8  | tail -1`"
+
+	xDB_dependencies="`echo -n "$DB_dependencies" | tr ',' '\n' | cut -f 1 -d '&' | tr '\n' ','`" #110722 chop off any versioning info.
+
+	#make pkg deps into patterns... 110722 change DB_dependencies to xDB_dependencies...
+#	PKGDEPS_PATTERNS="`echo -n "$xDB_dependencies" | tr ',' '\n' | grep '^+' | sed -e 's%^+%%' -e 's%^%|%' -e 's%$%|%'`"
+#	echo "$PKGDEPS_PATTERNS" > /tmp/petget_pkg_deps_patterns #ex line, mageia: |libdbus-glib-1_2|
+
+	#110722 same as above, but with versioning info...
+#	PKGDEPS_PATTERNS_WITHVER="`echo -n "$DB_dependencies" | tr ',' '\n' | grep '^+' | sed -e 's%^+%%' -e 's%^%|%' -e 's%$%|%' -e 's%&%|%g'`"
+#	echo "$PKGDEPS_PATTERNS_WITHVER" > /tmp/petget_pkg_deps_patterns_with_versioning #ex line, mageia: |libdbus-glib-1_2|ge2.3.6|
+
+	#110722
+#	MISSINGDEPS_PATTERNS_WITHVER="`grep --file=/tmp/petget_missingpkgs_patterns /tmp/petget_pkg_deps_patterns_with_versioning | grep -v '^$'`"
+#	echo "$MISSINGDEPS_PATTERNS_WITHVER" > /tmp/petget_missingpkgs_patterns_with_versioning #can be read by dependencies.sh, find_deps.sh.
+#	#...ex each line: |kdebase|ge2.3.6|
+#	# ex with chained operators: |kdebase|ge2.3.6|lt2.4.5|
+
+
+	#120903 bring back the versioning info from level1 (${TMPDIR}deps_on_new_lines_surrounded_by_pipes_with_versioning is created in findmissingpkgs.sh)...
+	#restore the format ex |abiword|gt3.4| becomes |abiword&gt3.4| ...
+	grep -v --file=${TMPDIR}deps_on_new_lines_surrounded_by_pipes ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc > ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_accx #make sure that 2nd file does not have any level1 deps.
+	mv -f ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_accx ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc
+	sort -u ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc > ${TMPDIR}deps_on_new_lines_surrounded_by_pipesx
+	mv -f ${TMPDIR}deps_on_new_lines_surrounded_by_pipesx ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_and_versioning_level1
+	#...be careful here, _with_versioning file has |abiword|gt3.4|, _and_versioning has |abiword&gt3.4| format.
+	#...a limitation, only versioning of the "level 1" deps is being retained here.
+
+	#now find the entries in the databases...
+	rm -f /tmp/petget_missing_dbentries* 2>/dev/null
+	#111107 01micko: fix for '||' messing things up...
+	for depPATTERN in `grep '[a-zA-Z]' ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_and_versioning_level1` #ex depPATTERN=|kdelibs| ex2: |kdelibs&gt2.3.6|. 120221 jemimah. 120903 versioning.
+	do
+
+	 #110722 separate out any versioning... (see also findmissingpkgs.sh)
+	 xdepPATTERN="`echo -n "$depPATTERN" | sed -e 's%&.*%|%'`" #ex: changes |kdelibs&gt2.3.6| to |kdelibs|
+	 depVERSIONING="`echo -n "$depPATTERN" | grep -o '&.*' | tr -d '|'`" #ex: &gt2.3.6
+	 if [ "$depVERSIONING" ];then
+		#110822 similar code in support/findpkgs in woof...
+		DEPCONDS="`echo -n "$depVERSIONING" | cut -f 2-9 -d '&' | tr '&' ' '`" #can have chained operators, ex: ge2.6.32 lt2.6.33
+	 fi
+	 depPATTERN="`echo -n "$xdepPATTERN" | sed -e 's%\\-%\\\\-%g'`" #backslash '-'. 120903 fix.
+	 
+	 for ONEREPODB in $DB_MAIN $DB_OTHERS
+	 do
+		DBFILE="`basename $ONEREPODB`" #ex: Packages-slackware-12.2-official
+		#find database entry(s) for this package...
+		DB_ENTRIES="`cat ${HOME}/.packages/$ONEREPODB | grep "$depPATTERN"`" #120903 more than one entry may have been found.
+		if [ "$DB_ENTRIES" != "" ];then
+		 echo "$DB_ENTRIES" | #120903
+		 while read DB_ENTRY
+		 do
+			DB_version="`echo -n "$DB_ENTRY" | cut -f 3 -d '|'`"
+			if [ "$depVERSIONING" ];then #110722
+			 #110822 support chained operators...
+			 condFLG='good'
+			 for ACOND in $DEPCONDS #ex: gt5.6.7 lt6.7.8
+			 do
+				DEPOP="`echo -n "$ACOND" | cut -c 1,2`"
+				DEPVER="`echo -n "$ACOND" | cut -c 3-99`"
+						 
+				if ! vercmp ${DB_version} ${DEPOP} ${DEPVER};then
+				 condFLG='bad'
+				fi
+			 done
+			 if [ "$condFLG" = "good" ];then
+				echo "$DB_ENTRY" >> /tmp/petget_missing_dbentries-${DBFILE}-2
+				break 2
+			 fi
+			else
+			 echo "$DB_ENTRY" >> /tmp/petget_missing_dbentries-${DBFILE}-2
+			 break 2
+			fi
+		 done
+		fi
+	 done
+	done
+
+	#clean them up...
+	for ONEREPODB in $DB_MAIN $DB_OTHERS
+	do
+	 DBFILE="`basename $ONEREPODB`" #ex: Packages-slackware-12.2-official
+	 if [ -f /tmp/petget_missing_dbentries-${DBFILE}-2 ];then
+		sort -u /tmp/petget_missing_dbentries-${DBFILE}-2 > /tmp/petget_missing_dbentries-${DBFILE}
+		rm -f /tmp/petget_missing_dbentries-${DBFILE}-2
+	 fi
+	done
+
+	#--- slacko
+	case "$DISTRO_BINARY_COMPAT" in slackware*)
+	 OFFICIAL=/tmp/petget_missing_dbentries-Packages-*lackware*-official
+	 SALIX=/tmp/petget_missing_dbentries-Packages-*lackware*-salix
+	 SLACKY=/tmp/petget_missing_dbentries-Packages-*lackware*-slacky
+	 case "$DB_MAIN" in *"official"*) # Give priority to Slackware official
+		 cat ${OFFICIAL} | while IFS="|" read FIRST COMMON THIRD
+		 do
+			 sed -i "/|$COMMON|/d" ${SALIX} ${SLACKY} #2>/dev/null
+		 done
+	 esac
+	 case "$DB_MAIN" in *"salix"*) # Get Salix deps preferencially
+		 cat ${SALIX} | while IFS="|" read FIRST COMMON THIRD
+		 do
+			 sed -i "/|$COMMON|/d" ${OFFICIAL} ${SLACKY} #2>/dev/null
+		 done
+	 esac
+	 ;;
+	esac
+	
+	echo -n "`cat /tmp/petget_missing_dbentries-* 2>/dev/null`" | cut -f1 -d'|' | while read dep
+	do
+		echo -n "`get_pkg_name_only $dep` "
+	done
+	echo
 }
 
 
@@ -4527,6 +4788,13 @@ find_deps(){ 		# make 2 lists: DEPS_INSTALLED and DEPS_MISSING FUNCLIST
 		# add woof pkgs to list of pkgs to remove from final output
 		cut -f2 -d'|' $HOME/.packages/woof-installed-packages | grep -v ^$ | sort | uniq >> $TMPDIR/installed_pkgs
 		# remove any deps in installed pkgs list from all deps.. to leave only missing deps
+				
+		sort -u ${TMPDIR}all_deps > ${TMPDIR}all_deps_sorted
+		mv ${TMPDIR}all_deps_sorted ${TMPDIR}all_deps
+		
+		sort -u ${TMPDIR}installed_pkgs > ${TMPDIR}installed_pkgs_sorted
+		mv ${TMPDIR}installed_pkgs_sorted ${TMPDIR}installed_pkgs
+		
 		comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs | grep -v ^$ > ${TMPDIR}missing_deps
 		deps_list="`cat "${TMPDIR}missing_deps" | grep -v ^$ | sort | tr '\n' ' ' `"
 	fi
@@ -4534,7 +4802,7 @@ find_deps(){ 		# make 2 lists: DEPS_INSTALLED and DEPS_MISSING FUNCLIST
 	# so now, $deps_list='dep1 dep2 dep3'
 	
 	# now get the deps list with each dep on its own line
-	deps_on_new_lines="`echo "$deps_list" | tr ' ' '\n' | grep -v ^$` | sort "
+	deps_on_new_lines="`echo "$deps_list" | tr ' ' '\n'`"
 	
 	# exit if no deps to parse
 	[ "$deps_on_new_lines" = '' ] && return 1
@@ -4674,7 +4942,7 @@ get_deps(){ 		# find, get and install the deps of pkg FUNCLIST
 			for DEP in $DEPS_MISSING
 			do
 				
-				[ "$DEP" = "" -o "$DEP" = "${PKGNAME_ONLY}" ] && continue #skip if the dep is the main package
+				[ "$DEP" = "" -o "$DEP" = "${PKGNAME_ONLY}" -o "$DEP" = "${PKGNAME}" ] && continue #skip if the dep is the main package
 				
 				local DEPNAME=`get_pkg_name "$DEP"`
 				local DEPNAME_ONLY=`get_pkg_name_only "$DEPNAME"`
