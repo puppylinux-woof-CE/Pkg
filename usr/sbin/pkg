@@ -385,8 +385,7 @@ get_pkg_name_only(){	# return pkg name only, no version or suffix FUNCLIST
 
 	case $DISTRO_BINARY_COMPAT in ubuntu|trisquel|debian|devuan)
 		name_only=`get_pkg_name_only_from_ext "$(basename "${1}.${repo_ext}")"`
-		[ "$name_only" != '' -a "$name_only" != "$1" ] && echo $name_only
-		return 0
+		[ "$name_only" != '' -a "$name_only" != "$1" ] && echo $name_only && return 0
 		;;
 	esac
 	
