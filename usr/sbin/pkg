@@ -3078,10 +3078,10 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 		# if pkg is not yet installed, or we are force re-installing
 
 		# get filename from download file
-		#[ "$PKGNAME" = "" ] && echo one && PKGNAME="`list_downloaded_pkgs "${PKGNAME}" | head -1`"
-		#[ "$PKGNAME" = "" ] && echo two && PKGNAME="`list_downloaded_pkgs "${PKGNAME}_" | head -1`"
-		#[ "$PKGNAME" = "" ] && echo three && PKGNAME="`list_downloaded_pkgs "${PKGNAME}-" | head -1`"
-		#[ "$PKGNAME" = "" ] && echo four && PKGNAME="`get_pkg_name "$PKGFILE"`"
+		[ "$PKGNAME" = "$PKGNAME_ONLY" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}" | head -1`"
+		[ "$PKGNAME" = "$PKGNAME_ONLY" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}_" | head -1`"
+		[ "$PKGNAME" = "$PKGNAME_ONLY" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}-" | head -1`"
+		[ "$PKGNAME" = "$PKGNAME_ONLY" ] && PKGNAME="`get_pkg_name "$PKGFILE"`"
 
 		# ask/inform user before install
 		echo -n "Install package ${PKGNAME}$QTAG:  "
@@ -3459,7 +3459,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 			fi
 
 			#080413 do fixmenus, if menu entry found #200713 moved here
-			if [ "`grep -m1 '/usr/share/applications' $HOME/.packages/${PKGNAME}.files | grep .desktop$`" != "" ];then
+			if [ "`grep -m1 '/usr/share/applications' $HOME/.packages/${PKGNAME}.files 2>/dev/null | grep .desktop$`" != "" ];then
 				fixmenus &>/dev/null
 				# refresh JWM menus if using JWM window manager
 				[ "`which jwm`" != "" -a "`ps -e | grep jwm`" != "" ] && jwm -reload &>/dev/null
