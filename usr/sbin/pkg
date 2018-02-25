@@ -3006,7 +3006,7 @@ pkg_download(){ 	# download a pkg to WORKDIR FUNCLIST
 
 
 pkg_install(){ 		# install a downloaded package FUNCLIST
-	
+
 	. ${PKGRC}
 	
 	# exit if no valid option
@@ -3024,18 +3024,16 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 
 	# get pkg extension
 	pkg_ext=`get_pkg_ext "$1"`
-	#get pkg name only, no extension or path
+	# get pkg name only, no extension or path
 	PKGNAME="$(basename "$1" .$pkg_ext)" 
-	# get name with version
-	PKGNAME=`get_pkg_name "$PKGNAME"`
-	PKGNAME_LOCAL=`list_downloaded_pkgs "$PKGNAME" | head -1`
-	[ "$PKGNAME_LOCAL" != '' ] && PKGNAME="`basename $PKGNAME_LOCAL .$pkg_ext`"
 	# get name without version	
 	PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
 
 	# exit if no valid option
 	[ "$PKGNAME" = '' ] && print_usage install && exit 1
-	
+
+	[ "`is_installed_pkg $PKGNAME`" = true ] && return 1
+
 	if [ -f "$1" ];then
 		PKGFILE="$1"
 	else
@@ -3062,507 +3060,499 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 		fi
 	fi
 
-	[ "`is_local_pkg "$PKGFILE"`" = false ] && echo "The file $1 not found." && return 1
-
-	# get the extension of this newly found pkg (which we should have found by now)
-	pkg_ext=`get_pkg_ext "$PKGFILE"`
-	# get extension again, we may have been given only a pkg name, find its extension from repo files
-	[ "$pkg_ext" = "" ] && pkg_ext=`get_pkg_ext "$PKGNAME"`
-	
-	[ "$pkg_ext" = '' ] && echo "Not installing $PKGFILE." && error "Invalid file extension ($pkg_ext)." && return 1
-	
-	# remove any previous PET/pkg stuff lying around from previous installs
-	rm -f /pet.specs /pinstall.sh /puninstall.sh /install/doinst.sh
-
 	# if the file exists, or using --force
 	if [ -f "$PKGFILE" -o "$FORCE" = true ];then
+	
+		[ ! -f "$PKGFILE" ] && echo "The file $1 was not found." && return 1
 
-		if [ "`pkg_contents "$PKGFILE" 2>/dev/null`" = '' ];then
-			error "$PKGFILE not a valid package."
-			exit 1
-		fi
+		# get the extension of this newly found pkg (which we should have found by now)
+		pkg_ext=`get_pkg_ext "$PKGFILE"`
+		# get extension again, we may have been given only a pkg name, find its extension from repo files
+		[ "$pkg_ext" = "" ] && pkg_ext=`get_pkg_ext "$PKGNAME"`
 		
+		[ "$pkg_ext" = '' ] && echo "Not installing $PKGFILE." && error "Invalid file extension ($pkg_ext)." && return 1
+
+		# remove any previous PET/pkg stuff lying around from previous installs
+		rm -f /pet.specs /pinstall.sh /puninstall.sh /install/doinst.sh
+
 		# if pkg is not yet installed, or we are force re-installing
-		if [ "`is_installed_pkg $PKGNAME`" = false -o "$FORCE" = true ];then
 
-			# get filename from download file
-			[ "$PKGNAME" = "" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}" | head -1`"
-			[ "$PKGNAME" = "" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}_" | head -1`"
-			[ "$PKGNAME" = "" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}-" | head -1`"
-			[ "$PKGNAME" = "" ] && PKGNAME="`get_pkg_name "$PKGFILE"`"
+		# get filename from download file
+		#[ "$PKGNAME" = "" ] && echo one && PKGNAME="`list_downloaded_pkgs "${PKGNAME}" | head -1`"
+		#[ "$PKGNAME" = "" ] && echo two && PKGNAME="`list_downloaded_pkgs "${PKGNAME}_" | head -1`"
+		#[ "$PKGNAME" = "" ] && echo three && PKGNAME="`list_downloaded_pkgs "${PKGNAME}-" | head -1`"
+		#[ "$PKGNAME" = "" ] && echo four && PKGNAME="`get_pkg_name "$PKGFILE"`"
 
-			# ask/inform user before install
-			echo -n "Install package ${PKGNAME}$QTAG:  "
-			[ "$ASK" = true ] && read -n 1 CONFIRM </dev/tty || CONFIRM=y
-			[ "$ASK" = true ] && echo -ne "\b\b\n"
+		# ask/inform user before install
+		echo -n "Install package ${PKGNAME}$QTAG:  "
+		[ "$ASK" = true ] && read -n 1 CONFIRM </dev/tty || CONFIRM=y
+		[ "$ASK" = true ] && echo -ne "\b\b\n"
+		
+		# if user answered yes, we will now download the pkgs
+		if [ "$CONFIRM" = "y" ];then
+
+			# print new line if we didnt take any user input on tty
+			[ "$ASK" != true ] && echo
 			
-			# if user answered yes, we will now download the pkgs
-			if [ "$CONFIRM" = "y" ];then
+			#if [ "`pkg_contents "$PKGFILE" 2>/dev/null`" = '' ];then
+			#	error "$PKGFILE not a valid package."
+			#	exit 1
+			#fi
 
-				# print new line if we didnt take any user input on tty
-				[ "$ASK" != true ] && echo
+			# fallback to repo pkg ext if none found
+			[ "$pkg_ext" = "" ] && pkg_ext="$EX"
 			
-				# fallback to repo pkg ext if none found
-				[ "$pkg_ext" = "" ] && pkg_ext="$EX"
+			#remove the old error log
+			rm $TMPDIR/$SELF-cp-errlog 2>/dev/null
+
+			# extract the archive file into a $CURDIR/$PKGNAME folder
+			case "$pkg_ext" in
 				
-				#remove the old error log
-				rm $TMPDIR/$SELF-cp-errlog 2>/dev/null
-
-				# extract the archive file into a $CURDIR/$PKGNAME folder
-				case "$pkg_ext" in
+				pet) 
+					#determine the compression, extend test to 'XZ'
+					file -b "${PKGFILE}" | grep -i -q "^xz" && TAREXT=xz || TAREXT=gz
+					[ "$TAREXT" = 'xz' ] && taropts='-xJf' || taropts='-zxf'
 					
-					pet) 
-						#determine the compression, extend test to 'XZ'
-						file -b "${PKGFILE}" | grep -i -q "^xz" && TAREXT=xz || TAREXT=gz
-						[ "$TAREXT" = 'xz' ] && taropts='-xJf' || taropts='-zxf'
-						
-						# convert to tar extractable archive
-						pet2tgz "${PKGFILE}" 1>/dev/null
-						
-						# now extract the file
-						tar $taropts "${CURDIR}/${PKGNAME}.tar.${TAREXT}" 2> $TMPDIR/$SELF-cp-errlog
-
-						# some old types need this extra step
-						if [ -f "${CURDIR}/${PKGNAME}.tar.$TAREXT" ];then
-							cd "${CURDIR}/${PKGNAME}/" 1>/dev/null
-							tar --absolute-names $tarops "./${PKGNAME}.tar.$TAREXT" ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog #260713
-							sync
-							rm -f  "./${PKGNAME}.tar.$TAREXT" 1>/dev/null
-							cd - 1>/dev/null
-						fi
-
-						# save the uninstall script for later
-						if [ -f "${CURDIR}/${PKGNAME}/puninstall.sh" ];then
-							mv "${CURDIR}/${PKGNAME}/puninstall.sh" ${HOME}/.packages/${PKGNAME}.remove
-						fi
-						
-						# create a tgz
-						tgz2pet "${CURDIR}/${PKGNAME}.tar.$TAREXT" 1>/dev/null
-						rm "${CURDIR}/${PKGNAME}.tar.$TAREXT" 2>/dev/null
-					;;
+					# convert to tar extractable archive
+					pet2tgz "${PKGFILE}" 1>/dev/null
 					
-					sfs) 
-						sfs_loadr -q --cli +"${CURDIR}/${PKGNAME}.${pkg_ext}" #2>/dev/null
-						rm -f $HOME/.packages/${PKGNAME}.files 2>/dev/null
-						# create $HOME/.packages/$PKGNAME.files
-						pkg_contents "${CURDIR}/${PKGNAME}.${pkg_ext}" | while read line
-						do
-							[ -f "$line" ] && echo "$line" >> $HOME/.packages/${PKGNAME}.files
-						done
-						# exit, we dont need to unpack and copy
-						return 0
-					;;
-					
-					deb) 
-						rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
-						mkdir -p "${CURDIR}/${PKGNAME}"
-						cp "${CURDIR}/${PKGNAME}.deb" "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" || exit 4
-						cd "${CURDIR}/${PKGNAME}/"
-						PFILES="`dpkg-deb --contents ${PKGNAME}.deb | tr -s ' ' | cut -f 6 -d ' '`"
-						[ "$PFILES" != '' ] && echo "$PFILES" > $HOME/.packages/${PKGNAME}.files
+					# now extract the file
+					tar $taropts "${CURDIR}/${PKGNAME}.tar.${TAREXT}" 2> $TMPDIR/$SELF-cp-errlog
 
-						# Workaround to avoid overwriting the $DISTRO_ARCHDIR symlink.  
-						if [ "$DISTRO_ARCHDIR" != "" -a "$(echo "$PFILES" | grep "$DISTRO_ARCHDIR")" != "" ]; then
-						   mkdir -p /tmp/$PKGNAME
-						   rm -rf /tmp/$PKGNAME/*
-						   dpkg-deb -x ${PKGNAME}.deb /tmp/$PKGNAME/ 2> $TMPDIR/$SELF-cp-errlog
-						   for f in $(find /tmp/$PKGNAME \( -type f -o -type l \))
-						   do
-						     xpath=$(echo $f |  cut  -f 4-30 -d "/" | sed "s/$DISTRO_ARCHDIR\///")
-						     mkdir -p ${DIRECTSAVEPATH}/$(dirname $xpath)
-						     cp -a $f ${DIRECTSAVEPATH}/$(dirname $xpath)/
-						  done
-						   #rm -rf /tmp/$PKGNAME
-						else
-						   dpkg-deb -x ${PKGNAME}.deb ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
-						fi
-
-						if [ "`cat $TMPDIR/$SELF-cp-errlog | grep 'tar: Exiting with failure status due to previous errors'`" != "" ];then
-							error "Failed to unpack $PKGNAME.deb"
-							exit 1
-						fi
-						[ -d /DEBIAN ] && rm -rf /DEBIAN #130112 precaution.
-						dpkg-deb -e $PKGNAME.deb /DEBIAN #130112 extracts deb control files to dir /DEBIAN. may have a post-install script, see below.
-						rm "${PKGNAME}.deb"
-					 	cd - 1>/dev/null
-					;;
-					
-					*tbz|*tar.bz2) 
-						rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
-					 	mkdir -p "${CURDIR}/${PKGNAME}" 
-						cp "${CURDIR}/${PKGNAME}.$pkg_ext" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
-						cd "${CURDIR}/${PKGNAME}/"
-					 	
-					 	( umask 000 ; cat "${PKGNAME}.$pkg_ext" | bzip2 -dc | tar -xf - 2> $TMPDIR/$SELF-cp-errlog )
-					 	
-					 	rm "${PKGNAME}.$pkg_ext"
-					 	cd - 1>/dev/null
-					;;
-					
-					*tlz|*tar.lzma) 
-						rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
-					 	mkdir -p "${CURDIR}/${PKGNAME}" 
-						cp "${CURDIR}/${PKGNAME}.$pkg_ext" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
-						cd "${CURDIR}/${PKGNAME}/"
-					 	
-					 	( umask 000 ; cat "${PKGNAME}.$pkg_ext" | lzma -dc | tar -xf - 2> $TMPDIR/$SELF-cp-errlog )
-					 	
-					 	rm "${PKGNAME}.$pkg_ext"
-					 	cd - 1>/dev/null
-					;;
-					
-					*tgz|*txz|*tar.gz|*tar.xz|*xz|*gz) 
-						rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
-					 	mkdir -p "${CURDIR}/${PKGNAME}" 
-						cp "${CURDIR}/${PKGNAME}.$pkg_ext" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
-						cd "${CURDIR}/${PKGNAME}/"
-					 	
-					 	file -b "${PKGNAME}.$pkg_ext" | grep -i -q "^xz" && TAREXT=xz || TAREXT=gz
-					 	[ "$TAREXT" = 'xz' ] && taropts='-xJf' || taropts='-zxf'
-					 	
-					 	tar $taropts "${PKGNAME}.$pkg_ext" 2> $TMPDIR/$SELF-cp-errlog
-					 	rm "${PKGNAME}.$pkg_ext"
-					 	cd - 1>/dev/null
-					;;
-					
-					rpm)
-						PKGNAME="`basename ${PKGFILE} .rpm`"
-						busybox rpm -qp "$PKGFILE" > /dev/null 2>&1
-						[ $? -ne 0 ] && exit 1
-						PFILES="`busybox rpm -qpl $PKGFILE`"
-						[ $? -ne 0 ] && exit 1
-						echo "$PFILES" > $HOME/.packages/${PKGNAME}.files
-						pkg_unpack "$PKGFILE" 1>/dev/null
-  					;;
-				
-				esac
-				
-				# now extract pkg contents to /
-				[ ! -d "${PKGNAME}/" ] && error "Cannot enter directory '${PKGNAME}/', it doesn't exist." && exit 4
-				cd "${PKGNAME}/" 1>/dev/null
-				cp -a --remove-destination * ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
-				
-				#source is a directory, target is a symlink...
-				if [ -s $TMPDIR/$SELF-cp-errlog ];then
-					cat $TMPDIR/$SELF-cp-errlog  2>/dev/null | grep -E 'Cannot create symlink to|cannot overwrite non-directory' | cut -f 1 -d "'" | cut -f 2 -d '`' |
-					while read ONEDIRSYMLINK
-					do
-						#adding that extra trailing / does the trick...
-						cp -a --remove-destination ${ONEDIRSYMLINK}/* /${ONEDIRSYMLINK}/ 2> $TMPDIR/$SELF-cp-errlog #260713
-					done
-				fi
-				sync
-				cd .. 1>/dev/null
-				
-				if [ ! -f $HOME/.packages/${PKGNAME}.files ];then
-					# add ${HOME}/.packages/${PKGNAME}.files, need to find regular files and links separately... then images..
-					find "./${PKGNAME}/" -mount -mindepth 2 -type f | sed -e "s/\.\/${PKGNAME}//g" -e 's/\/root0\//\/root\//g' > $HOME/.packages/${PKGNAME}.files
-					find "./${PKGNAME}/" -mount -mindepth 2 -type l | sed -e "s/\.\/${PKGNAME}//g" -e 's/\/root0\//\/root\//g' >> $HOME/.packages/${PKGNAME}.files
-
-					for ONEIMAGEFILE in `ls -1 /*[0-9].xpm 2>/dev/null`
-					do
-					 BASEONEIMAGE="`basename $ONEIMAGEFILE`"
-					 echo "/usr/local/lib/X11/pixmaps/$BASEONEIMAGE" >> $HOME/.packages/${PKGNAME}.files
-					done
-					for ONEIMAGEFILE in `ls -1 /*[0-9].png 2>/dev/null`
-					do
-					 BASEONEIMAGE="`basename $ONEIMAGEFILE`"
-					 echo "/usr/local/lib/X11/pixmaps/$BASEONEIMAGE" >> $HOME/.packages/${PKGNAME}.files
-					done
-					for ONEIMAGEFILE in `ls -1 /*[^0-9].xpm 2>/dev/null`
-					do
-					 BASEONEIMAGE="`basename $ONEIMAGEFILE`"
-					 echo "/usr/local/lib/X11/mini-icons/$BASEONEIMAGE" >> $HOME/.packages/${PKGNAME}.files
-					done
-					for ONEIMAGEFILE in `ls -1 /*[^0-9].png 2>/dev/null` #v2.16
-					do
-					 BASEONEIMAGE="`basename $ONEIMAGEFILE`"
-					 echo "/usr/local/lib/X11/mini-icons/$BASEONEIMAGE" >> $HOME/.packages/${PKGNAME}.files
-					done
-				fi
-				
-				# move the *.files to $HOME/.packages 
-				FILES=''
-				FILES="`find "$CURDIR" -iname "*.files" | head -1`"
-				[ -f "`echo $FILES`" ] && mv "${CURDIR}/"*".files" "${HOME}/.packages/" #260713
-
-				#pkgname.files may need to be fixed...
-				FIXEDFILES="`cat ${HOME}/.packages/${PKGNAME}.files | grep -v '^\\./$'| grep -v '^/$' | sed -e 's%^\\.%%' -e 's%^%/%' -e 's%^//%/%'`"
-				echo "$FIXEDFILES" > ${HOME}/.packages/${PKGNAME}.files
-
-				# remove all lines from $PKGNAME.files that is not a file or symlink
-				local flist="`cat $HOME/.packages/${PKGNAME}.files`"
-				echo "$flist" | while read flist_line
-				do
-					[ -d "$flist_line" ] && newfile="`grep -v "^$flist_line\$" $HOME/.packages/${PKGNAME}.files`"
-					[ "`echo $flist_line | grep '/$'`" ] && newfile="`grep -v "^$flist_line\$" $HOME/.packages/${PKGNAME}.files`"
-					echo "$newfile" > $HOME/.packages/${PKGNAME}.files
-				done
-				local sorted_flist="`cat $HOME/.packages/${PKGNAME}.files | sort`"
-				echo "$sorted_flist" > $HOME/.packages/${PKGNAME}.files
-
-				# some pets add images and icons at / so move them
-				mv /{*.xpm,*.png} /usr/share/pixmaps/ 2>/dev/null
-				mv /*.ico /usr/share/pixmaps/ 2>/dev/null
-
-				# run the post install scripts (for puppy, slackware, arch, debian/ubuntu, etc)
-				for i in /pinstall.sh /install/doinst.sh /DEBIAN/postinst
-				do
-					[ -z /${i} -o ! -e /${i} ] && continue
-					chmod +x /${i}
-					cd /
-					nohup sh ${i} &>/dev/null
-					sleep 0.2
-					rm -f ${i}
-					cd ${CURDIR}/
-				done
-				rm -rf /install
-				rm -rf /DEBIAN
-
-				#130314 run arch linux pkg post-install script...
-				if [ -f /.INSTALL -a /usr/local/petget/ArchRunDotInstalls ];then #precaution. see 3builddistro, script created by noryb009.
-					#this code is taken from below...
-					dlPATTERN='|'"`echo -n "${PKGNAME}" | sed -e 's%\\-%\\\\-%'`"'|'
-					archVER="`cat $TMPDIR/petget_missing_dbentries-Packages-* 2>/dev/null | grep "$dlPATTERN" | head -n 1 | cut -f 3 -d '|'`"
-					if [ "$archVER" ];then #precaution.
-						cd /
-						mv -f .INSTALL .INSTALL1-${archVER}
-						cp -a /usr/local/petget/ArchRunDotInstalls ArchRunDotInstalls
-						LANG=$LANG_USER ./ArchRunDotInstalls
-						rm -f ArchRunDotInstalls
-						rm -f .INSTALL*
-						cd ${CURDIR}/
-					fi
-				fi
-
-				PKGCAT=''
-				PKGSIZE=''
-				PKGDESC=''
-				DEPLIST=''
-
-				# clean up pet installs 
-				if [ "$pkg_ext" = "pet" ];then
-					cd /
-
-					# get pkg info from pet.spec before we delete it, because the PET may not be a repo pkg
-					petspecs="`cat /pet.specs 2>/dev/null`"
-					
-					if [ "$petspecs" != '' ];then
-						# now get pkg info
-						PKGCAT="`echo $petspecs|  cut -f5  -d'|'`"
-						PKGSIZE="`echo $petspecs| cut -f6  -d'|'`"
-						PKGDESC="`echo $petspecs| cut -f10 -d'|'`"
-						DEPSLIST="`echo $petspecs|cut -f9  -d'|'`"
+					# some old types need this extra step
+					if [ -f "${CURDIR}/${PKGNAME}.tar.$TAREXT" ];then
+						cd "${CURDIR}/${PKGNAME}/" 1>/dev/null
+						tar --absolute-names $tarops "./${PKGNAME}.tar.$TAREXT" ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog #260713
+						sync
+						rm -f  "./${PKGNAME}.tar.$TAREXT" 1>/dev/null
+						cd - 1>/dev/null
 					fi
 
+					# save the uninstall script for later
+					if [ -f "${CURDIR}/${PKGNAME}/puninstall.sh" ];then
+						mv "${CURDIR}/${PKGNAME}/puninstall.sh" ${HOME}/.packages/${PKGNAME}.remove
+					fi
+					
+					# create a tgz
+					tgz2pet "${CURDIR}/${PKGNAME}.tar.$TAREXT" 1>/dev/null
+					rm "${CURDIR}/${PKGNAME}.tar.$TAREXT" 2>/dev/null
+				;;
+				
+				sfs) 
+					sfs_loadr -q --cli +"${CURDIR}/${PKGNAME}.${pkg_ext}" #2>/dev/null
+					rm -f $HOME/.packages/${PKGNAME}.files 2>/dev/null
+					# create $HOME/.packages/$PKGNAME.files
+					pkg_contents "${CURDIR}/${PKGNAME}.${pkg_ext}" | while read line
+					do
+						[ -f "$line" ] && echo "$line" >> $HOME/.packages/${PKGNAME}.files
+					done
+					# exit, we dont need to unpack and copy
+					return 0
+				;;
+				
+				deb) 
+					rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
+					mkdir -p "${CURDIR}/${PKGNAME}"
+					cp "${CURDIR}/${PKGNAME}.deb" "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" || exit 4
+					cd "${CURDIR}/${PKGNAME}/"
+					PFILES="`dpkg-deb --contents ${PKGNAME}.deb | tr -s ' ' | cut -f 6 -d ' '`"
+					[ "$PFILES" != '' ] && echo "$PFILES" > $HOME/.packages/${PKGNAME}.files
+
+					# Workaround to avoid overwriting the $DISTRO_ARCHDIR symlink.  
+					if [ "$DISTRO_ARCHDIR" != "" -a "$(echo "$PFILES" | grep "$DISTRO_ARCHDIR")" != "" ]; then
+					   mkdir -p /tmp/$PKGNAME
+					   rm -rf /tmp/$PKGNAME/*
+					   dpkg-deb -x ${PKGNAME}.deb /tmp/$PKGNAME/ 2> $TMPDIR/$SELF-cp-errlog
+					   for f in $(find /tmp/$PKGNAME \( -type f -o -type l \))
+					   do
+						 xpath=$(echo $f |  cut  -f 4-30 -d "/" | sed "s/$DISTRO_ARCHDIR\///")
+						 mkdir -p ${DIRECTSAVEPATH}/$(dirname $xpath)
+						 cp -a $f ${DIRECTSAVEPATH}/$(dirname $xpath)/
+					  done
+					   #rm -rf /tmp/$PKGNAME
+					else
+					   dpkg-deb -x ${PKGNAME}.deb ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
+					fi
+
+					if [ "`cat $TMPDIR/$SELF-cp-errlog | grep 'tar: Exiting with failure status due to previous errors'`" != "" ];then
+						error "Failed to unpack $PKGNAME.deb"
+						exit 1
+					fi
+					[ -d /DEBIAN ] && rm -rf /DEBIAN #130112 precaution.
+					dpkg-deb -e $PKGNAME.deb /DEBIAN #130112 extracts deb control files to dir /DEBIAN. may have a post-install script, see below.
+					rm "${PKGNAME}.deb"
+					cd - 1>/dev/null
+				;;
+				
+				*tbz|*tar.bz2) 
+					rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
+					mkdir -p "${CURDIR}/${PKGNAME}" 
+					cp "${CURDIR}/${PKGNAME}.$pkg_ext" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
+					cd "${CURDIR}/${PKGNAME}/"
+					
+					( umask 000 ; cat "${PKGNAME}.$pkg_ext" | bzip2 -dc | tar -xf - 2> $TMPDIR/$SELF-cp-errlog )
+					
+					rm "${PKGNAME}.$pkg_ext"
+					cd - 1>/dev/null
+				;;
+				
+				*tlz|*tar.lzma) 
+					rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
+					mkdir -p "${CURDIR}/${PKGNAME}" 
+					cp "${CURDIR}/${PKGNAME}.$pkg_ext" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
+					cd "${CURDIR}/${PKGNAME}/"
+					
+					( umask 000 ; cat "${PKGNAME}.$pkg_ext" | lzma -dc | tar -xf - 2> $TMPDIR/$SELF-cp-errlog )
+					
+					rm "${PKGNAME}.$pkg_ext"
+					cd - 1>/dev/null
+				;;
+				
+				*tgz|*txz|*tar.gz|*tar.xz|*xz|*gz) 
+					rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
+					mkdir -p "${CURDIR}/${PKGNAME}" 
+					cp "${CURDIR}/${PKGNAME}.$pkg_ext" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
+					cd "${CURDIR}/${PKGNAME}/"
+					
+					file -b "${PKGNAME}.$pkg_ext" | grep -i -q "^xz" && TAREXT=xz || TAREXT=gz
+					[ "$TAREXT" = 'xz' ] && taropts='-xJf' || taropts='-zxf'
+					
+					tar $taropts "${PKGNAME}.$pkg_ext" 2> $TMPDIR/$SELF-cp-errlog
+					rm "${PKGNAME}.$pkg_ext"
+					cd - 1>/dev/null
+				;;
+				
+				rpm)
+					PKGNAME="`basename ${PKGFILE} .rpm`"
+					busybox rpm -qp "$PKGFILE" > /dev/null 2>&1
+					[ $? -ne 0 ] && exit 1
+					PFILES="`busybox rpm -qpl $PKGFILE`"
+					[ $? -ne 0 ] && exit 1
+					echo "$PFILES" > $HOME/.packages/${PKGNAME}.files
+					pkg_unpack "$PKGFILE" 1>/dev/null
+				;;
+			
+			esac
+
+			# now extract pkg contents to /
+			[ ! -d "${PKGNAME}/" ] && error "Cannot enter directory '${PKGNAME}/', it doesn't exist." && exit 4
+			cd "${PKGNAME}/" 1>/dev/null
+			cp -a --remove-destination * ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
+
+			#source is a directory, target is a symlink...
+			if [ -s $TMPDIR/$SELF-cp-errlog ];then
+				cat $TMPDIR/$SELF-cp-errlog  2>/dev/null | grep -E 'Cannot create symlink to|cannot overwrite non-directory' | cut -f 1 -d "'" | cut -f 2 -d '`' |
+				while read ONEDIRSYMLINK
+				do
+					#adding that extra trailing / does the trick...
+					cp -a --remove-destination ${ONEDIRSYMLINK}/* /${ONEDIRSYMLINK}/ 2> $TMPDIR/$SELF-cp-errlog #260713
+				done
+			fi
+			sync
+			cd .. 1>/dev/null
+				
+			if [ ! -f $HOME/.packages/${PKGNAME}.files ];then
+				# add ${HOME}/.packages/${PKGNAME}.files, need to find regular files and links separately... then images..
+				find "./${PKGNAME}/" -mount -mindepth 2 -type f | sed -e "s/\.\/${PKGNAME}//g" -e 's/\/root0\//\/root\//g' > $HOME/.packages/${PKGNAME}.files
+				find "./${PKGNAME}/" -mount -mindepth 2 -type l | sed -e "s/\.\/${PKGNAME}//g" -e 's/\/root0\//\/root\//g' >> $HOME/.packages/${PKGNAME}.files
+
+				for ONEIMAGEFILE in `ls -1 /*[0-9].xpm 2>/dev/null`
+				do
+				 BASEONEIMAGE="`basename $ONEIMAGEFILE`"
+				 echo "/usr/local/lib/X11/pixmaps/$BASEONEIMAGE" >> $HOME/.packages/${PKGNAME}.files
+				done
+				for ONEIMAGEFILE in `ls -1 /*[0-9].png 2>/dev/null`
+				do
+				 BASEONEIMAGE="`basename $ONEIMAGEFILE`"
+				 echo "/usr/local/lib/X11/pixmaps/$BASEONEIMAGE" >> $HOME/.packages/${PKGNAME}.files
+				done
+				for ONEIMAGEFILE in `ls -1 /*[^0-9].xpm 2>/dev/null`
+				do
+				 BASEONEIMAGE="`basename $ONEIMAGEFILE`"
+				 echo "/usr/local/lib/X11/mini-icons/$BASEONEIMAGE" >> $HOME/.packages/${PKGNAME}.files
+				done
+				for ONEIMAGEFILE in `ls -1 /*[^0-9].png 2>/dev/null` #v2.16
+				do
+				 BASEONEIMAGE="`basename $ONEIMAGEFILE`"
+				 echo "/usr/local/lib/X11/mini-icons/$BASEONEIMAGE" >> $HOME/.packages/${PKGNAME}.files
+				done
+			fi
+				
+			# move the *.files to $HOME/.packages 
+			FILES=''
+			FILES="`find "$CURDIR" -iname "*.files" | head -1`"
+			[ -f "`echo $FILES`" ] && mv "${CURDIR}/"*".files" "${HOME}/.packages/" #260713
+
+			#pkgname.files may need to be fixed...
+			FIXEDFILES="`cat ${HOME}/.packages/${PKGNAME}.files | grep -v '^\\./$'| grep -v '^/$' | sed -e 's%^\\.%%' -e 's%^%/%' -e 's%^//%/%'`"
+			echo "$FIXEDFILES" > ${HOME}/.packages/${PKGNAME}.files
+
+			# remove all lines from $PKGNAME.files that is not a file or symlink
+			local flist="`cat $HOME/.packages/${PKGNAME}.files`"
+			echo "$flist" | while read flist_line
+			do
+				[ -d "$flist_line" ] && newfile="`grep -v "^$flist_line\$" $HOME/.packages/${PKGNAME}.files`"
+				[ "`echo $flist_line | grep '/$'`" ] && newfile="`grep -v "^$flist_line\$" $HOME/.packages/${PKGNAME}.files`"
+				echo "$newfile" > $HOME/.packages/${PKGNAME}.files
+			done
+			local sorted_flist="`cat $HOME/.packages/${PKGNAME}.files | sort`"
+			echo "$sorted_flist" > $HOME/.packages/${PKGNAME}.files
+
+			# some pets add images and icons at / so move them
+			mv /{*.xpm,*.png} /usr/share/pixmaps/ 2>/dev/null
+			mv /*.ico /usr/share/pixmaps/ 2>/dev/null
+
+			# run the post install scripts (for puppy, slackware, arch, debian/ubuntu, etc)
+			for i in /pinstall.sh /install/doinst.sh /DEBIAN/postinst
+			do
+				[ -z /${i} -o ! -e /${i} ] && continue
+				chmod +x /${i}
+				cd /
+				nohup sh ${i} &>/dev/null
+				sleep 0.2
+				rm -f ${i}
+				cd ${CURDIR}/
+			done
+			rm -rf /install
+			rm -rf /DEBIAN
+
+			#130314 run arch linux pkg post-install script...
+			if [ -f /.INSTALL -a /usr/local/petget/ArchRunDotInstalls ];then #precaution. see 3builddistro, script created by noryb009.
+				#this code is taken from below...
+				dlPATTERN='|'"`echo -n "${PKGNAME}" | sed -e 's%\\-%\\\\-%'`"'|'
+				archVER="`cat $TMPDIR/petget_missing_dbentries-Packages-* 2>/dev/null | grep "$dlPATTERN" | head -n 1 | cut -f 3 -d '|'`"
+				if [ "$archVER" ];then #precaution.
+					cd /
+					mv -f .INSTALL .INSTALL1-${archVER}
+					cp -a /usr/local/petget/ArchRunDotInstalls ArchRunDotInstalls
+					LANG=$LANG_USER ./ArchRunDotInstalls
+					rm -f ArchRunDotInstalls
+					rm -f .INSTALL*
 					cd ${CURDIR}/
 				fi
+			fi
 
-				# cleanup a bit 
-				rm -R "${PKGNAME}/" 2>/dev/null || echo "${yellow}Warning:${endcolour} Cannot remove directory '${PKGNAME}/'." #150213
+			PKGCAT=''
+			PKGSIZE=''
+			PKGDESC=''
+			DEPLIST=''
 
-				#120102 install may have overwritten a symlink-to-dir...
-				#tar defaults to not following symlinks, for both dirs and files, but i want to follow symlinks
-				#for dirs but not for files. so, fix here... (note, dir entries in .files have / on end)
-				cat ${HOME}/.packages/${PKGNAME}.files | grep '[a-zA-Z0-9]/$' | sed -e 's%/$%%' | grep -v '^/mnt' |
-				while read ONESPEC
-				do
-				 if [ -d "${DIRECTSAVEPATH}${ONESPEC}" ];then
-				  if [ ! -h "${DIRECTSAVEPATH}${ONESPEC}" ];then
-				   DIRLINK=""
-				   if [ -h "/initrd${PUP_LAYER}${ONESPEC}" ];then #120107
-					DIRLINK="`readlink -m "/initrd${PUP_LAYER}${ONESPEC}" | sed -e "s%/initrd${PUP_LAYER}%%"`" #PUP_LAYER: see /etc/rc.d/PUPSTATE. 120107
-					xDIRLINK="`readlink "/initrd${PUP_LAYER}${ONESPEC}"`" #120107
-				   fi
-				   if [ ! "$DIRLINK" ];then
-					if [ -h "/initrd${SAVE_LAYER}${ONESPEC}" ];then #120107
-					 DIRLINK="`readlink -m "/initrd${SAVE_LAYER}${ONESPEC}" | sed -e "s%/initrd${SAVE_LAYER}%%"`" #SAVE_LAYER: see /etc/rc.d/PUPSTATE. 120107
-					 xDIRLINK="`readlink "/initrd${SAVE_LAYER}${ONESPEC}"`" #120107
-					fi
-				   fi
-				   if [ "$DIRLINK" ];then
-					if [ -d "$DIRLINK"  ];then
-					 if [ "$DIRLINK" != "${ONESPEC}" ];then #precaution.
-					  mkdir -p "${DIRECTSAVEPATH}${DIRLINK}" #120107
-					  cp -a -f --remove-destination ${DIRECTSAVEPATH}"${ONESPEC}"/* "${DIRECTSAVEPATH}${DIRLINK}/" #ha! fails if put double-quotes around entire expression.
-					  rm -rf "${DIRECTSAVEPATH}${ONESPEC}"
-					  if [ "$DIRECTSAVEPATH" = "" ];then
-					   ln -s "$xDIRLINK" "${ONESPEC}"
-					  else
-					   DSOPATH="`dirname "${DIRECTSAVEPATH}${ONESPEC}"`"
-					   DSOBASE="`basename "${DIRECTSAVEPATH}${ONESPEC}"`"
-					   rm -f "${DSOPATH}/.wh.${DSOBASE}" #allow underlying symlink to become visible on top.
-					  fi
-					 fi
-					fi
-				   fi
+			# clean up pet installs 
+			if [ "$pkg_ext" = "pet" ];then
+				cd /
+
+				# get pkg info from pet.spec before we delete it, because the PET may not be a repo pkg
+				petspecs="`cat /pet.specs 2>/dev/null`"
+				
+				if [ "$petspecs" != '' ];then
+					# now get pkg info
+					PKGCAT="`echo $petspecs|  cut -f5  -d'|'`"
+					PKGSIZE="`echo $petspecs| cut -f6  -d'|'`"
+					PKGDESC="`echo $petspecs| cut -f10 -d'|'`"
+					DEPSLIST="`echo $petspecs|cut -f9  -d'|'`"
+				fi
+
+				cd ${CURDIR}/
+			fi
+
+			# cleanup a bit 
+			rm -R "${PKGNAME}/" 2>/dev/null || echo "${yellow}Warning:${endcolour} Cannot remove directory '${PKGNAME}/'." #150213
+
+			#120102 install may have overwritten a symlink-to-dir...
+			#tar defaults to not following symlinks, for both dirs and files, but i want to follow symlinks
+			#for dirs but not for files. so, fix here... (note, dir entries in .files have / on end)
+			cat ${HOME}/.packages/${PKGNAME}.files | grep '[a-zA-Z0-9]/$' | sed -e 's%/$%%' | grep -v '^/mnt' |
+			while read ONESPEC
+			do
+			 if [ -d "${DIRECTSAVEPATH}${ONESPEC}" ];then
+			  if [ ! -h "${DIRECTSAVEPATH}${ONESPEC}" ];then
+			   DIRLINK=""
+			   if [ -h "/initrd${PUP_LAYER}${ONESPEC}" ];then #120107
+				DIRLINK="`readlink -m "/initrd${PUP_LAYER}${ONESPEC}" | sed -e "s%/initrd${PUP_LAYER}%%"`" #PUP_LAYER: see /etc/rc.d/PUPSTATE. 120107
+				xDIRLINK="`readlink "/initrd${PUP_LAYER}${ONESPEC}"`" #120107
+			   fi
+			   if [ ! "$DIRLINK" ];then
+				if [ -h "/initrd${SAVE_LAYER}${ONESPEC}" ];then #120107
+				 DIRLINK="`readlink -m "/initrd${SAVE_LAYER}${ONESPEC}" | sed -e "s%/initrd${SAVE_LAYER}%%"`" #SAVE_LAYER: see /etc/rc.d/PUPSTATE. 120107
+				 xDIRLINK="`readlink "/initrd${SAVE_LAYER}${ONESPEC}"`" #120107
+				fi
+			   fi
+			   if [ "$DIRLINK" ];then
+				if [ -d "$DIRLINK"  ];then
+				 if [ "$DIRLINK" != "${ONESPEC}" ];then #precaution.
+				  mkdir -p "${DIRECTSAVEPATH}${DIRLINK}" #120107
+				  cp -a -f --remove-destination ${DIRECTSAVEPATH}"${ONESPEC}"/* "${DIRECTSAVEPATH}${DIRLINK}/" #ha! fails if put double-quotes around entire expression.
+				  rm -rf "${DIRECTSAVEPATH}${ONESPEC}"
+				  if [ "$DIRECTSAVEPATH" = "" ];then
+				   ln -s "$xDIRLINK" "${ONESPEC}"
+				  else
+				   DSOPATH="`dirname "${DIRECTSAVEPATH}${ONESPEC}"`"
+				   DSOBASE="`basename "${DIRECTSAVEPATH}${ONESPEC}"`"
+				   rm -f "${DSOPATH}/.wh.${DSOBASE}" #allow underlying symlink to become visible on top.
 				  fi
 				 fi
-				done
+				fi
+			   fi
+			  fi
+			 fi
+			done
 
-				#121217 it seems that this problem is occurring in other modes (13 reported)...
-				#121123 having a problem with multiarch symlinks in full-installation...
-				#it seems that the symlink is getting replaced by a directory.
-				if [ "$DISTRO_ARCHDIR" ];then #in /etc/rc.d/DISTRO_SPECS. 130112 change test from DISTRO_ARCHDIR. 130114 revert DISTRO_ARCHDIR_SYMLINKS==yes.
-				  if [ -d /usr/lib/${DISTRO_ARCHDIR} ];then
-				   if [ ! -h /usr/lib/${DISTRO_ARCHDIR} ];then
-					cp -a -f --remove-destination /usr/lib/${DISTRO_ARCHDIR}/* /usr/lib/
-					sync
-					rm -r -f /usr/lib/${DISTRO_ARCHDIR}
-					ln -s ./ /usr/lib/${DISTRO_ARCHDIR}
-				   fi
-				  fi
-				  if [ -d /lib/${DISTRO_ARCHDIR} ];then
-				   if [ ! -h /lib/${DISTRO_ARCHDIR} ];then
-					cp -a -f --remove-destination /lib/${DISTRO_ARCHDIR}/* /lib/
-					sync
-					rm -r -f /lib/${DISTRO_ARCHDIR}
-					ln -s ./ /lib/${DISTRO_ARCHDIR}
-				   fi
-				  fi
-				  if [ -d /usr/bin/${DISTRO_ARCHDIR} ];then
-				   if [ ! -h /usr/bin/${DISTRO_ARCHDIR} ];then
-					cp -a -f --remove-destination /usr/bin/${DISTRO_ARCHDIR}/* /usr/bin/
-					sync
-					rm -r -f /usr/bin/${DISTRO_ARCHDIR}
-					ln -s ./ /usr/bin/${DISTRO_ARCHDIR}
-				   fi
-				  fi
+			#121217 it seems that this problem is occurring in other modes (13 reported)...
+			#121123 having a problem with multiarch symlinks in full-installation...
+			#it seems that the symlink is getting replaced by a directory.
+			if [ "$DISTRO_ARCHDIR" ];then #in /etc/rc.d/DISTRO_SPECS. 130112 change test from DISTRO_ARCHDIR. 130114 revert DISTRO_ARCHDIR_SYMLINKS==yes.
+			  if [ -d /usr/lib/${DISTRO_ARCHDIR} ];then
+			   if [ ! -h /usr/lib/${DISTRO_ARCHDIR} ];then
+				cp -a -f --remove-destination /usr/lib/${DISTRO_ARCHDIR}/* /usr/lib/
+				sync
+				rm -r -f /usr/lib/${DISTRO_ARCHDIR}
+				ln -s ./ /usr/lib/${DISTRO_ARCHDIR}
+			   fi
+			  fi
+			  if [ -d /lib/${DISTRO_ARCHDIR} ];then
+			   if [ ! -h /lib/${DISTRO_ARCHDIR} ];then
+				cp -a -f --remove-destination /lib/${DISTRO_ARCHDIR}/* /lib/
+				sync
+				rm -r -f /lib/${DISTRO_ARCHDIR}
+				ln -s ./ /lib/${DISTRO_ARCHDIR}
+			   fi
+			  fi
+			  if [ -d /usr/bin/${DISTRO_ARCHDIR} ];then
+			   if [ ! -h /usr/bin/${DISTRO_ARCHDIR} ];then
+				cp -a -f --remove-destination /usr/bin/${DISTRO_ARCHDIR}/* /usr/bin/
+				sync
+				rm -r -f /usr/bin/${DISTRO_ARCHDIR}
+				ln -s ./ /usr/bin/${DISTRO_ARCHDIR}
+			   fi
+			  fi
+			fi
+
+			#flush unionfs cache, so files in pup_save layer will appear "on top"...
+			if [ "$DIRECTSAVEPATH" != "" ];then
+			 #but first, clean out any bad whiteout files...
+			 # 22sep10 shinobar: bugfix was not working clean out whiteout files
+			 find /initrd/pup_rw -mount -type f -name .wh.\*  -printf '/%P\n'|
+			 while read ONEWHITEOUT
+			 do
+			  ONEWHITEOUTFILE="`basename "$ONEWHITEOUT"`"
+			  ONEWHITEOUTPATH="`dirname "$ONEWHITEOUT"`"
+			  if [ "$ONEWHITEOUTFILE" = ".wh.__dir_opaque" ];then
+			   [ "`grep "$ONEWHITEOUTPATH" /root/.packages/${PKGNAME}.files`" != "" ] && rm -f "/initrd/pup_rw/$ONEWHITEOUT"
+			   continue
+			  fi
+			  ONEPATTERN="`echo -n "$ONEWHITEOUT" | sed -e 's%/\\.wh\\.%/%'`"'/*'	;#echo "$ONEPATTERN" >&2
+			  [ "`grep -x "$ONEPATTERN" /root/.packages/${PKGNAME}.files`" != "" ] && rm -f "/initrd/pup_rw/$ONEWHITEOUT"
+			 done
+			 #111229 /usr/local/petget/removepreview.sh when uninstalling a pkg, may have copied a file from sfs-layer to top, check...
+			 cat ${HOME}/.packages/${PKGNAME}.files |
+			 while read ONESPEC
+			 do
+			  [ "$ONESPEC" = "" ] && continue #precaution.
+			  if [ ! -d "$ONESPEC" ];then
+			   [ -e "/initrd/pup_rw${ONESPEC}" ] && rm -f "/initrd/pup_rw${ONESPEC}"
+			  fi
+			 done
+			 #now re-evaluate all the layers...
+			 busybox mount -t aufs -o remount,udba=reval unionfs / #remount with faster evaluation mode.
+			 [ $? -ne 0 ] && logger -s -t "pkg" "Failed to remount aufs / with udba=reval"
+			 sync
+			fi
+
+			#080413 do fixmenus, if menu entry found #200713 moved here
+			if [ "`grep -m1 '/usr/share/applications' $HOME/.packages/${PKGNAME}.files | grep .desktop$`" != "" ];then
+				fixmenus &>/dev/null
+				# refresh JWM menus if using JWM window manager
+				[ "`which jwm`" != "" -a "`ps -e | grep jwm`" != "" ] && jwm -reload &>/dev/null
+			fi
+
+			[ "$PKGCAT" = ''  ] && PKGCAT=`LANG=C  grep -m1 "${PKGNAME}" "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f5 -d'|' | head -1`
+			[ "$PKGDESC" = '' ] && PKGDESC=`LANG=C grep -m1 "${PKGNAME}" "${HOME}/.packages/${REPOFILE}" 2>/dev/null| cut -f10 -d'|' | head -1`
+			[ "$PKGSIZE" = '' ] && PKGSIZE=`LANG=C du -s -k ${CURDIR}/${PKG} 2>/dev/null | cut -f1`
+			# get pkg version
+			PKGVER="`LANG=C  echo "$PKGNAME" | sed -e 's/^[^0-9]*-//g'`"
+			PKGARCH="`LANG=C echo "$PKGNAME" | cut -f3 -d'-' | grep -E 'i[3-9]|x[8-9]|noarch'`"
+
+			# last check for pkg info
+			[ "$DEPSLIST" = '' ] && DEPSLIST="`grep -m1 ^${PKGNAME}'|' "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f9 -d'|' | grep '+' | head -1`"
+			[ "$PKGDESC" = ''  ] && PKGDESC="No description"
+
+			# get pkg name without version 
+			PKGNAMEONLY=`get_pkg_name_only "$PKGNAME"` 
+
+			#080917 - build woof compatible repo line .. #090817
+			if [ "`cut -f1 -d'|' ${HOME}/.packages/user-installed-packages 2>/dev/null | grep -m1 ^${PKGNAME}`" = '' ];then
+
+				# get the package db entry to add to user-installed-packages...
+				# first, get it from petspecs if possible, or from the pkgs repo, or make one
+				if [ -f /pet.specs ];then
+					DB_ENTRY="`cat /pet.specs | head -n 1`"
+				elif [ "`grep -m1 "^${PKGNAME}|" "${HOME}/.packages/$REPOFILE"`" != "" ];then
+					DB_ENTRY="`grep -m1 "^${PKGNAME}|" "${HOME}/.packages/$REPOFILE"`"
+				else 
+					DB_ENTRY="${PKGNAME}|${PKGNAMEONLY}|${PKGVER}|${BUILD}|${PKGCAT}|${PKGSIZE}|${PKGDIR}|${PKGNAME}.${pkg_ext}|${DEPSLIST}|${PKGDESC}|${DISTRO_BINARY_COMPAT}|${DISTRO_COMPAT_VERSION}"
 				fi
 
-				#flush unionfs cache, so files in pup_save layer will appear "on top"...
-				if [ "$DIRECTSAVEPATH" != "" ];then
-				 #but first, clean out any bad whiteout files...
-				 # 22sep10 shinobar: bugfix was not working clean out whiteout files
-				 find /initrd/pup_rw -mount -type f -name .wh.\*  -printf '/%P\n'|
-				 while read ONEWHITEOUT
-				 do
-				  ONEWHITEOUTFILE="`basename "$ONEWHITEOUT"`"
-				  ONEWHITEOUTPATH="`dirname "$ONEWHITEOUT"`"
-				  if [ "$ONEWHITEOUTFILE" = ".wh.__dir_opaque" ];then
-				   [ "`grep "$ONEWHITEOUTPATH" /root/.packages/${PKGNAME}.files`" != "" ] && rm -f "/initrd/pup_rw/$ONEWHITEOUT"
-				   continue
-				  fi
-				  ONEPATTERN="`echo -n "$ONEWHITEOUT" | sed -e 's%/\\.wh\\.%/%'`"'/*'	;#echo "$ONEPATTERN" >&2
-				  [ "`grep -x "$ONEPATTERN" /root/.packages/${PKGNAME}.files`" != "" ] && rm -f "/initrd/pup_rw/$ONEWHITEOUT"
-				 done
-				 #111229 /usr/local/petget/removepreview.sh when uninstalling a pkg, may have copied a file from sfs-layer to top, check...
-				 cat ${HOME}/.packages/${PKGNAME}.files |
-				 while read ONESPEC
-				 do
-				  [ "$ONESPEC" = "" ] && continue #precaution.
-				  if [ ! -d "$ONESPEC" ];then
-				   [ -e "/initrd/pup_rw${ONESPEC}" ] && rm -f "/initrd/pup_rw${ONESPEC}"
-				  fi
-				 done
-				 #now re-evaluate all the layers...
-				 busybox mount -t aufs -o remount,udba=reval unionfs / #remount with faster evaluation mode.
-				 [ $? -ne 0 ] && logger -s -t "pkg" "Failed to remount aufs / with udba=reval"
-				 sync
-				fi
-
-				#080413 do fixmenus, if menu entry found #200713 moved here
-				if [ "`grep -m1 '/usr/share/applications' $HOME/.packages/${PKGNAME}.files | grep .desktop$`" != "" ];then
-					fixmenus &>/dev/null
-					# refresh JWM menus if using JWM window manager
-					[ "`which jwm`" != "" -a "`ps -e | grep jwm`" != "" ] && jwm -reload &>/dev/null
-				fi
-
-				[ "$PKGCAT" = ''  ] && PKGCAT=`LANG=C  grep -m1 "${PKGNAME}" "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f5 -d'|' | head -1`
-				[ "$PKGDESC" = '' ] && PKGDESC=`LANG=C grep -m1 "${PKGNAME}" "${HOME}/.packages/${REPOFILE}" 2>/dev/null| cut -f10 -d'|' | head -1`
-				[ "$PKGSIZE" = '' ] && PKGSIZE=`LANG=C du -s -k ${CURDIR}/${PKG} 2>/dev/null | cut -f1`
-				# get pkg version
-				PKGVER="`LANG=C  echo "$PKGNAME" | sed -e 's/^[^0-9]*-//g'`"
-				PKGARCH="`LANG=C echo "$PKGNAME" | cut -f3 -d'-' | grep -E 'i[3-9]|x[8-9]|noarch'`"
-
-				# last check for pkg info
-				[ "$DEPSLIST" = '' ] && DEPSLIST="`grep -m1 ^${PKGNAME}'|' "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f9 -d'|' | grep '+' | head -1`"
-				[ "$PKGDESC" = ''  ] && PKGDESC="No description"
-
-				# get pkg name without version 
-				PKGNAMEONLY=`get_pkg_name_only "$PKGNAME"` 
-
-				#080917 - build woof compatible repo line .. #090817
-				if [ "`cut -f1 -d'|' ${HOME}/.packages/user-installed-packages 2>/dev/null | grep -m1 ^${PKGNAME}`" = '' ];then
-
-					# get the package db entry to add to user-installed-packages...
-					# first, get it from petspecs if possible, or from the pkgs repo, or make one
-					if [ -f /pet.specs ];then
-						DB_ENTRY="`cat /pet.specs | head -n 1`"
-					elif [ "`grep -m1 "^${PKGNAME}|" "${HOME}/.packages/$REPOFILE"`" != "" ];then
-						DB_ENTRY="`grep -m1 "^${PKGNAME}|" "${HOME}/.packages/$REPOFILE"`"
-					else 
-						DB_ENTRY="${PKGNAME}|${PKGNAMEONLY}|${PKGVER}|${BUILD}|${PKGCAT}|${PKGSIZE}|${PKGDIR}|${PKGNAME}.${pkg_ext}|${DEPSLIST}|${PKGDESC}|${DISTRO_BINARY_COMPAT}|${DISTRO_COMPAT_VERSION}"
-					fi
-
-					# Fix for Debian executables showing as shared libs in ROX.
-					if [ "$DISTRO_FILE_PREFIX" = "stretch" -o "$DISTRO_FILE_PREFIX" = "ascii" ]; then
-						if [ "$(ps aux | grep ROX |grep -v grep)" ]; then # Other managers are OK
-							if [ "$(which elfedit)" ];then
-								grep -E '/bin/|/sbin/' ${HOME}/.packages/${PKGNAME}.files |
-								while read FLINE
-								do
-									[ "$(file "$FLINE" | grep -i 'shared object')" ] && elfedit --input-type=dyn --output-type=exec $FLINE
-								done
-							else
-								echo -e "${yellow}Warning${endcolour} Recent Debian executables show as shared libraries in ROX,"
-								echo "which causes ROX to fail to open or execute them. To fix that during package "
-								echo "installation you should install elfutils or have devx loaded."
-							fi
+				# Fix for Debian executables showing as shared libs in ROX.
+				if [ "$DISTRO_FILE_PREFIX" = "stretch" -o "$DISTRO_FILE_PREFIX" = "ascii" ]; then
+					if [ "$(ps aux | grep ROX |grep -v grep)" ]; then # Other managers are OK
+						if [ "$(which elfedit)" ];then
+							grep -E '/bin/|/sbin/' ${HOME}/.packages/${PKGNAME}.files |
+							while read FLINE
+							do
+								[ "$(file "$FLINE" | grep -i 'shared object')" ] && elfedit --input-type=dyn --output-type=exec $FLINE
+							done
+						else
+							echo -e "${yellow}Warning${endcolour} Recent Debian executables show as shared libraries in ROX,"
+							echo "which causes ROX to fail to open or execute them. To fix that during package "
+							echo "installation you should install elfutils or have devx loaded."
 						fi
 					fi
-
-					# now add the db entry to user-installed-packages
-					echo "$DB_ENTRY" >> ${HOME}/.packages/user-installed-packages #130913
-				
 				fi
 
-				# now delete the petspecs file(s), we already added our PKG info to installed-packages
-				rm /pet.specs &>/dev/null 
-				rm /*.pet.specs &>/dev/null 
-				
-				# make sure /tmp has correct permission, a pkg may have overwritten it
-				ls -dl /tmp | grep -q '^drwxrwxrwt' || chmod 1777 /tmp #130305 rerwin.
-				
-				#090817
-				if [ "`is_installed_pkg $PKGNAME`" = true -a "`cat $HOME/.packages/${PKGNAME}.files`" != '' ];then
-					echo -e "${green}Success:${endcolour} $PKGNAME installed."
-					# show if pkg has menu entry
-					menu_entry_msg "$PKGNAME_ONLY" 
-					[ "`which logger`" != '' ] && logger "$0 Package $PKGNAME installed by $APP $APPVER"
-				else
-					error "$PKGNAME may not have installed correctly."
-				fi
-				
-				#100817 clean up user-installed-packages (remove duplicates and empty lines
-				cat ${HOME}/.packages/user-installed-packages | grep -v "^\$" | sort | uniq > ${HOME}/.packages/user-installed-packages_clean
-				mv ${HOME}/.packages/user-installed-packages_clean ${HOME}/.packages/user-installed-packages
-				
-				# puppy specific fixes for installed package
-				[ -x /usr/local/petget/hacks-postinstall.sh ] && /usr/local/petget/hacks-postinstall.sh "$PKGNAME" "$PKGNAMEONLY"
+				# now add the db entry to user-installed-packages
+				echo "$DB_ENTRY" >> ${HOME}/.packages/user-installed-packages #130913
+			
+			fi
 
-				#100622 slackware 13.1: just in case any got through, remove c-shell scripts...
-				rm -f /etc/profile.d/*.csh* 2>/dev/null
+			# now delete the petspecs file(s), we already added our PKG info to installed-packages
+			rm /pet.specs &>/dev/null 
+			rm /*.pet.specs &>/dev/null 
+			
+			# make sure /tmp has correct permission, a pkg may have overwritten it
+			ls -dl /tmp | grep -q '^drwxrwxrwt' || chmod 1777 /tmp #130305 rerwin.
+			
+			#090817
+			if [ "`is_installed_pkg $PKGNAME`" = true -a "`cat $HOME/.packages/${PKGNAME}.files`" != '' ];then
+				echo -e "${green}Success:${endcolour} $PKGNAME installed."
+				# show if pkg has menu entry
+				menu_entry_msg "$PKGNAME_ONLY" 
+				[ "`which logger`" != '' ] && logger "$0 Package $PKGNAME installed by $APP $APPVER"
+			else
+				error "$PKGNAME may not have installed correctly."
+			fi
+			
+			#100817 clean up user-installed-packages (remove duplicates and empty lines
+			cat ${HOME}/.packages/user-installed-packages | grep -v "^\$" | sort | uniq > ${HOME}/.packages/user-installed-packages_clean
+			mv ${HOME}/.packages/user-installed-packages_clean ${HOME}/.packages/user-installed-packages
+			
+			# puppy specific fixes for installed package
+			[ -x /usr/local/petget/hacks-postinstall.sh ] && /usr/local/petget/hacks-postinstall.sh "$PKGNAME" "$PKGNAMEONLY"
 
-				#120523 precise puppy needs this... (refer also rc.update and 3builddistro)
-				if [ "`grep '/usr/share/glib-2.0/schemas' $HOME/.packages/${PKGNAME}*.files 2>/dev/null`" != "" ];then
-					[ -e /usr/bin/glib-compile-schemas ] && /usr/bin/glib-compile-schemas /usr/share/glib-2.0/schemas &>/dev/null
-				fi
+			#100622 slackware 13.1: just in case any got through, remove c-shell scripts...
+			rm -f /etc/profile.d/*.csh* 2>/dev/null
 
-				if [ "`grep '/usr/lib/gio/modules' $HOME/.packages/${PKGNAME}.files 2>/dev/null`" != "" ];then
-					[ -e /usr/bin/gio-querymodules ] && /usr/bin/gio-querymodules /usr/lib/gio/modules &>/dev/null
-				fi
+			#120523 precise puppy needs this... (refer also rc.update and 3builddistro)
+			if [ "`grep '/usr/share/glib-2.0/schemas' $HOME/.packages/${PKGNAME}*.files 2>/dev/null`" != "" ];then
+				[ -e /usr/bin/glib-compile-schemas ] && /usr/bin/glib-compile-schemas /usr/share/glib-2.0/schemas &>/dev/null
+			fi
+
+			if [ "`grep '/usr/lib/gio/modules' $HOME/.packages/${PKGNAME}.files 2>/dev/null`" != "" ];then
+				[ -e /usr/bin/gio-querymodules ] && /usr/bin/gio-querymodules /usr/lib/gio/modules &>/dev/null
+			fi
+			
+			sync
 				
-				sync
-				
-			fi #if CONFIRM = y #100213,0.9  moved down to here, fixes install, and output msgs
-
-		else
-
-			echo "Already installed: ${PKGNAME}"
-			#exit 1
-		
-		fi # end if pkg installed/not installed
+		fi #if CONFIRM = y #100213,0.9  moved down to here, fixes install, and output msgs
 
 	else # file doesn't exists, user must download it first
 		
@@ -3853,7 +3843,7 @@ pkg_get(){ 		# find, download and install packages and deps FUNCLIST
 		# dont even try to download if no matches found
 		if [ "$pkg_in_repo" = true -a "$pkg_name_only" != "" ];then 
 			
-			#local pkg_is_builtin=`is_builtin_pkg "$pkg_name_only"`
+			local pkg_is_builtin=`is_builtin_pkg "$pkg_name_only"`
 
 			# skip getting pkg if its a builtin, unless HIDE_BUILTINS=false
 			if [ "$pkg_is_builtin" = true -a "${HIDE_BUILTINS}" = true ];then
@@ -3874,6 +3864,7 @@ pkg_get(){ 		# find, download and install packages and deps FUNCLIST
 			# DOWNLOAD PKG
 			pkg_download "$pkg_name"
 
+			[ ! -f "$PKGFILE" ] && PKGFILE="`find "$CURDIR" -maxdepth 1 -type f -name "${pkg_name}*.*${pkg_ext}"`"
 			# try grabbing $CURDIR/pkgname.pkg_ext
 			[ ! -f "$PKGFILE" ] && PKGFILE="`find "$CURDIR" -maxdepth 1 -type f -name "${pkg_name}.${pkg_ext}"`"
 			# now try grabbing $CURDIR/pkgname.*
@@ -4132,19 +4123,6 @@ pkg_combine(){ 		# combine a pkg and deps into one single pkg FUNCLIST
 		# get the deps of the pkg, but dont install
 		FORCE=$force_opt find_deps "$PKGNAME"
 		ALL_DEPS="`cat $TMPDIR/deps_installed $TMPDIR/deps_missing 2>/dev/null | sort | uniq`"
-		
-		# get deps of deps
-		for dep in `echo "$ALL_DEPS" | tr '\n' ' '`
-		do
-			[ "$dep" != '' ] && MORE_DEPS="`FORCE=$force_opt list_deps $dep | tr ' ' '\n'`
-$MORE_DEPS"
-		done
-		
-		[ "$ALL_DEPS" = "" -o "$ALL_DEPS" = "," -o "$ALL_DEPS" = "-" -o "$ALL_DEPS" = " " ] && echo "No dependencies to add." && exit 1
-		
-		# add all deps together
-		ALL_DEPS="$ALL_DEPS
-$MORE_DEPS"
 		
 		if [ ! -f "$PKG_FILE" -o "$FORCE" = true ];then
 			ASK=false pkg_download "$PKGNAME"
@@ -4986,10 +4964,8 @@ get_deps(){ 		# find, get and install the deps of pkg FUNCLIST
 	echo "Resolving dependencies" # find deps will append ... as it goes
 
 	# find the deps!! .. sorts deps into two lists
-	find_deps "${PKGNAME}"
-	
-	# if we actually (really) have missing deps, print a msg
-	[ "$DEPS_MISSING" != '' -a "$FORCE" = false ] && echo "Missing deps: $DEPS_MISSING"
+	#find_deps "${PKGNAME}"
+	DEPS_MISSING="`list_deps $PKGNAME`"
 	
 	# if we have missing deps, or are downloading them all regardless (INSTALLDEPS=false), or using --force
 	if [ "$DEPS_MISSING" != "" -o "${NO_INSTALL}" = true -o "$FORCE" = true ];then 
@@ -5016,10 +4992,9 @@ get_deps(){ 		# find, get and install the deps of pkg FUNCLIST
 			# clean up our deps list, and make space separated
 			DEPS_MISSING="`LANG=C echo "$DEPS_MISSING" | grep -v '^,' | grep -v "^\$" | tr ',' ' '`"
 
-				# show deps info, if any available
-				[ "${DEPS_MISSING}" != "" 	] && echo "Dependencies to get: ${DEPS_MISSING//,/, }"
-				[ "$FORCE=" = false -a "${DEPS_INSTALLED}" != "" ] && echo "Dependencies installed: `LANG=C grep -v "^\$" $TMPDIR/deps_installed 2>/dev/null | head -1`"
-
+			# show deps info, if any available
+			[ "${DEPS_MISSING}" != ""  ]   && echo "Dependencies to get: ${DEPS_MISSING//,/, }"
+			[ "$FORCE" = false -a "${DEPS_INSTALLED}" != "" ] && echo "Dependencies installed: `LANG=C grep -v "^\$" $TMPDIR/deps_installed 2>/dev/null | head -1`"
 			
 			# for each missing dep  (or simply for each dep, if $FORCE is true)
 			for DEP in $DEPS_MISSING
@@ -5033,7 +5008,6 @@ get_deps(){ 		# find, get and install the deps of pkg FUNCLIST
 	
 				local dep_is_builtin=`is_builtin_pkg "$DEPNAME_ONLY"`
 				local dep_already_done=`LANG=C grep -m1 "^$DEPNAME_ONLY\$" $TMPDIR/PKGSDONE 2>/dev/null`
-				local dep_in_repo=`is_repo_pkg "$PKGNAME"`
 
 				# if pkg is builtin, and HIDE_BUILTINS=true (the default), skip it, we dont need to get its dependencies
 				[ "$dep_is_builtin" = true -a "${HIDE_BUILTINS}" = true ] && echo "Skipping $DEPNAME_ONLY (already built-in)..." && continue
@@ -5041,97 +5015,26 @@ get_deps(){ 		# find, get and install the deps of pkg FUNCLIST
 				# skip if already processed, it should be listed in $TMPDIR/PKGSDONE
 				[ "$dep_already_done" != "" -a "$FORCE" = false ] && continue 
 				
-				# if the dep is in a repo
-				if [ "$dep_in_repo" != "" ];then
+				#DOWNLOAD THE PKG
+				pkg_download "$DEPNAME"
+
+				# skip install unless NO_INSTALL=true
+				if [ "${NO_INSTALL}" = false ];then
+				
+					# get the actual file we just downloaded to WORKDIR
+					DEPFILE="`find "$WORKDIR" -maxdepth 1 -type f -name "$DEPNAME*"`"
+
+					#INSTALL THE DEP, if it was downloaded
+					[ "`is_local_pkg "$DEPFILE"`" = true ] && pkg_install "$DEPFILE"
 					
-					#DOWNLOAD THE PKG
-					pkg_download "$DEPNAME"
+					# mark the pkg as done!
+					echo "$DEPNAME_ONLY" >> $TMPDIR/PKGSDONE
 
-					# skip install unless NO_INSTALL=true
-					if [ "${NO_INSTALL}" = false ];then
-					
-						# get the actual file we just downloaded to WORKDIR
-						DEPFILE="`find "$WORKDIR" -maxdepth 1 -type f -name "$DEPNAME*"`"
-
-						#INSTALL THE DEP, if it was downloaded
-						[ "`is_local_pkg "$DEPFILE"`" = true ] && pkg_install "$DEPFILE"
-						
-						# mark the pkg as done!
-						echo "$DEPNAME_ONLY" >> $TMPDIR/PKGSDONE
-
-					else # if not installing, 
-						# skip dep checking of the deps that dont get installed
-						continue
-					fi
-
-					# get deps of deps
-					if [ "$RDCHECK" = "YARP" ];then  ### dont do it (wont = YARP)
-						
-						DEPLIST="`list_deps "$DEPNAME"`"
-
-						for x in $DEPLIST
-						do
-							
-							# deps are listed as generic pkg names (no version, so get the name only)
-							xNAME="`get_pkg_name $x`"
-							xNAME_ONLY="`get_pkg_name_only $x`"
-							
-							# if pkg is builtin and HIDE_BUILTINS=true (the default), skip it, we dont need to get its dependencies
-							x_is_builtin=`is_builtin_pkg "$xNAME_ONLY"`
-							[ "$x_is_builtin" = true -a "${HIDE_BUILTINS}" = true ] && continue
-							
-							# if no $x or $x is the the pkg were currently checking itself, skip it
-							[ -z "$x" -o "$x" = "${DEPNAME}" -o "$x" = "${PKGNAME}" ] && continue 
-							
-							# skip if this dep ($x) is a parent pkg
-							[ "$xNAME_ONLY" != "$DEPNAME_ONLY" -a "$xNAME_ONLY" != "$PKGNAME_ONLY" ] || continue
-							
-							# if we already processed this dep ($x), it should be in PKGSDONE, if so, skip it
-							[ "`LANG=C grep -m1 ^$xNAME_ONLY\$ $TMPDIR/PKGSDONE 2>/dev/null`" != '' ] && continue
-							
-							# if $x is not already installed, or user is using --force
-							if [ "$FORCE" = true -o "$NO_INSTALL" = true ];then
-							
-								echo "Getting dependency $xNAME."
-
-								# IMPORTANT.. move the file $TMPDIR/USRPKGLIST, which stores the user pkg choice..
-								# at the moment, it holds our parent pkg, but we dont want pkg_get to use that...
-								# so, 'hide'/move USRPKGLIST from get_pkg, so it will get our pkg dep (not the pkg)
-								[ -f $TMPDIR/USRPKGLIST ] && mv "$TMPDIR/USRPKGLIST" "$TMPDIR/USRPKGLIST.${x}" 2>/dev/null
-								
-								# skip if pkg is already installed, and not using --force
-								[ "`is_installed_pkg $xNAME`" = true -a "$FORCE" = false ] && continue
-								
-								# now 'get' (download [and optionally install]) the dep
-								pkg_get "$xNAME"
-								
-								# move the USRPKGLIST file back, so we can continue as normal (checking the parent pkg for missing deps)
-								[ -f "$TMPDIR/USRPKGLIST.${x}" ] && mv "$TMPDIR/USRPKGLIST.${x}" "$TMPDIR/USRPKGLIST"  2>/dev/null
-								
-								echo "$xNAME_ONLY" >> $TMPDIR/PKGSDONE #260713
-
-							fi
-						done
-					fi
-
-				else # the dep was NOT found in repo, with proper name match
-
-					# if no matches at all
-					if [ "`LANG=C $DEPSEARCH "$DEPNAME_ONLY"`" = "" ];then
-						
-						# and if $DEP is NOT already installed 
-						if [ "`LANG=C echo "$DEPS_INSTALLED" | grep ^$DEP`" = "" ];then
-							# set messages about missing deps
-							WARNLIBS="$WARNLIBS ${DEP}${SEP}"
-							continue
-						
-						else 
-							echo "Dependency ${DEP} already installed."
-							continue
-						fi
-					fi
-
+				else # if not installing, 
+					# skip dep checking of the deps that dont get installed
+					continue
 				fi
+
 
 				# we finished with this dep, mark it done,
 				# .. so we can skip it if it appears again (in a recursive dep check loop for example)
