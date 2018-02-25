@@ -302,18 +302,93 @@ get_pkg_ext(){		# return file extension of given pkg FUNCLIST
 }
 
 
+get_pkg_name_only_from_ext(){	# for ubuntu/debian/etc pkg naming
 
+	# get valid usage or exit
+	[ ! "$1" ] && echo 'Usage: get_pkg_name_only_from_ext <PKG_FILENAME>' && exit 1
+	
+	# get the extension of the given package name, if any
+	local pkg_ext=`get_pkg_ext "$1"`
+	# get the name without path and extension
+	local pkg_name=`basename "$1" .$pkg_ext`
+	local PKGNAME=''
+	local PKGNAME_ONLY=''
+	local DB_pkgrelease=''
+	local prPATTERN=''
+	local DB_version=''
+	local xDB_version=''
+	local xPATTERN=''
 
-get_pkg_name_only_deb(){	# for ubuntu/debian/etc pkg naming
-	return 0
+	#split PKGMAIN, ex: FULLPKGNAME=xvidtune-1.0.1-i486-1.tgz has PKGNAME=xvidtune-1.0.1
+	case $pkg_ext in
+	  deb)
+	   #deb ex: xsltproc_1.1.24-1ubuntu2_i386.deb  xserver-common_1.5.2-2ubuntu3_all.deb
+	   PKGNAME_ONLY="`echo -n "$pkg_name" | cut -f 1 -d '_'`"
+	   DB_pkgrelease="`echo -n "$pkg_name" | rev | cut -f 2 -d '_' | cut -f 1 -d '-' | rev`"
+	   prPATTERN="s%\\-${DB_pkgrelease}.*%%"
+	   PKGNAME="`echo -n "$pkg_name" | sed -e "$prPATTERN"`"
+	   DB_version="`echo "$PKGNAME" | cut -f 2 -d '_'`"
+	  ;;
+	  pet)
+	   PKGNAME="$pkg_name"
+	   DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\-%%'`"
+	   xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
+	   xPATTERN="s%${xDB_version}%%"
+	   PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\\-$%%'`"
+	   DB_pkgrelease=""
+	  ;;
+	  tgz|txz)
+	   #slack ex: xvidtune-1.0.1-i486-1.tgz  printproto-1.0.4-noarch-1.tgz
+	   PKGNAME="`echo -n "$pkg_name" | sed -e 's%\\-i[3456]86.*%%' -e 's%\\-noarch.*%%'`"
+	   DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\\-%%'`"
+	   xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
+	   xPATTERN="s%${xDB_version}%%"
+	   PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\-$%%'`"
+	   DB_pkgrelease="`echo -n "$pkg_name" | sed -e 's%.*\\-i[3456]86%%' -e 's%.*\\-noarch%%' -e 's%^\\-%%'`"
+	  ;;
+	  tar.gz)
+	   #arch ex: xproto-7.0.14-1-i686.pkg.tar.gz  trapproto-3.4.3-1.pkg.tar.gz
+	   PKGNAME="`echo -n "$pkg_name" | sed -e 's%\\-i[3456]86.*%%' -e 's%\\.pkg$%%' | rev | cut -f 2-9 -d '-' | rev`"
+	   DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\\-%%'`"
+	   xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
+	   xPATTERN="s%${xDB_version}%%"
+	   PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\\-$%%'`"
+	   DB_pkgrelease="`echo -n "$pkg_name" | sed -e 's%\\-i[3456]86.*%%' -e 's%\\.pkg$%%' | rev | cut -f 1 -d '-' | rev`"
+	  ;;
+	  rpm) #110523
+	   #exs: hunspell-fr-3.4-1.1.el6.noarch.rpm
+	   PKGNAME="$pkg_name"
+	   DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\-%%'`"
+	   xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
+	   xPATTERN="s%${xDB_version}%%"
+	   PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\\-$%%'`"
+	   DB_pkgrelease=""
+	  ;;
+	esac
+	[ "$PKGNAME_ONLY" != '' ] && echo $PKGNAME_ONLY || echo "$1"
 }
-
 
 
 get_pkg_name_only(){	# return pkg name only, no version or suffix FUNCLIST
 	
 	# exit if no valid options
 	[ ! "$1" ] && exit 1
+	
+	# get config settings, inc current repo file
+	. ${PKGRC}
+	
+	# get the extension of the given package name, if any
+	local pkg_ext=`get_pkg_ext "$1"`
+	local repo_of_pkg=''
+	local repo_pkg_with_ext=''
+	local repo_ext=$EX 			# from $PKGRC
+
+	case $DISTRO_BINARY_COMPAT in ubuntu|trisquel|debian|devuan)
+		name_only=`get_pkg_name_only_from_ext "$(basename "${1}.${repo_ext}")"`
+		[ "$name_only" != '' -a "$name_only" != "$1" ] && echo $name_only
+		return 0
+		;;
+	esac
 	
 	# replace the dash before the version number with an @ symbol.
 	# INFO: sed /-[^-][^+][^a-zA-Z][0-9.]*/ (hopefully?) replaces '-$VER' with '@' 
@@ -3409,7 +3484,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 				PKGNAMEONLY=`get_pkg_name_only "$PKGNAME"` 
 
 				#080917 - build woof compatible repo line .. #090817
-				if [ "`cut -f1 -d'|' ${HOME}/.packages/user-installed-packages 2>/dev/null |  | grep -m1 ^${PKGNAME}`" = '' ];then
+				if [ "`cut -f1 -d'|' ${HOME}/.packages/user-installed-packages 2>/dev/null | grep -m1 ^${PKGNAME}`" = '' ];then
 
 					# get the package db entry to add to user-installed-packages...
 					# first, get it from petspecs if possible, or from the pkgs repo, or make one
