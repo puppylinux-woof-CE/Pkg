@@ -302,6 +302,14 @@ get_pkg_ext(){		# return file extension of given pkg FUNCLIST
 }
 
 
+
+
+get_pkg_name_only_deb(){	# for ubuntu/debian/etc pkg naming
+	return 0
+}
+
+
+
 get_pkg_name_only(){	# return pkg name only, no version or suffix FUNCLIST
 	
 	# exit if no valid options
@@ -1704,6 +1712,9 @@ pkg_contents(){ 	# list package contents FUNCLIST
 	# try PKGNAME_ONLY* (any installed pkgs)
 	[ "$PKG_FLIST" = "" ] && PKG_FLIST="`cut -f1 -d'|' $HOME/.packages/*-installed-packages | grep -m1 ^"$PKGNAME_ONLY" 2>/dev/null`"
 	
+	# try PKGNAME_ONLY*.files
+	[ "$PKG_FLIST" = "" ] && PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "/${PKGNAME_ONLY}*.files"  2>/dev/null`"
+	
 	
 	# check if we need to (and can) get our pkg contents from builtins/PKGNAME
 	local  need_to_check_builtins=`echo "$PKG_FLIST" | grep -m1 'packages/builtin_files/'`
@@ -1746,6 +1757,9 @@ pkg_contents(){ 	# list package contents FUNCLIST
 
 		# now get our pkg contents list, it might have been re-formatted (if a builtin)
 		PKG_FLIST="`cat ${TMPDIR}pkg_file_list 2>/dev/null`"
+		
+		# last resort, if we lost our file list or still dont have, try the basics again
+		[ "$PKG_FLIST" = '' ] && PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "${PKGNAME}*.files" 2>/dev/null`"
 
 		# clean up the list a bit
 		[ "$PKG_FLIST" != '' ] && PKG_FLIST="`echo "$PKG_FLIST" | grep -v ' ' | grep -v "^\$" | sort | uniq`"
@@ -1762,7 +1776,7 @@ pkg_contents(){ 	# list package contents FUNCLIST
 		# themselves (a *.files, or a file in builtin_files/*).. so if 
 		# its a file path, we will cat it, if not, its the pkg contents 
 		# themselves, we echo it
-		if [ "`echo "$PKG_FLIST" | grep '/builtin_files/'`" != '' -o "`echo "$PKG_FLIST" | grep -m1 "packages/$PKGNAME"`" != '' ];then
+		if [ "`echo "$PKG_FLIST" | grep -m1 '/builtin_files/'`" != '' -o "`echo "$PKG_FLIST" | grep -m1 "packages/$PKGNAME"`" != '' ];then
 			print_cmd=cat
 		fi
 
@@ -3374,7 +3388,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 				fi
 
 				#080413 do fixmenus, if menu entry found #200713 moved here
-				if [ "`pkg_contents "$PKGNAME" | grep '/usr/share/applications' | grep .desktop$`" != "" ];then
+				if [ "`grep -m1 '/usr/share/applications' $HOME/.packages/${PKGNAME}.files | grep .desktop$`" != "" ];then
 					fixmenus &>/dev/null
 					# refresh JWM menus if using JWM window manager
 					[ "`which jwm`" != "" -a "`ps -e | grep jwm`" != "" ] && jwm -reload &>/dev/null
@@ -3395,7 +3409,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 				PKGNAMEONLY=`get_pkg_name_only "$PKGNAME"` 
 
 				#080917 - build woof compatible repo line .. #090817
-				if [ "`cat ${HOME}/.packages/user-installed-packages 2>/dev/null | cut -f1 -d'|' | grep -m1 ^${PKGNAME}`" = '' ];then
+				if [ "`cut -f1 -d'|' ${HOME}/.packages/user-installed-packages 2>/dev/null |  | grep -m1 ^${PKGNAME}`" = '' ];then
 
 					# get the package db entry to add to user-installed-packages...
 					# first, get it from petspecs if possible, or from the pkgs repo, or make one
@@ -3437,7 +3451,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 				ls -dl /tmp | grep -q '^drwxrwxrwt' || chmod 1777 /tmp #130305 rerwin.
 				
 				#090817
-				if [ "`is_installed_pkg $PKGNAME`" = true -a "`pkg_contents "$PKGNAME"`" != '' ];then
+				if [ "`is_installed_pkg $PKGNAME`" = true -a "`cat $HOME/.packages/${PKGNAME}.files`" != '' ];then
 					echo -e "${green}Success:${endcolour} $PKGNAME installed."
 					# show if pkg has menu entry
 					menu_entry_msg "$PKGNAME_ONLY" 
@@ -4496,7 +4510,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 }
 
 
-list_all_deps(){
+list_all_deps(){ # stolen from petget, a mix of various petget files
 
 	local PKGNAME=''
 	local PKGNAME_ONLY=''
@@ -4566,10 +4580,6 @@ list_all_deps(){
 	echo "$xPKG_NAME_IGNORE" > ${TMPDIR}pkg_name_ignore_patterns
 	#######100718 end copied code block#######
 	
-
-
-
-
 	SIZE2=0 #120907
 	echo -n "" > ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc #120903
 	echo -n "" > ${TMPDIR}deps_on_new_lines_surrounded_by_pipes_acc0 #120903
@@ -4628,7 +4638,6 @@ list_all_deps(){
 #	echo "$MISSINGDEPS_PATTERNS_WITHVER" > /tmp/petget_missingpkgs_patterns_with_versioning #can be read by dependencies.sh, find_deps.sh.
 #	#...ex each line: |kdebase|ge2.3.6|
 #	# ex with chained operators: |kdebase|ge2.3.6|lt2.4.5|
-
 
 	#120903 bring back the versioning info from level1 (${TMPDIR}deps_on_new_lines_surrounded_by_pipes_with_versioning is created in findmissingpkgs.sh)...
 	#restore the format ex |abiword|gt3.4| becomes |abiword&gt3.4| ...
