@@ -3032,7 +3032,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 	# exit if no valid option
 	[ "$PKGNAME" = '' ] && print_usage install && exit 1
 
-	[ "`is_installed_pkg $PKGNAME`" = true ] && return 1
+	[ "`is_installed_pkg $PKGNAME`" = true ] && echo "Already installed: $PKGNAME" && return 1
 
 	if [ -f "$1" ];then
 		PKGFILE="$1"
