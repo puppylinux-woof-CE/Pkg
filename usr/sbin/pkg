@@ -3787,6 +3787,11 @@ pkg_uninstall(){ 	# remove an installed package FUNCLIST
 
 pkg_get(){ 		# find, download and install packages and deps FUNCLIST
 	
+	# The function `choose_pkg` is run just before this one. It gives us $TMPDIR/USRPKGLIST,
+	# which contains a list of packages the user wants to install or download.
+	# In this func, we will go through the list and download/install the package, as well 
+	# as its dependencies (depending on what the user chose to do).
+
 	. ${PKGRC}
 	
 	# exit if no valid options
