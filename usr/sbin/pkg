@@ -4521,25 +4521,36 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	# put all deps in a tmp file
 	echo "$deps" | tr ',' '\n' | grep -v "^$PKGNAME_ONLY\$" | sort | uniq > $TMPDIR/all_deps
 
-	# reset list of installed pkgs
-	echo -n '' > $TMPDIR/installed_pkgs
-
-	# if --force given or HIDE_BUILTINS=true
-	if [ "${HIDE_BUILTINS}" = true -a "$FORCE" = false ];then
-		# add builtins to list of pkgs to remove from final output
-		cut -f2 -d'|' $HOME/.packages/woof-installed-packages | sort | uniq >> $TMPDIR/installed_pkgs
-		# remove any deps in installed pkgs list from all deps.. to leave only missing deps
-		
-		sort -u ${TMPDIR}all_deps > ${TMPDIR}all_deps_sorted
-		mv ${TMPDIR}all_deps_sorted ${TMPDIR}all_deps
-		
-		sort -u ${TMPDIR}installed_pkgs > ${TMPDIR}installed_pkgs_sorted
-		mv ${TMPDIR}installed_pkgs_sorted ${TMPDIR}installed_pkgs
+	sort -u ${TMPDIR}all_deps > ${TMPDIR}all_deps_sorted
+	mv ${TMPDIR}all_deps_sorted ${TMPDIR}all_deps
 	
-		comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs > ${TMPDIR}missing_deps
-	else
+	if [ "$FORCE" = true ];then
 		# list all deps we found as missing
 		mv ${TMPDIR}all_deps ${TMPDIR}missing_deps
+	else
+
+		# reset list of installed pkgs
+		echo -n '' > $TMPDIR/installed_pkgs
+
+		# if --force given or HIDE_INSTALLED=true
+		if [ "${HIDE_INSTALLED}" = true -a "$FORCE" = false ];then
+			# add user installed pkgs to list of pkgs to remove from final output
+			cut -f2 -d'|' $HOME/.packages/user-installed-packages | sort | uniq >> $TMPDIR/installed_pkgs
+		fi
+		
+		# if --force given or HIDE_BUILTINS=true
+		if [ "${HIDE_BUILTINS}" = true -a "$FORCE" = false ];then
+			# add builtins to list of pkgs to remove from final output
+			cut -f2 -d'|' $HOME/.packages/woof-installed-packages | sort | uniq >> $TMPDIR/installed_pkgs
+		fi
+		
+		# remove any deps in installed pkgs list from all deps.. to leave only missing deps
+		if [ -f ${TMPDIR}installed_pkgs -a ! -z  ${TMPDIR}installed_pkgs ];then
+			sort -u ${TMPDIR}installed_pkgs > ${TMPDIR}installed_pkgs_sorted
+			mv ${TMPDIR}installed_pkgs_sorted ${TMPDIR}installed_pkgs
+			comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs > ${TMPDIR}missing_deps
+		fi
+
 	fi
 
 	# get the new deps list
@@ -4550,7 +4561,6 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	deps_on_new_lines_surrounded_by_pipes="`echo $deps | tr ' ' '\n' | sed -e 's/$/|/g' -e 's/^/|/g'`"
 	echo "$deps_on_new_lines_surrounded_by_pipes" > ${TMPDIR}deps_on_new_lines_surrounded_by_pipes
 
-	deps="$deps"
 	more_deps="`list_all_deps "$PKGNAME"`"
 	
 	[ "`echo $more_deps`" != '' ] && deps="${deps} ${more_deps}"
@@ -4782,7 +4792,7 @@ list_all_deps(){ # stolen from petget, a mix of various petget files
 	
 	echo -n "`cat /tmp/petget_missing_dbentries-* 2>/dev/null`" | cut -f1 -d'|' | while read dep
 	do
-		echo -n "`get_pkg_name_only $dep` "
+		echo -n "$dep_name "
 	done
 	echo
 }
@@ -4961,7 +4971,7 @@ get_deps(){ 		# find, get and install the deps of pkg FUNCLIST
 	# skip if already processed, it should be listed in $TMPDIR/PKGSDONE
 	[ "$pkg_already_done" != "" -a "$FORCE" = false ] && continue 
 
-	echo "Resolving dependencies" # find deps will append ... as it goes
+	echo "Resolving dependencies.." # find deps will append ... as it goes
 
 	# find the deps!! .. sorts deps into two lists
 	#find_deps "${PKGNAME}"
@@ -4989,8 +4999,8 @@ get_deps(){ 		# find, get and install the deps of pkg FUNCLIST
 			# if more than one missing dep, set separator to a comma
 			[ ! -z "$DEPS_MISSING" -a "`echo "$DEPS_MISSING" | wc -l`" != "1" -a "`echo "$DEPS_MISSING" | wc -l`" != "0" ] && SEP=','
 		
-			# clean up our deps list, and make space separated
-			DEPS_MISSING="`LANG=C echo "$DEPS_MISSING" | grep -v '^,' | grep -v "^\$" | tr ',' ' '`"
+			# clean up our deps list, and make space separated only (no commas)
+			DEPS_MISSING="`LANG=C echo "${DEPS_MISSING//,/ }" | grep -v '^,' | grep -v "^\$"`"
 
 			# show deps info, if any available
 			[ "${DEPS_MISSING}" != ""  ]   && echo "Dependencies to get: ${DEPS_MISSING//,/, }"
