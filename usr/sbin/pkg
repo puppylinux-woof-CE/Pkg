@@ -1748,7 +1748,6 @@ pkg_contents(){ 	# list package contents FUNCLIST
 	# if we are here, the pkg is not a downloaded pkg, so we build a 
 	# list of files by checking  *.files, woof, builtins .. 
 	
-	
 	# try finding PKGNAME.files
 	PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "${PKGNAME}.files" 2>/dev/null`"
 	
@@ -3039,28 +3038,33 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 	# exit if no valid option
 	[ "$PKGNAME" = '' ] && print_usage install && exit 1
 
-	[ "`is_installed_pkg $PKGNAME`" = true ] && echo "Already installed: $PKGNAME" && return 1
+	[ "`is_installed_pkg "$PKGNAME"`" = true -a "$FORCE" = false ] && echo "Already installed: $PKGNAME" && return 1
 
 	if [ -f "$1" ];then
 		PKGFILE="$1"
+		PKGNAME=`basename "$1" .$pkg_ext`
 	else
 		# get the real file name (inc path) from the given PKGFILE and pkg_ext (which may be empty)
 		PKGFILE=`find "$CURDIR" -maxdepth 1 -type f -name "${PKGNAME}*${pkg_ext}" | head -1`
 		[ ! -f "$PKGFILE" ] && PKGFILE=`find "$CURDIR" -maxdepth 1 -type f -name "${PKGNAME}*${EX}" | grep -m1 $EX`
+		[ -f "$PKGFILE" ] && PKGNAME=`basename "$1" .$pkg_ext`
 	fi
 	
 	# maybe the file is not in the current dir, but in WORKDIR, so lets look there too
 	if [ ! -f "$PKGFILE" ];then
 		PKGFILE=`find "$WORKDIR" -maxdepth 1 -type f -name "${PKGNAME}*${pkg_ext}" | head -1`
 		[ ! -f "$PKGFILE" ] && PKGFILE=`find "$WORKDIR" -maxdepth 1 -type f -name "${PKGNAME}*${EX}" | grep -m1 $EX`
+
 		# if we found the file in WORKDIR, make that our CURDIR
 		if [ -f "$PKGFILE" ];then
+			PKGNAME=`basename "$PKGFILE" .$pkg_ext`
 			CURDIR="$WORKDIR"
 			cd "$WORKDIR"
 		else
 			# if we still didn't find it, do a broader check
 			PKGFILE=`find "$WORKDIR" -maxdepth 1 -type f -name "${PKGNAME}*" | head -1`
 			if [ -f "$PKGFILE" ];then
+				PKGNAME=`basename "$PKGFILE" .$pkg_ext`
 				CURDIR="$WORKDIR"
 				cd "$WORKDIR"
 			fi
@@ -3085,10 +3089,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 		# if pkg is not yet installed, or we are force re-installing
 
 		# get filename from download file
-		[ "$PKGNAME" = "$PKGNAME_ONLY" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}" | head -1`"
-		[ "$PKGNAME" = "$PKGNAME_ONLY" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}_" | head -1`"
-		[ "$PKGNAME" = "$PKGNAME_ONLY" ] && PKGNAME="`list_downloaded_pkgs "${PKGNAME}-" | head -1`"
-		[ "$PKGNAME" = "$PKGNAME_ONLY" ] && PKGNAME="`get_pkg_name "$PKGFILE"`"
+		PKGNAME=`basename "$PKGFILE" .$pkg_ext`
 
 		# ask/inform user before install
 		echo -n "Install package ${PKGNAME}$QTAG:  "
@@ -3158,27 +3159,32 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 				;;
 				
 				deb) 
+
 					rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
 					mkdir -p "${CURDIR}/${PKGNAME}"
 					cp "${CURDIR}/${PKGNAME}.deb" "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" || exit 4
 					cd "${CURDIR}/${PKGNAME}/"
-					PFILES="`dpkg-deb --contents ${PKGNAME}.deb | tr -s ' ' | cut -f 6 -d ' '`"
-					[ "$PFILES" != '' ] && echo "$PFILES" > $HOME/.packages/${PKGNAME}.files
+
+					if [ -f "${CURDIR}/${PKGNAME}.deb" ];then
+						dpkg-deb --contents ${CURDIR}/${PKGNAME}.deb | grep -v '/$' | tr -s ' ' | cut -f6 -d' ' | sed -e 's/^.//g' | grep -v '^$' > $HOME/.packages/${PKGNAME}.files
+					fi
+
+					pkg_has_archdir="$(grep -m1 "$DISTRO_ARCHDIR" "$HOME/.packages/${PKGNAME}.files")"
 
 					# Workaround to avoid overwriting the $DISTRO_ARCHDIR symlink.  
-					if [ "$DISTRO_ARCHDIR" != "" -a "$(echo "$PFILES" | grep "$DISTRO_ARCHDIR")" != "" ]; then
+					if [ "$DISTRO_ARCHDIR" != "" -a -f $HOME/.packages/${PKGNAME}.files -a "$pkg_has_archdir" != "" ]; then
 					   mkdir -p /tmp/$PKGNAME
 					   rm -rf /tmp/$PKGNAME/*
-					   dpkg-deb -x ${PKGNAME}.deb /tmp/$PKGNAME/ 2> $TMPDIR/$SELF-cp-errlog
+					   dpkg-deb -x ${CURDIR}/${PKGNAME}.deb /tmp/$PKGNAME/ 2> $TMPDIR/$SELF-cp-errlog
 					   for f in $(find /tmp/$PKGNAME \( -type f -o -type l \))
 					   do
-						 xpath=$(echo $f |  cut  -f 4-30 -d "/" | sed "s/$DISTRO_ARCHDIR\///")
-						 mkdir -p ${DIRECTSAVEPATH}/$(dirname $xpath)
-						 cp -a $f ${DIRECTSAVEPATH}/$(dirname $xpath)/
+						 xpath=$(echo "$f" |  cut  -f 4-30 -d "/" | sed "s/$DISTRO_ARCHDIR\///")
+						 mkdir -p ${DIRECTSAVEPATH}/$(dirname "$xpath")
+						 cp -a "$f" ${DIRECTSAVEPATH}/$(dirname "$xpath")/
 					  done
 					   #rm -rf /tmp/$PKGNAME
 					else
-					   dpkg-deb -x ${PKGNAME}.deb ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
+					   dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
 					fi
 
 					if [ "`cat $TMPDIR/$SELF-cp-errlog | grep 'tar: Exiting with failure status due to previous errors'`" != "" ];then
@@ -3186,7 +3192,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 						exit 1
 					fi
 					[ -d /DEBIAN ] && rm -rf /DEBIAN #130112 precaution.
-					dpkg-deb -e $PKGNAME.deb /DEBIAN #130112 extracts deb control files to dir /DEBIAN. may have a post-install script, see below.
+					dpkg-deb -e ${CURDIR}/${PKGNAME}.deb /DEBIAN #130112 extracts deb control files to dir /DEBIAN. may have a post-install script, see below.
 					rm "${PKGNAME}.deb"
 					cd - 1>/dev/null
 				;;
@@ -3244,6 +3250,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 			# now extract pkg contents to /
 			[ ! -d "${PKGNAME}/" ] && error "Cannot enter directory '${PKGNAME}/', it doesn't exist." && exit 4
 			cd "${PKGNAME}/" 1>/dev/null
+
 			cp -a --remove-destination * ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
 
 			#source is a directory, target is a symlink...
@@ -3291,19 +3298,11 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 			[ -f "`echo $FILES`" ] && mv "${CURDIR}/"*".files" "${HOME}/.packages/" #260713
 
 			#pkgname.files may need to be fixed...
-			FIXEDFILES="`cat ${HOME}/.packages/${PKGNAME}.files | grep -v '^\\./$'| grep -v '^/$' | sed -e 's%^\\.%%' -e 's%^%/%' -e 's%^//%/%'`"
-			echo "$FIXEDFILES" > ${HOME}/.packages/${PKGNAME}.files
+			cat ${HOME}/.packages/${PKGNAME}.files | grep -v '/$' | sed -e 's%^\\.%%' -e 's%^%/%' -e 's%^//%/%' > ${HOME}/.packages/${PKGNAME}.files2
+			mv ${HOME}/.packages/${PKGNAME}.files2 ${HOME}/.packages/${PKGNAME}.files
 
-			# remove all lines from $PKGNAME.files that is not a file or symlink
-			local flist="`cat $HOME/.packages/${PKGNAME}.files`"
-			echo "$flist" | while read flist_line
-			do
-				[ -d "$flist_line" ] && newfile="`grep -v "^$flist_line\$" $HOME/.packages/${PKGNAME}.files`"
-				[ "`echo $flist_line | grep '/$'`" ] && newfile="`grep -v "^$flist_line\$" $HOME/.packages/${PKGNAME}.files`"
-				echo "$newfile" > $HOME/.packages/${PKGNAME}.files
-			done
-			local sorted_flist="`cat $HOME/.packages/${PKGNAME}.files | sort`"
-			echo "$sorted_flist" > $HOME/.packages/${PKGNAME}.files
+			sort -u $HOME/.packages/${PKGNAME}.files > $HOME/.packages/${PKGNAME}.files2
+			mv ${HOME}/.packages/${PKGNAME}.files2 ${HOME}/.packages/${PKGNAME}.files
 
 			# some pets add images and icons at / so move them
 			mv /{*.xpm,*.png} /usr/share/pixmaps/ 2>/dev/null
