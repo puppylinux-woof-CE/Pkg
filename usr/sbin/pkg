@@ -456,30 +456,37 @@ get_pkg_name(){		# return pkg name with version FUNCLIST
 	# get the extension of the given package name, if any
 	local pkg_ext=`get_pkg_ext "$1"`
 	# get the name without path and extension
-	local pkg_name=`basename "$1" .$pkg_ext`
+	local pkg_name="`basename "$1" .$pkg_ext`"
 	
 	# get the repos files in the correct (fall back) order, then add file paths
-	supported_repo_files=`list_sources_files | sed -e "s#^#$HOME/.packages/#g"`
+	supported_repo_files="`list_sources_files | sed -e "s#^#$HOME/.packages/#g"`"
 	
 	# get the relevant repo contents (fields 1,2,8) from all repos, 
 	# then add pipes to line start/end for easier parsing later, then do 
 	# a basic search, for $pkg* (we'll refine it later), to avoid 'Argument list too long'.. 
-	repo_contents="`cut -f1,2,8 $HOME/.packages/user-installed-packages $HOME/.packages/woof-installed-packages $supported_repo_files | sed -e "s/^/|/g" -e "s/$/|/g" | grep -i "|$pkg_name"`"
+	cut -f1,2,8 $HOME/.packages/user-installed-packages $HOME/.packages/woof-installed-packages $supported_repo_files | sed -e "s/^/|/g" -e "s/$/|/g" | grep -i "|$pkg_name" > ${TMPDIR}repo_contents
 	
 	# get fields 1,2 and 8 (the 3 name fields) from all supported repo files, then 
 	# add '|' to start and end of lines, then find exact match of $pkg_name.. 
 	# if no exact match, look for $pkg_name-*, then $pkg_name_*
-	full_name=`echo "$repo_contents"| grep -i -m1 "|${pkg_name}|"` \
-		|| full_name=`echo "$repo_contents"|grep -i -m1 "|${pkg_name}-"` \
-		|| full_name=`echo "$repo_contents"|grep -i -m1 "|${pkg_name}_"` \
-		|| full_name=`echo "$repo_contents"|grep -i -m1 "|${pkg_name}"`
-		
+	if [ -f ${TMPDIR}repo_contents ];then
+		full_name=`cat ${TMPDIR}repo_contents| grep -m1 "|${pkg_name}|"` \
+			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name}-"` \
+			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name}_"` \
+			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name}"` \
+			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "^${pkg_name}|"` \
+			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "^${pkg_name}-"` \
+			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "^${pkg_name}_"`
+
+		rm ${TMPDIR}repo_contents &>/dev/null
+	fi
+
 	# if we found pkg in repo, keep only the package name ('|pkg-123|pkg|blah|' -> 'pkg-123')
-	[ "$full_name" != '' ] && full_name=`echo $full_name| cut -f2 -d '|' | tr -d '|'`
-	
+	[ "$full_name" != '' ] && full_name=`echo $full_name| cut -f2 -d '|' | tr -d '|'` || full_name=$pkg_name
+
 	# if we have a package name, return it here and leave the func
 	[ "$full_name" != '' ] && echo $full_name && return 0
-	
+
 	# if no pkg found in repos, we cant translate/lookup its longer name, 
 	# so just return what we got, without path, without pkg extension
 	[ "$full_name" = '' ] && echo "`basename "$pkg_name" .$pkg_ext`"
@@ -3947,7 +3954,7 @@ choose_pkg(){ 		# choose from a list of matching packages FUNCLIST
 	PKGNAME="$(basename "$1" .$PKGEX)"
 	
 	# get the full pkg name, to compare against repo pkgs we find
-	PKGNAME_FULL=`get_pkg_name "$PKGNAME"`
+	PKGNAME_FULL="`get_pkg_name "$PKGNAME"`"
 	
 	# get pkg name only .. without version or suffix
 	PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
@@ -3960,28 +3967,14 @@ choose_pkg(){ 		# choose from a list of matching packages FUNCLIST
 	# returns full pkg names (field1 of repo, pkgname with ver but no extension) each on a new line
 	PKGS="`$PKGSEARCH "${PKGNAME}"`"
 	
-	if [ "$FORCE" = false -a `is_installed_pkg "$PKGNAME_FULL"` = true -a "$HIDE_INSTALLED" = true ];then
+	if [ "$FORCE" = false -a "`is_installed_pkg "$PKGNAME_FULL"`" = true -a "$HIDE_INSTALLED" = true ];then
 		# remove it from choices
 		PKGS="`echo "$PKGS" | grep -v ^$PKGNAME_FULL\$`"
 	fi
 	
-	#if [ `is_usr_pkg "$PKGNAME_FULL"` = true -a "$HIDE_USER_PKGS" = true ];then
-	#	# remove it from choices
-	#	PKGS="`echo "$PKGS" | grep -v ^$PKGNAME_FULL\$`"
-	#fi
-	
-	#if [ `is_builtin_pkg "$PKGNAME_FULL"` = true -a "$HIDE_BUILTINS" = true ];then
-	#	# remove it from choices
-	#	PKGS="`echo "$PKGS" | grep -v ^$PKGNAME_FULL\$`"
-	#fi
-
-	#if [ `is_devx_pkg "$PKGNAME_FULL"` = true ];then
-	#	#remove it from choices
-	#	PKGS="`echo "$PKGS" | grep -v ^$PKGNAME_FULL\$`"
-	#fi
-	
 	# extra steps for ubuntu and debian repos, if multiple choices returned.. remove non-compatible archs, remove dev and dbg pkgs... 
 	if [ "$PKGEX" = "deb" -a "`echo "$PKGS" | wc -l`" != "1" ];then
+
 		ARCH="`uname -m`"
 		#remove x64 pkgs from choices if not using an x64 cpu
 		[ "$ARCH" != "x86_64" ] && PKG="`echo "$PKGS" | grep -v -E 'amd64|x86_64'`"
@@ -4015,8 +4008,11 @@ $PKGS"
 		echo
 	fi
 
+	# if using ubuntu/debian packages, put pkg_* before pkg-* .. else dont
+	[ "$PKGEX" = 'deb' ] && sort='sort -r' || sort='sort'
+	
 	# go through each actual pkg that matches the pkgname search, make it a numbered list
-	echo "$PKGS" | sort | while read LINE
+	echo "$PKGS" | $sort | while read LINE
 	do
 		if [ "$LINE" != "" -a "$LINE" != "," -a "$LINE" != " " ];then
 			[ "$ASK" = true ] && echo "${INT}. $LINE"
@@ -4026,7 +4022,7 @@ $PKGS"
 	done
 	
 	# if pkg list was made
-	if [ "`cat $TMPDIR/PKGLIST 2>/dev/null`" != "" ];then
+	if [ -f $TMPDIR/PKGLIST -a "`cat $TMPDIR/PKGLIST 2>/dev/null`" != "" ];then
 		
 		# set to first pkg only as default
 		if [ "$ASK" = false ];then
@@ -6032,8 +6028,8 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 			--names|-n)				  [ ! "$2" ] && list_pkg_names     || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x"; 			done; exit 0 ;; 
 			--names-exact|-ne)	[ ! "$2" ] && list_pkg_names     || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x\$"; 		done; exit 0 ;; 
 			--names-all|-na)		[ ! "$2" ] && list_all_pkg_names || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x"; 	done; exit 0 ;; 
-	--names-exact-all|-nea) [ ! "$2" ] && list_all_pkg_names || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x\$";done; exit 0 ;;
-		--list-installed|-li) [ ! "$2" ] && list_installed_pkgs|| for x in $opt; do [ "$x" -a "$x" != "-" ] && list_installed_pkgs "$x"; done; exit 0 ;; 
+	--names-exact-all|-nea) [ ! "$2" ] && list_all_pkg_names || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x\$"; done; exit 0 ;;
+		--list-installed|-li) [ ! "$2" ] && list_installed_pkgs|| for x in $opt; do [ "$x" -a "$x" != "-" ] && list_installed_pkgs "$x";  done; exit 0 ;; 
 	 --list-downloaded|-ld) [ ! "$2" ] && list_downloaded_pkgs || list_downloaded_pkgs "$2"; exit 0 ;;
 			-LI)								[ ! "$2" ] && HIDE_BUILTINS=false list_installed_pkgs || for x in $opt; do HIDE_BUILTINS=false list_installed_pkgs "$x"; done ;; # list all installed pkgs inc builtins
 			 
