@@ -4520,14 +4520,20 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 
 	# get the deps of the pkg, note, in the repo deps are NOT listed by proper pkg names, .. they are +dbus,+glib,+SDL
 	
-	# get list of deps .. check $repo_file for exact match
-	deps_list="`LANG=C grep -m1 "^$PKGNAME|" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -v '/ge'`"
+	# search for deps entry in repo file.. look for |pkgname.ext|
+	deps_list="`LANG=C grep -m1 "|${PKGNAME}.$pkg_ext|" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
+
+	# try again if needed.. look for ^pkgname|
+	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "^${PKGNAME}|" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -v '/ge'`"
+
+	# try again if needed.. look for |pkgname|
+	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "|${PKGNAME}|" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
 
 	# try again, look for dep-*
-	[ "$deps_list" = "" ] && deps_list="`LANG=C grep -m1 "^$PKGNAME-" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
+	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "^${PKGNAME}-" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
 
 	# try again if needed.. with underscore.. dep_*
-	[ "$deps_list" = "" ] && deps_list="`LANG=C grep -m1 "^$PKGNAME_" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
+	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "^${PKGNAME}_" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
 
 	# if no deps, exit with error
 	[ "$deps_list" = "" ] && return 1
@@ -4572,7 +4578,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	fi
 
 	# get the new deps list
-	deps="`LANG=C cat ${TMPDIR}missing_deps | grep -v "^\$" | grep -v "^ \$" | sort | tr '\n' ' '`"
+	deps="`LANG=C cat ${TMPDIR}missing_deps | grep -v "^\$" | grep -v "^ " | sort | tr '\n' ' '`"
 	
 	# get ALL deps from the list above (steals from /usr/local/petget/dependencies.sh)
 
