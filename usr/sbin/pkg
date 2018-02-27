@@ -1922,18 +1922,6 @@ prepare_petbuild(){	# get 01mickos petbuild system from Git, if needed FUNCLIST
 	[ "`$gitcheck`" = '' ] && echo "You need git installed to auto-install petbuild." && rm /tmp/pkg/petbuild_prepared 2>/dev/null && exit 3
 
 	if [ ! -d /usr/share/petbuild ];then
-		
-		# build pet has not been installed to where Pkg expects it
-		echo 
-		echo "Download PetBuild from https://github.com/puppylinux-woof-CE/petbuilds:"
-		echo 
-		echo -e " ${green}git clone https://github.com/puppylinux-woof-CE/petbuilds /usr/share/petbuild${endcolour}"
-		echo
-		echo "Alternatively, use a different build tool backend by changing BUILDTOOL= "
-		echo "to one of the options below, in your $PKGRC file:"
-		echo "petbuild, buildpet, sbopkg or src2pkg"
-		echo ""
-
 		rm /tmp/pkg/petbuild_prepared 2>/dev/null && exit 1
 	fi
 	
@@ -1958,9 +1946,16 @@ prepare_petbuild(){	# get 01mickos petbuild system from Git, if needed FUNCLIST
 		
 		# if still no petbuild dir in /usr/share, tell user to install themselves
 		if [ ! -d /usr/share/petbuild ];then
-			echo "Could not clone PetBuild repo"
-			echo "You need to install PetBuild (https://github.com/puppylinux-woof-CE/petbuilds)"
-			echo "to /usr/share/petbuild, or change BUILDTOOL in $PKGRC"
+			echo 
+			echo "Run this command to download PetBuild:"
+			echo 
+			echo -e " ${green}git clone https://github.com/puppylinux-woof-CE/petbuilds /usr/share/petbuild${endcolour}"
+			echo
+			echo "Alternatively, use a different build tool backend by changing BUILDTOOL= "
+			echo "to one of the options below, in your $PKGRC file:"
+			echo "petbuild, buildpet, sbopkg or src2pkg"
+			echo ""
+
 			exit 1
 		fi
 		
@@ -1978,9 +1973,9 @@ prepare_petbuild(){	# get 01mickos petbuild system from Git, if needed FUNCLIST
 		elif [ "`echo $DISTRO_DB_SUBNAME | grep tahrpup`" ];then
 			git checkout tahrpup
 		elif [ "`echo $DISTRO_DB_SUBNAME | grep stretch`" ];then
-			git checkout stretch
+			git checkout stretch || git checkout tahrpup
 		elif [ "`echo $DISTRO_DB_SUBNAME | grep xenialpup`" ];then
-			git checkout xenialpup
+			git checkout xenialpup || git checkout tahrpup
 		elif [ "$DISTRO_DB_SUBNAME" != '' ];then
 			git checkout tahrpup
 		else 
