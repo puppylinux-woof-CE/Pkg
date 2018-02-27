@@ -3834,10 +3834,10 @@ pkg_get(){ 		# find, download and install packages and deps FUNCLIST
 	# we want to download all pkgs to same place
 	cd "$WORKDIR"
 	CURDIR="$WORKDIR"
-	
+
 	# use the list of pkgs user has chosen to install, or the given PKGNAME
 	if [ "`cat "$TMPDIR/USRPKGLIST" 2>/dev/null`" != "" ];then
-		PKGLIST="`cat "$TMPDIR/USRPKGLIST" | grep -v "^\$" | sort | uniq`"
+		PKGLIST="`cat "$TMPDIR/USRPKGLIST" | grep -v "^\$"`"
 	fi
 	
 	if [ -z "$PKGLIST" ];then
@@ -3853,21 +3853,22 @@ pkg_get(){ 		# find, download and install packages and deps FUNCLIST
 	done
 	
 	# list the pkgs and ask to download (and maybe install)
-	echo "$PKGLIST" | sort | uniq | while read pkg
+	echo "$PKGLIST" | while read pkg
 	do
 
 		[ "$pkg" = '' -o ! "$pkg" ] && continue
 		
 		local pkg_name=`get_pkg_name "$pkg" 2>/dev/null`
+
 		[ "$pkg_name" = '' -o ! "$pkg_name" ] && continue
 
 		local pkg_name_only=`get_pkg_name_only "$pkg"`
 		local pkg_already_done=`grep -m1 "^$pkg_name_only\$" $TMPDIR/PKGSDONE 2>/dev/null`
-		local pkg_in_repo=`is_repo_pkg $pkg_name_only`
-		local PKGFILE=''
-		
 		# dont install this package is if already in PKGSDONE
 		[ "$pkg_already_done" != '' ] && continue
+
+		local pkg_in_repo=`is_repo_pkg $pkg_name_only`
+		local PKGFILE=''
 
 		# dont even try to download if no matches found
 		if [ "$pkg_in_repo" = true -a "$pkg_name_only" != "" ];then 
@@ -3893,9 +3894,9 @@ pkg_get(){ 		# find, download and install packages and deps FUNCLIST
 			# DOWNLOAD PKG
 			pkg_download "$pkg_name"
 
-			[ ! -f "$PKGFILE" ] && PKGFILE="`find "$CURDIR" -maxdepth 1 -type f -name "${pkg_name}*.*${pkg_ext}"`"
+			[ ! -f "$PKGFILE" ] && PKGFILE="`find "$CURDIR" -maxdepth 1 -type f -name "${pkg_name}.*${pkg_ext}"`"
 			# try grabbing $CURDIR/pkgname.pkg_ext
-			[ ! -f "$PKGFILE" ] && PKGFILE="`find "$CURDIR" -maxdepth 1 -type f -name "${pkg_name}.${pkg_ext}"`"
+			[ ! -f "$PKGFILE" ] && PKGFILE="`find "$CURDIR" -maxdepth 1 -type f -name "${pkg_name}*.${pkg_ext}"`"
 			# now try grabbing $CURDIR/pkgname.*
 			[ ! -f "$PKGFILE" ] && PKGFILE="`find "$CURDIR" -maxdepth 1 -type f -name "${pkg_name}.*"`"
 			# maybe try $CURDIR/pkgname-*.*
@@ -4043,7 +4044,7 @@ $PKGS"
 		
 		# set to first pkg only as default
 		if [ "$ASK" = false ];then
-			USRPKGLIST="$(echo "$PKGS" | head -1)" 
+			USRPKGLIST="$(echo "$PKGS" | $sort | head -1)" 
 			echo "$USRPKGLIST" > $TMPDIR/USRPKGLIST
 		fi
 		
@@ -4052,13 +4053,13 @@ $PKGS"
 			echo 
 			echo "Give the numbers of the packages you want to install,"
 			echo -n "separated by a comma, or hit ENTER only to skip: "
-			read USRPKGLIST </dev/tty
+			read USRPKGLIST1 </dev/tty
 			
 			# if user chose nothing (hit ENTER only), just skip
-			[ "$USRPKGLIST" = '' ] && continue
+			[ "$USRPKGLIST1" = '' ] && continue
 			
 			# split the results into newlines, create the list of chosen pkgs (used by other funcs)
-			echo "${USRPKGLIST}" | tr ',' '\n' | while read LINE
+			echo "${USRPKGLIST1}" | tr ',' '\n' | while read LINE
 			do
 				# set chosen pkg choice(s)
 				echo "`grep "^$LINE. " "$TMPDIR/PKGLIST" 2>/dev/null | cut -f2 -d' '`" >> $TMPDIR/USRPKGLIST
