@@ -377,22 +377,39 @@ get_pkg_name_only(){	# return pkg name only, no version or suffix FUNCLIST
 	# get config settings, inc current repo file
 	. ${PKGRC}
 	
-	# get the extension of the given package name, if any
+	local pkg_name=''
+	local pkg_name_only=''
+	local name_only=''
 	local pkg_ext=`get_pkg_ext "$1"`
 	local repo_of_pkg=''
 	local repo_pkg_with_ext=''
 	local repo_ext=$EX 			# from $PKGRC
 
+	# check the repos
+	local pkg_name_only="`grep -m1 "|${1}|" ${HOME}/.packages/Packages-* | cut -f2 -d'|'`"
+	[ "$pkg_name_only" = '' ] && pkg_name_only="`grep -m1 "^${1}|" ${HOME}/.packages/Packages-* | cut -f2 -d'|'`"
+	[ "$pkg_name_only" = '' ] && pkg_name_only="`grep -m1 "|${1}.${pkg_ext}|" ${HOME}/.packages/Packages-* | cut -f2 -d'|'`"
+	
+	# if we found it, print it and exit
+	if [ "$pkg_name_only" != '' ];then
+			echo ${pkg_name_only}
+			return 0
+	fi
+	
+	# if not, but we have an extension, try  get_pkg_name_only_from_ext()
 	case $DISTRO_BINARY_COMPAT in ubuntu|trisquel|debian|devuan)
-		local name_only=`get_pkg_name_only_from_ext "$(basename "${1}.${repo_ext}")"`
+		name_only=`get_pkg_name_only_from_ext "$(basename "${1}.${repo_ext}")"`
 		[ "$name_only" != '' -a "$name_only" != "$1" ] && echo $name_only && return 0
 		;;
 	esac
 	
+	## ...if we didn't find the name using the above, do the horrible checks below
+	
+
 	# replace the dash before the version number with an @ symbol.
 	# INFO: sed /-[^-][^+][^a-zA-Z][0-9.]*/ (hopefully?) replaces '-$VER' with '@' 
 	# not including when $VER starts with a number/letter
-	local  pkg_name_only="`echo "$(basename "${1}")" | sed -e 's/-[^-][^+][^a-zA-Z][0-9.]*/@/'`"
+	pkg_name_only="`echo "$(basename "${1}")" | sed -e 's/-[^-][^+][^a-zA-Z][0-9.]*/@/'`"
 	
 	# note, we haven't cut away version numbers preceeded with underscores (_) yet
 	
