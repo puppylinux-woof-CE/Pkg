@@ -3791,21 +3791,9 @@ pkg_uninstall(){ 	# remove an installed package FUNCLIST
 
 		# if any installed pkg matches $PKGNAME
 		if [ "`list_installed_pkgs $PKGNAME`" != "" ];then #290613
-
 			# list the matching pkgs
 			echo "These installed packages match '$PKGNAME':"
 			echo "`list_installed_pkgs $PKGNAME`"
-
-		# if any downloaded pkg matches $PKGNAME
-		#elif [ "$(list_downloaded_pkgs $PKGNAME)" != "" ];then 
-		#	
-		#	# list the matching pkgs
-		#	echo "These downloaded packages match '$PKGNAME':"
-		#	echo "`list_downloaded_pkgs $PKGNAME`"
-		#
-		#else # mo matching pkgs installed or downloaded
-		#	echo "Sorry: $PKGNAME not yet installed or downloaded."
-		#	not_found "${PKGNAME}" | grep -v 'not found'
 		fi
 
 		return 1
