@@ -2378,6 +2378,7 @@ pkg_status(){ 		# print package name, status, deps, etc FUNCLIST
 	local EX
 	local PKGNAME=''
 	local PKGNAME_ONLY=''
+	local PKGFILE=''
 	local MSG=''
 	local install_status=''
 	local pkg_found=false
@@ -2406,10 +2407,8 @@ pkg_status(){ 		# print package name, status, deps, etc FUNCLIST
 	if [ "$install_status" = "installed" ];then
 		
 		# check user installed pkgs for $PKGNAME
-		if [ -f ${HOME}/.packages/user-installed-packages ];then
-			pkg_found=`LANG=C is_usr_pkg "${PKGNAME}"`
-			[ "$pkg_found" = true ] && install_status="installed (user)"
-		fi
+		pkg_found=`LANG=C is_usr_pkg "${PKGNAME}"`
+		[ "$pkg_found" = true ] && install_status="installed (user)"
 
 		# if pkg not found yet, check if pkg is from the devx
 		if [ -f ${HOME}/.packages/devx-only-installed-packages -a "$pkg_found" = false ];then
@@ -2422,13 +2421,6 @@ pkg_status(){ 		# print package name, status, deps, etc FUNCLIST
 			pkg_found=`LANG=C is_builtin_pkg "${PKGNAME_ONLY}"`
 			[ "$pkg_found" = true ] && install_status="installed (builtin)"
 		fi
-
-		# dont need this, the builtins check above is checking same files, more accurately
-		# if pkg not found yet, check if pkg if listed in woof installed packages
-		#if [ -f ${HOME}/.packages/woof-installed-packages -a "$pkg_found" = false ];then
-		#	pkg_found=`LANG=C grep -m1 "^${PKGNAME}|" ${HOME}/.packages/woof-installed-packages`
-		#	[ "$pkg_found" = '' ] && install_status="installed (woof)"
-		#fi
 
 		# last gasp, if pkg not found yet, check if pkg if listed in layers-installed packages
 		if [ -f ${HOME}/.packages/layers-installed-packages -a "$pkg_found" = false ];then
@@ -2448,10 +2440,10 @@ pkg_status(){ 		# print package name, status, deps, etc FUNCLIST
 	if [ "$pkg_repo_file" != "" ];then 
 
 		# get package description from its repo entry
-		pkg_desc="`LANG=C grep "|${PKGNAME_ONLY}|" $HOME/.packages/$pkg_repo_file 2>/dev/null| grep -m1 "$PKGNAME" | cut -f10 -d'|' | head -1`"
+		pkg_desc="`LANG=C grep -m1 "|${PKGNAME_ONLY}|" $HOME/.packages/$pkg_repo_file 2>/dev/null| grep -m1 "$PKGNAME" | cut -f10 -d'|' | head -1`"
 		
 		# get size of pkg
-		pkg_size=`LANG=C grep -m1 "^${PKGNAME}" $HOME/.packages/$pkg_repo_file 2>/dev/null | cut -f6 -d'|' | head -1`
+		pkg_size=`LANG=C grep -m1 "|${PKGNAME_ONLY}|" $HOME/.packages/$pkg_repo_file 2>/dev/null | cut -f6 -d'|' | head -1`
 		
 		# add K to end of pkg_size, if not there already
 		[ "$pkg_size" != '' ] && pkg_size="${pkg_size}K" && pkg_size="${pkg_size//KK/K}"
@@ -2497,8 +2489,27 @@ $DEPS_ENTRY"
 	# if not found in any repo, maybe a woof or alien (user-installed) package
 	if [ "$MSG" = "" ];then #if nothing found in any repo
 
-		# search for exact match, then pkg-*, then pkg_*, then pkg* in installed pkgs
-		if [ "`grep -m1 "^${PKGNAME}|" ${HOME}/.packages/user-installed-packages 2>/dev/null`"   \
+		PKGFILE="`list_downloaded_pkgs | grep -m1 "^$PKGNAME"`"
+
+		# if the pkg is a downloaded file (in WORKDIR)
+		if [ -f "$WORKDIR/$PKGFILE" ];then
+			
+			# get the file, and get its file size
+			PKGFILE="$WORKDIR/${PKGFILE}"
+			[ "$pkg_size" = '' ] && pkg_size="`du -s -k "$PKGFILE" | cut -f1`K"
+			[ "$pkg_size" = '' ] && pkg_size="`grep -m1 "|${PKGNAME_ONLY}|" ${HOME}/.packages/*-installed-packages | cut -f6 -d'|' | head -1`"
+
+			
+			# create msg for downloaded pkgs
+			MSG="Name:		${PKGNAME}
+Size:		${pkg_size:-Unknown}
+Status:		Downloaded
+Note:		Downloaded package, not in any repo.
+$DEPS_ENTRY"
+		
+		# else, search for exact match, then pkg-*, then pkg_*, then pkg* in installed pkgs
+		elif [ "`grep -m1 "|${PKGNAME_ONLY}|" ${HOME}/.packages/user-installed-packages 2>/dev/null`"   \
+			-o "`grep -m1 "^${PKGNAME}|" ${HOME}/.packages/user-installed-packages 2>/dev/null`"   \
 			-o "`grep -m1 "^${PKGNAME}|" ${HOME}/.packages/*-installed-packages 2>/dev/null`"   \
 			-o "`grep -m1 "^${PKGNAME}-" ${HOME}/.packages/*-installed-packages 2>/dev/null`" \
 			-o "`grep -m1 "^${PKGNAME}_" ${HOME}/.packages/*-installed-packages 2>/dev/null`" \
@@ -2507,7 +2518,7 @@ $DEPS_ENTRY"
 			# get deps and size from its entry in user-installed-packages
 			DEPS_ENTRY="Dependencies:	`grep -m1 "^$PKGNAME" ${HOME}/.packages/user-installed-packages | cut -f9 -d'|' | sed -e 's/,+/,/' -e 's/^+//' -e 's/,$//'`"
 			[ "$DEPS_ENTRY" = '' ] && DEPS_ENTRY="Dependencies:	`grep -m1 "^$PKGNAME" ${HOME}/.packages/*-installed-packages | cut -f9 -d'|' | sed -e 's/,+/,/' -e 's/^+//' -e 's/,$//'`"
-			pkg_size="`grep -m1 "^$PKGNAME" ${HOME}/.packages/*-installed-packages | cut -f6 -d'|' | head -1`"
+			pkg_size=`LANG=C grep -m1 "|$PKGNAME_ONLY|" $HOME/.packages/*-installed-packages | cut -f6 -d'|' | head -1`
 			# add K to end of pkg_size, if not there already
 			[ "$pkg_size" != '' ] && pkg_size="${pkg_size}K" && pkg_size="${pkg_size//KK/K}"			
 
@@ -2516,22 +2527,6 @@ $DEPS_ENTRY"
 Size:		${pkg_size:-Unknown}
 Status:		${install_status}
 Repo:		Alien package, not in any repo.
-$DEPS_ENTRY"
-		
-		# else if the pkg is a downloaded file (in WORKDIR)
-		elif [ "`list_downloaded_pkgs | grep "^$PKGNAME"`" != "" ];then
-			
-			# get the file, and get its file size
-			PKGFILE="$WORKDIR/`list_downloaded_pkgs | grep "^$PKGNAME"`"
-			[ -f "$PKGFILE" -a "$pkg_size" = '' ] && pkg_size="`du -s -k "$PKGFILE" | cut -f1`K"
-			[ ! "$pkg_size" ] && pkg_size="`grep -m1 "^$PKGNAME" ${HOME}/.packages/*-installed-packages | cut -f6 -d'|' | head -1`"
-
-			
-			# create msg for downloaded pkgs
-			MSG="Name:		${PKGNAME}
-Size:		${pkg_size:-Unknown}
-Status:		Downloaded
-Note:		Downloaded package, not in any repo.
 $DEPS_ENTRY"
 		
 		else # pkg wasn't found, it's unknown to Pkg
@@ -3495,25 +3490,23 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 			fi
 
 			#080413 do fixmenus, if menu entry found #200713 moved here
-			if [ "`grep -m1 '/usr/share/applications' $HOME/.packages/${PKGNAME}.files 2>/dev/null | grep .desktop$`" != "" ];then
-				fixmenus &>/dev/null
-				# refresh JWM menus if using JWM window manager
-				[ "`which jwm`" != "" -a "`ps -e | grep jwm`" != "" ] && jwm -reload &>/dev/null
+			if [ "`grep -m1 '/usr/share/applications' $HOME/.packages/${PKGNAME}.files 2>/dev/null | grep desktop$`" != "" ];then
+				update_menus
 			fi
 
-			[ "$PKGCAT" = ''  ] && PKGCAT=`LANG=C  grep -m1 "${PKGNAME}" "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f5 -d'|' | head -1`
-			[ "$PKGDESC" = '' ] && PKGDESC=`LANG=C grep -m1 "${PKGNAME}" "${HOME}/.packages/${REPOFILE}" 2>/dev/null| cut -f10 -d'|' | head -1`
+			# get pkg size, category and description
+			[ "$PKGCAT" = ''  ] && PKGCAT=`LANG=C  grep -m1 "|${PKGNAME_ONLY}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f5 -d'|' | head -1`
+			[ "$PKGCAT" = ''  ] && PKGCAT=`LANG=C  grep -m1 "^${PKGNAME}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f5 -d'|' | head -1`
+			[ "$PKGDESC" = '' ] && PKGDESC=`LANG=C grep -m1 "|${PKGNAME_ONLY}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null| cut -f10 -d'|' | head -1`
+			[ "$PKGDESC" = '' ] && PKGDESC=`LANG=C grep -m1 "^${PKGNAME}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null| cut -f10 -d'|' | head -1`
 			[ "$PKGSIZE" = '' ] && PKGSIZE=`LANG=C du -s -k ${CURDIR}/${PKG} 2>/dev/null | cut -f1`
 			# get pkg version
 			PKGVER="`LANG=C  echo "$PKGNAME" | sed -e 's/^[^0-9]*-//g'`"
 			PKGARCH="`LANG=C echo "$PKGNAME" | cut -f3 -d'-' | grep -E 'i[3-9]|x[8-9]|noarch'`"
 
 			# last check for pkg info
-			[ "$DEPSLIST" = '' ] && DEPSLIST="`grep -m1 ^${PKGNAME}'|' "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f9 -d'|' | grep '+' | head -1`"
+			[ "$DEPSLIST" = '' ] && DEPSLIST="`grep -m1 "^${PKGNAME}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f9 -d'|' | grep '+' | head -1`"
 			[ "$PKGDESC" = ''  ] && PKGDESC="No description"
-
-			# get pkg name without version 
-			PKGNAMEONLY=`get_pkg_name_only "$PKGNAME"` 
 
 			#080917 - build woof compatible repo line .. #090817
 			if [ "`cut -f1 -d'|' ${HOME}/.packages/user-installed-packages 2>/dev/null | grep -m1 ^${PKGNAME}`" = '' ];then
@@ -3525,7 +3518,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 				elif [ "`grep -m1 "^${PKGNAME}|" "${HOME}/.packages/$REPOFILE"`" != "" ];then
 					DB_ENTRY="`grep -m1 "^${PKGNAME}|" "${HOME}/.packages/$REPOFILE"`"
 				else 
-					DB_ENTRY="${PKGNAME}|${PKGNAMEONLY}|${PKGVER}|${BUILD}|${PKGCAT}|${PKGSIZE}|${PKGDIR}|${PKGNAME}.${pkg_ext}|${DEPSLIST}|${PKGDESC}|${DISTRO_BINARY_COMPAT}|${DISTRO_COMPAT_VERSION}"
+					DB_ENTRY="${PKGNAME}|${PKGNAME_ONLY}|${PKGVER}|${BUILD}|${PKGCAT}|${PKGSIZE}|${PKGDIR}|${PKGNAME}.${pkg_ext}|${DEPSLIST}|${PKGDESC}|${DISTRO_BINARY_COMPAT}|${DISTRO_COMPAT_VERSION}"
 				fi
 
 				# Fix for Debian executables showing as shared libs in ROX.
@@ -3596,13 +3589,15 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 
 			echo "Package '$PKGNAME' not yet downloaded."
 
+			matching_local_pkgs="`list_downloaded_pkgs $PKGNAME`"
+
 			# if no matching pkgs downloaded
-			if [ "`list_downloaded_pkgs $PKGNAME`" != "" ];then 		
+			if [ "$matching_local_pkgs" != "" ];then 		
 				echo "You could install one of the following packages with \`$SELF -i PKGNAME\`:"
 				echo "`list_downloaded_pkgs $(basename "$PKGNAME" .$pkg_ext 2>/dev/null) 2>/dev/null`"
 			
 			# else if not downloaded, and in the current repo, list the matching repo pkgs
-			elif [ "`list_downloaded_pkgs $PKGNAME`" = "" -a "`grep -m1 ${PKGNAME}'|' "${HOME}/.packages/${REPOFILE}" 2>/dev/null`" != "" ];then
+			elif [ "$matching_local_pkgs" = "" -a "`grep -m1 "^${PKGNAME}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null`" != "" ];then
 				echo "You must first download one of the following packages with \`$SELF -d PKGNAME\`:"
 				echo "`$PKGSEARCH $(basename $PKGNAME .$pkg_ext)`"
 			
@@ -5811,18 +5806,19 @@ menu_entry_msg(){	# show menu entry details of installed pkg FUNCLIST
 
 	local PKGNAME=`get_pkg_name "$1"`
 	local PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
-	local MENUFILE='';
+	local MENUFILE=''
+	local pkg_file_list=''
 
 	# get the menu file, if it exists
-	if [ -f $HOME/.packages/$PKGNAME.files ];then
-		MENUFILE="`LANG=C grep -m1 '/usr/share/applications/' $HOME/.packages/$PKGNAME.files 2>/dev/null | grep -i -m1 ".desktop\$"`"
-	fi
+	pkg_file_list=`find ${HOME}/.packages/ -maxdepth 1 -type f -name "${PKGNAME}*.files"`
+
+	[ -f "$pkg_file_list" ] && MENUFILE="`LANG=C grep -m1 '/usr/share/applications/' "$pkg_file_list" | grep -i -m1 ".desktop\$"`" || return 1
 
 	# exit if the menu item is set to NoDisplay
 	[ "`grep -m1 ^NoDisplay=true "$MENUFILE" 2>/dev/null`" != "" ] && return 1
 	
 	# if pkg has a .desktop file
-	 if [ "$MENUFILE" != "" ];then
+	 if [ -f "$MENUFILE" ];then
 		# get the details for a final msg
 		MENU_CAT="`LANG=C grep -m1 "^Categories=" $MENUFILE 2>/dev/null | cut -f2 -d'=' | sed -e 's/\(.*\);/\1/g' -e 's/.*;//g' | head -1`"
 		APATTERN="[ ,]${MENU_CAT}" #MHHP
@@ -5835,14 +5831,17 @@ menu_entry_msg(){	# show menu entry details of installed pkg FUNCLIST
 		
 		# print msg
 		echo -e "Menu entry:	${lightblue}${TOPMENU:-[None]}${endcolour} -> ${lightblue}${MENU_NAME:-[None]}${endcolour}"
-		fixmenus &>/dev/null
-		# refresh JWM menus if using JWM window manager
-		[ "`which jwm`" != "" -a "`ps -e | grep jwm`" != "" ] && jwm -reload &>/dev/null
+		return 0
 	fi
-
-	return 0
+	return 1
 }
 
+update_menus() {
+	fixmenus &>/dev/null
+	# refresh JWM menus if using JWM window manager
+	[ "`which jwm`" != "" -a "`ps -e | grep jwm`" != "" ] && jwm -reload &>/dev/null
+	return 0
+}
 
 check_net(){ 		# check net connection (before downloading) FUNCLIST
 	[ -f $TMPDIR/internetsuccess ] && echo 0 && exit 0 #220613
