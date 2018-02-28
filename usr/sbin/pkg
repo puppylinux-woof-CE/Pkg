@@ -3776,9 +3776,7 @@ pkg_uninstall(){ 	# remove an installed package FUNCLIST
 			
 			# do fixmenus, if menu entry found
 			if [ "$HASMENUENTRY" = true ];then
-				fixmenus &>/dev/null
-				# refresh JWM menus if using JWM window manager
-				[ "`which jwm`" != "" -a "`ps -e | grep jwm`" != "" ] && jwm -reload &>/dev/null
+				update_menus
 			fi
 			
 			# UNINSTALL DONE .. print message
