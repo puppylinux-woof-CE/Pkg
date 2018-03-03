@@ -4508,19 +4508,19 @@ get_deps_entry(){
 	repo_file_of_pkg="$HOME/.packages/$repo_file_of_pkg"
 		
 	# search for deps entry in repo file.. look for |pkgname.ext|
-	deps_list="`LANG=C grep -m1 "|${PKGNAME}.$pkg_ext|" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
+	deps_list="`LANG=C grep -m1 "|${PKGNAME}.$pkg_ext|" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/:all//g" -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
 
 	# try again if needed.. look for ^pkgname|
-	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "^${PKGNAME}|" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -v '/ge'`"
+	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "^${PKGNAME}|" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/:all//g" -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -v '/ge'`"
 
 	# try again if needed.. look for |pkgname|
-	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "|${PKGNAME}|" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
+	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "|${PKGNAME}|" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/:all//g" -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
 
 	# try again, look for dep-*
-	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "^${PKGNAME}-" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
+	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "^${PKGNAME}-" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/:all//g" -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
 
 	# try again if needed.. with underscore.. dep_*
-	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "^${PKGNAME}_" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
+	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "^${PKGNAME}_" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/:all//g" -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
 
 	# if no deps, exit with error
 	[ "$deps_list" != "" ] && echo "$deps_list"
@@ -5022,7 +5022,7 @@ list_dependents(){	# list user installed pkgs that depend on $1 FUNCLIST
 	# as a dependency.. (we check for "+$PKGNAME_ONLY" to find the exact 
 	# match)
 	cut -f1,2,9 -d'|' $HOME/.packages/user-installed-packages \
-		| sed -e "s/&[geql][eqt][0-9a-z._-]*//g" \
+		| sed -e "s/:all//g" -e "s/&[geql][eqt][0-9a-z._-]*//g" \
 		| grep -E "+${PKGNAME_ONLY},|+${PKGNAME_ONLY}\|" \
 		| sort \
 		| uniq \
