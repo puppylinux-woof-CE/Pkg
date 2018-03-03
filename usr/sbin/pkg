@@ -1624,7 +1624,7 @@ search_pkgs(){		# current repo, show pkg name and desc in columns FUNCLIST
 }
 
 
-search_pkgs_fast(){	# current repo, show pkg names only, case sensitive FUNCLIST
+search_fast(){	# current repo, show pkg names only, case sensitive FUNCLIST
 	local RES
 	# get matching pkgs
 	RES="`LANG=C grep "$1" ${HOME}/.packages/${REPOFILE} 2>/dev/null | cut -f1 -d'|'`" #'
@@ -1678,7 +1678,7 @@ search_all_pkgs(){ 	# all repos, show pkg name and desc in columns FUNCLIST
 }
 
 
-search_all_pkgs_fast(){ # all repos, show pkg names only, case sensitive FUNCLIST
+search_all_fast(){ # all repos, show pkg names only, case sensitive FUNCLIST
 	
 	local RES
 	#if bleeding edge enabled, combine into 1 list, so 
@@ -5870,30 +5870,30 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 
 			# package search
 			--all-pkgs|--all) 	[ ! "$2" ] && cat ${HOME}/.packages/${REPOFILE} || cat ${HOME}/.packages/${REPOFILE} | grep "$2"; exit 0;; 
-			--search|-s) 				search_pkgs "$2";					exit 0;; 
-			-ss) 								search_pkgs_fast "$2";		exit 0;; 
-			--search-all|-sa) 	search_all_pkgs "$2" ;		exit 0;; 
-			-ssa) 							search_all_pkgs_fast "$2";exit 0;; 
-			--names|-n)				  [ ! "$2" ] && list_pkg_names     || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x"; 			done; exit 0 ;; 
-			--names-exact|-ne)	[ ! "$2" ] && list_pkg_names     || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x\$"; 		done; exit 0 ;; 
-			--names-all|-na)		[ ! "$2" ] && list_all_pkg_names || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x"; 	done; exit 0 ;; 
-	--names-exact-all|-nea) [ ! "$2" ] && list_all_pkg_names || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x\$"; done; exit 0 ;;
-		--list-installed|-li) [ ! "$2" ] && list_installed_pkgs|| for x in $opt; do [ "$x" -a "$x" != "-" ] && list_installed_pkgs "$x";  done; exit 0 ;; 
+			--search|-s) 				[ ! "$2" ] && search_pkgs          || for x in $opt; do [ "$x" -a "$x" != "-" ] && search_pkgs "$x";          done; exit 0 ;; 
+			-ss) 								[ ! "$2" ] && search_fast          || for x in $opt; do [ "$x" -a "$x" != "-" ] && search_fast "$x";          done; exit 0 ;; 
+			--search-all|-sa) 	[ ! "$2" ] && search_all_pkgs      || for x in $opt; do [ "$x" -a "$x" != "-" ] && search_all_pkgs "$x";      done; exit 0 ;; 
+			-ssa) 							[ ! "$2" ] && search_all_fast      || for x in $opt; do [ "$x" -a "$x" != "-" ] && search_all_fast "$x";      done; exit 0 ;; 
+			--names|-n)				  [ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x"; 			done; exit 0 ;; 
+			--names-exact|-ne)	[ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x\$"; 		done; exit 0 ;; 
+			--names-all|-na)		[ ! "$2" ] && list_all_pkg_names   || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x"; 	done; exit 0 ;; 
+	--names-exact-all|-nea) [ ! "$2" ] && list_all_pkg_names   || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x\$"; done; exit 0 ;;
+		--list-installed|-li) [ ! "$2" ] && list_installed_pkgs  || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_installed_pkgs "$x";  done; exit 0 ;; 
 	 --list-downloaded|-ld) [ ! "$2" ] && list_downloaded_pkgs || list_downloaded_pkgs "$2"; exit 0 ;;
 			-LI)								[ ! "$2" ] && HIDE_BUILTINS=false list_installed_pkgs || for x in $opt; do HIDE_BUILTINS=false list_installed_pkgs "$x"; done ;; # list all installed pkgs inc builtins
 			 
 			# get, download, install, remove, pkgs
 			--download|-d) 			[ ! "$2" ] && pkg_download || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_download "$x";  done;; 
-			--install|-i) 			[ ! "$2" ] && pkg_install  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_install "$x";   done ;; 
-			--uninstall|-u) 		[ ! "$2" ] && pkg_uninstall|| for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_uninstall "$x"; done ;; 
-			--unpack|--extract)	[ ! "$2" ] && pkg_unpack   || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_unpack "$x";    done ;;
-			--clean)						[ ! "$2" ] && clean_pkgs   || for x in $opt; do [ "$x" -a "$x" != "-" ] && clean_pkgs "$x";    done ;;
+			--install|-i) 			[ ! "$2" ] && pkg_install  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_install "$x";   done;; 
+			--uninstall|-u) 		[ ! "$2" ] && pkg_uninstall|| for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_uninstall "$x"; done;; 
+			--unpack|--extract)	[ ! "$2" ] && pkg_unpack   || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_unpack "$x";    done;;
+			--clean)						[ ! "$2" ] && clean_pkgs   || for x in $opt; do [ "$x" -a "$x" != "-" ] && clean_pkgs "$x";    done;;
 			--get|-g) 					[ ! "$2" ] && pkg_get      || for x in $opt; do if [ "$x" -a "$x" != "-" ];then choose_pkg "$x"; pkg_get "$x"; fi; done ;;  
 			--get-only|-go) 		[ ! "$2" ] && print_usage get-only || for x in $opt; do if [ "$x" -a "$x" != "-" ];then choose_pkg "$x"; NO_INSTALL=true  pkg_get "$x"; fi; done ;;  
 			--delete|-l) 				[ ! "$2" ] && print_usage delete   || for x in $opt; do [ "$x" = '-' ] && continue; if [ -f "${WORKDIR}/$(basename "$x")" ];then if [ "$ASK" = true ];then echo -n "Remove package `basename $x`$QTAG "; read -n 1 CONFIRM </dev/tty; echo; else CONFIRM=y; fi; [ "$CONFIRM" = "y" ] && rm -v "${WORKDIR}/$(basename "$x")"; else not_found "$x"; fi; done ;; #110213,0.9.1  renamed to --delete|-l 
 			--delete-all|-la) 	ASK=true; QTAG="?  (y/N)"; if [ "$ASK" = true ];then echo -en "Remove all downloaded packages in ${lightblue}${WORKDIR}/${endcolour}$QTAG"; read -n 1 CONFIRM </dev/tty; echo; else CONFIRM=y; fi; [ "$CONFIRM" = "y" ] && rm -v ${WORKDIR}/*.pet ${WORKDIR}/*.pkg.* ${WORKDIR}/*.sfs ${WORKDIR}/*.tar.* ${WORKDIR}/*.tcz ${WORKDIR}/*.txz ${WORKDIR}/*.tgz ${WORKDIR}/*.deb ${WORKDIR}/*.rpm ${WORKDIR}/*.apk ${WORKDIR}/*.gz ${WORKDIR}/*.xz 2>/dev/null; exit 0;;
-			--install-all|-ia)  list_downloaded_pkgs | while read pkg; do [ "$pkg" -a "$pkg" != "-" ] && pkg_install "$pkg";   done  ;;
-			--uninstall-all|-ua)list_installed_pkgs  | while read pkg; do [ "$pkg" -a "$pkg" != "-" ] && pkg_uninstall "$pkg"; done  ;;
+			--install-all|-ia)  list_downloaded_pkgs | while read pkg; do [ "$pkg" -a "$pkg" != "-" ] && pkg_install "$pkg";   done;;
+			--uninstall-all|-ua)list_installed_pkgs  | while read pkg; do [ "$pkg" -a "$pkg" != "-" ] && pkg_uninstall "$pkg"; done;;
 
 			# pkg status, info
 			--pkg-installed|-pi)[ ! "$2" ] && is_installed_pkg || for x in $opt; do [ "$x" -a "$x" != "-" ] && is_installed_pkg "$x"; done;;
