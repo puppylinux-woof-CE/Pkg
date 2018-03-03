@@ -3211,7 +3211,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 						 mkdir -p ${DIRECTSAVEPATH}/$(dirname "$xpath")
 						 cp -a "$f" ${DIRECTSAVEPATH}/$(dirname "$xpath")/
 					  done
-					   #rm -rf /tmp/$PKGNAME
+					  rm -rf /tmp/$PKGNAME &>/dev/null
 					else
 					   dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
 					fi
