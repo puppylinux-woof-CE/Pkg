@@ -405,28 +405,30 @@ get_pkg_name_only(){	# return pkg name only, no version or suffix FUNCLIST
 	
 	## ...if we didn't find the name using the above, do the horrible checks below
 	
-
 	# replace the dash before the version number with an @ symbol.
 	# INFO: sed /-[^-][^+][^a-zA-Z][0-9.]*/ (hopefully?) replaces '-$VER' with '@' 
 	# not including when $VER starts with a number/letter
 	pkg_name_only="`echo "$(basename "${1}")" | sed -e 's/-[^-][^+][^a-zA-Z][0-9.]*/@/'`"
+
+	# do 'ioquake3+u20130504' => 'oquake3'
+	pkg_name_only="`echo "${pkg_name_only}" | sed -e 's/+[a-z]/@/'`"
 	
 	# note, we haven't cut away version numbers preceeded with underscores (_) yet
 	
 	# if the version number was preceeded by an underscore, the version 
 	# will still be in the $pkg_name_only - pkgname_2.3.4 - so cut it out
 	if [ "`echo "$pkg_name_only" | grep -o "_[0-9]\."`" != '' ];then
-		pkg_name_only="`echo "$1" | sed -e 's/_[^a-z][^A-Z][0-9.]*/@/'`"
+		pkg_name_only="`echo "$pkg_name_only" | sed -e 's/_[^a-z][^A-Z][0-9.]*/@/'`"
 
 	# maybe the underscore preceeds a version that starts with a letter
 	elif [ "`echo "$pkg_name_only" | grep -o "_[a-zA-Z][0-9]\."`" != '' ];then
-		pkg_name_only="`echo "$1" | sed -e 's/_[a-zA-Z][0-9.]*/@/'`"
+		pkg_name_only="`echo "$pkg_name_only" | sed -e 's/_[a-zA-Z][0-9.]*/@/'`"
 	fi
 	
 	# now cut away everything after the @, that will leave only the package name
 	pkg_name_only1="${pkg_name_only/@*/}"
 	pkg_name_only="$pkg_name_only1"
-	
+
 	# we might still have foo_bar_v1.2.3, so lets chop off * after the last _ 
 	if [ "`echo "$pkg_name_only" | grep -o "_[a-zA-Z][0-9]\."`" != '' ];then
 		pkg_name_only="${pkg_name_only/_[a-zA-Z][0-9]*/}"
@@ -4625,12 +4627,21 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 
 		# get the new deps list
 		deps="`LANG=C cat ${TMPDIR}missing_deps | tr ' ' '\n' | grep -v "^\$" | grep -v "^ " | sort | uniq | tr '\n' ' '`"
+		
+		for dep in $deps
+		do
+			[ "$dep" != '' ] && dep_name=`get_pkg_name_only "$dep"`
+			[ "$dep_name" != '' ] && echo "$dep_name" >> ${TMPDIR}missing_deps__names_only
+		done
+		mv ${TMPDIR}missing_deps__names_only ${TMPDIR}missing_deps
+		deps="`LANG=C cat ${TMPDIR}missing_deps | sort | uniq | tr '\n' ' '`"
+		
 	fi
 
 	[ "$deps" != "" ] && echo "$deps" | sed -e 's/  / /g'
 	
 	# clean up
-	rm ${TMPDIR}missing_deps ${TMPDIR}installed_pkgs ${TMPDIR}all_deps ${TMPDIR}more_deps_list* 2>/dev/null
+	rm ${TMPDIR}missing_deps ${TMPDIR}installed_pkgs ${TMPDIR}all_deps ${TMPDIR}more_deps_list* ${TMPDIR}missing_deps__names_only 2>/dev/null
 }
 
 
@@ -5640,12 +5651,14 @@ menu_entry_msg(){	# show menu entry details of installed pkg FUNCLIST
 	return 1
 }
 
+
 update_menus() {
 	fixmenus &>/dev/null
 	# refresh JWM menus if using JWM window manager
 	[ "`which jwm`" != "" -a "`ps -e | grep jwm`" != "" ] && jwm -reload &>/dev/null
 	return 0
 }
+
 
 check_net(){ 		# check net connection (before downloading) FUNCLIST
 	[ -f $TMPDIR/internetsuccess ] && echo 0 && exit 0 #220613
