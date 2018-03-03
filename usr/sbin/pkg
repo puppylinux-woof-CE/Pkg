@@ -4591,33 +4591,26 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	sort -u ${TMPDIR}all_deps > ${TMPDIR}all_deps_sorted
 	mv ${TMPDIR}all_deps_sorted ${TMPDIR}all_deps
 	
-	if [ "$FORCE" = true ];then
-		# list all deps we found as missing
-		mv ${TMPDIR}all_deps ${TMPDIR}missing_deps
-	else
+	# reset list of installed pkgs
+	echo -n '' > $TMPDIR/installed_pkgs
 
-		# reset list of installed pkgs
-		echo -n '' > $TMPDIR/installed_pkgs
-
-		# if --force given or HIDE_INSTALLED=true
-		if [ "${HIDE_INSTALLED}" = true -a "$FORCE" = false ];then
-			# add user installed pkgs to list of pkgs to remove from final output
-			cut -f2 -d'|' $HOME/.packages/user-installed-packages | sort | uniq >> $TMPDIR/installed_pkgs
-		fi
-		
-		# if --force given or HIDE_BUILTINS=true
-		if [ "${HIDE_BUILTINS}" = true ];then
-			# add builtins to list of pkgs to remove from final output
-			cut -f2 -d'|' $HOME/.packages/woof-installed-packages | sort | uniq >> $TMPDIR/installed_pkgs
-		fi
-		
-		# remove any deps in installed pkgs list from all deps.. to leave only missing deps
-		if [ -f ${TMPDIR}installed_pkgs -a ! -z  ${TMPDIR}installed_pkgs ];then
-			sort -u ${TMPDIR}installed_pkgs > ${TMPDIR}installed_pkgs_sorted
-			mv ${TMPDIR}installed_pkgs_sorted ${TMPDIR}installed_pkgs
-			comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs > ${TMPDIR}missing_deps
-		fi
-
+	# if --force given or HIDE_INSTALLED=true
+	if [ "${HIDE_INSTALLED}" = true -a "$FORCE" = false ];then
+		# add user installed pkgs to list of pkgs to remove from final output
+		cut -f2 -d'|' $HOME/.packages/user-installed-packages | sort | uniq >> $TMPDIR/installed_pkgs
+	fi
+	
+	# if --force given or HIDE_BUILTINS=true
+	if [ "${HIDE_BUILTINS}" = true ];then
+		# add builtins to list of pkgs to remove from final output
+		cut -f2 -d'|' $HOME/.packages/woof-installed-packages | sort | uniq >> $TMPDIR/installed_pkgs
+	fi
+	
+	# remove any deps in installed pkgs list from all deps.. to leave only missing deps
+	if [ -f ${TMPDIR}installed_pkgs -a ! -z  ${TMPDIR}installed_pkgs ];then
+		sort -u ${TMPDIR}installed_pkgs > ${TMPDIR}installed_pkgs_sorted
+		mv ${TMPDIR}installed_pkgs_sorted ${TMPDIR}installed_pkgs
+		comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs > ${TMPDIR}missing_deps
 	fi
 
 	# get the new deps list
