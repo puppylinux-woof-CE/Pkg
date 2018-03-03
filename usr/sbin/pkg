@@ -4473,14 +4473,13 @@ clean_pkgs(){		# delete downloaded pkg files of installed pkgs FUNCLIST
 
 
 # dependency funcs
-list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
+get_deps_entry(){
 	[ "$1" = '' -o "$1" = "-" ] && print_usage list-deps && exit 1
 	
 	# get current $REPOFILE, $DEPSEARCH
 	. ${PKGRC}
 	
-	local PKGNAME=''
-	local PKGNAME_ONLY=''
+	local PKGNAME="$1"
 	local pkg_ext=''
 	local repo_files=''
 	local deps_list=''
@@ -4490,11 +4489,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	
 	# get pkg extension
 	pkg_ext=`get_pkg_ext "$1"`
-	
-	#pkg name only ,no path, no extension
-	PKGNAME="$(LANG=C basename "$1" .$pkg_ext)" 
-	PKGNAME=`get_pkg_name "$PKGNAME"`
-	PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
+
 	
 	# get repo file to search from RC file
 	repo_file_of_pkg="$REPOFILE"
@@ -4511,9 +4506,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	
 	# add the full path to the repo file
 	repo_file_of_pkg="$HOME/.packages/$repo_file_of_pkg"
-
-	# get the deps of the pkg, note, in the repo deps are NOT listed by proper pkg names, .. they are +dbus,+glib,+SDL
-	
+		
 	# search for deps entry in repo file.. look for |pkgname.ext|
 	deps_list="`LANG=C grep -m1 "|${PKGNAME}.$pkg_ext|" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
 
@@ -4528,6 +4521,40 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 
 	# try again if needed.. with underscore.. dep_*
 	[ "$deps_list" = "" -a "$PKGNAME" != '' ] && deps_list="`LANG=C grep -m1 "^${PKGNAME}_" $repo_file_of_pkg 2>/dev/null | cut -f9 -d'|' | grep '+' | sed -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'`"
+
+	# if no deps, exit with error
+	[ "$deps_list" != "" ] && echo "$deps_list"
+}
+
+list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
+	[ "$1" = '' -o "$1" = "-" ] && print_usage list-deps && exit 1
+	
+	# get current $REPOFILE, $DEPSEARCH
+	. ${PKGRC}
+	
+	local PKGNAME=''
+	local PKGNAME_ONLY=''
+	local pkg_ext=''
+	local repo_files=''
+	local deps_list=''
+	local more_deps_entry=''
+	local more_deps=''
+	local deps=''
+	local repo_of_pkg=''
+	local repo_file_of_pkg=''
+	
+	# get pkg extension
+	pkg_ext=`get_pkg_ext "$1"`
+	
+	#pkg name only ,no path, no extension
+	PKGNAME="$(LANG=C basename "$1" .$pkg_ext)" 
+	PKGNAME=`get_pkg_name "$PKGNAME"`
+	PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
+
+	# get the deps of the pkg, note, in the repo deps are NOT listed by proper pkg names, .. they are +dbus,+glib,+SDL
+	
+	# search for deps entry in repo file.. look for |pkgname.ext|
+	deps_list="`LANG=C get_deps_entry "$PKGNAME"`"
 
 	# if no deps, exit with error
 	[ "$deps_list" = "" ] && return 1
@@ -4572,24 +4599,40 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	fi
 
 	# get the new deps list
-	deps="`LANG=C cat ${TMPDIR}missing_deps | grep -v "^\$" | grep -v "^ " | sort | tr '\n' ' '`"
+	deps="`LANG=C cat ${TMPDIR}missing_deps | tr ' ' '\n' | grep -v "^\$" | grep -v "^ " | sort | tr '\n' ' '`"
 	
 	# if $deps not empty, get deps of each pkg listed in $deps, then get deps of those pkgs too
 	if [ "$deps" != '' ];then
-		more_deps1="`$SELF -le $deps`"
-		[ "$more_deps1" != '' ] && deps="$deps $more_deps1" && more_deps2="`$SELF -le $more_deps1`"
-		[ "$more_deps2" != '' ] && deps="$deps $more_deps2"
-		# if we got more deps, clean up the list
-		deps_cleaned="`echo $deps | tr ' ' '\n' | grep -v ^$ | sort | uniq | tr '\n' ' ' | sed -e 's/  / /g' `"
-		# if we have an updated list, replace the old list (which is missing deps of deps)
-		[ "$deps_cleaned" != '' ] && deps="$deps_cleaned"
+		
+		# for each dep of $PKGNAME, get its (space separated) deps list and add the list to ${TMPDIR}more_deps_list
+		for dep in $deps
+		do
+			more_deps_entry="`get_deps_entry $dep`"
+			# remove the '+' from the start of each dep
+			more_deps="${more_deps_entry/+/}" # remove first + at start of line
+			more_deps="${more_deps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
+			echo "$more_deps" >> ${TMPDIR}more_deps_list1
+		done
+		
+		if [ ! -z ${TMPDIR}more_deps_list1 ];then
+			LANG=C cat ${TMPDIR}more_deps_list1 | tr ' ' '\n' | tr ',' '\n' | grep -v ^$ | sort | uniq | tr '\n' ' ' > ${TMPDIR}more_deps_list
+		fi
+		
+		# remove any deps in installed pkgs list from more_deps_list.. to leave only missing deps
+		if [ -f ${TMPDIR}installed_pkgs -a ! -z  ${TMPDIR}installed_pkgs ];then
+			LANG=C comm -23 ${TMPDIR}more_deps_list ${TMPDIR}installed_pkgs >> ${TMPDIR}missing_deps
+		fi
+
+		# get the new deps list
+		deps="`LANG=C cat ${TMPDIR}missing_deps | tr ' ' '\n' | grep -v "^\$" | grep -v "^ " | sort | uniq | tr '\n' ' '`"
 	fi
 
 	[ "$deps" != "" ] && echo "$deps" | sed -e 's/  / /g'
 	
 	# clean up
-	rm ${TMPDIR}missing_deps ${TMPDIR}installed_pkgs ${TMPDIR}all_deps 2>/dev/null
+	rm ${TMPDIR}missing_deps ${TMPDIR}installed_pkgs ${TMPDIR}all_deps ${TMPDIR}more_deps_list* 2>/dev/null
 }
+
 
 find_deps(){ 		# make 2 lists: DEPS_INSTALLED and DEPS_MISSING FUNCLIST
 	
@@ -4644,7 +4687,7 @@ find_deps(){ 		# make 2 lists: DEPS_INSTALLED and DEPS_MISSING FUNCLIST
 	[ "$DEPSEARCH" = "list_all_pkg_names" ] && repo_files="`list_sources_files | sed -e "s|^|$HOME/.packages/|g" | tr '\n' ' '`" || repo_files="$HOME/.packages/$REPOFILE"
 	
 	# get the list of deps from the repo entry of this pkg
-	deps_list="`list_deps "$PKGNAME"`"
+	deps_list="`LANG=C list_deps "$PKGNAME"`"
 	
 	# remove builtins from list unless HIDE_BUILTINS=false
 	if [ "${HIDE_BUILTINS}" = true ];then
