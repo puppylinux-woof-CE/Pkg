@@ -1433,7 +1433,9 @@ hide_installed_pkgs_from_search_results(){	# hide BUILTIN and installed pkgs fro
 	inst_pkg_list="`cut -f1 -d'|' ${HOME}/.packages/user-installed-packages \
 		${HOME}/.packages/devx-only-installed-packages \
 		${HOME}/.packages/woof-installed-packages 2>/dev/null \
+		| grep -v ^$ \
 		| tr '\n' '|' \
+		| sed -e "s/||/|/g" \
 		| sed -e "s/|\$//g"`"
 		
 	# remove woof and user installed packages from search list
