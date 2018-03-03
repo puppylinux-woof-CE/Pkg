@@ -4530,6 +4530,7 @@ get_deps_entry(){
 	[ "$deps_list" != "" ] && echo "$deps_list"
 }
 
+
 list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	[ "$1" = '' -o "$1" = "-" ] && print_usage list-deps && exit 1
 	
@@ -4565,11 +4566,28 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	
 	# remove the '+' from the start of each dep
 	deps="${deps_list/+/}" # remove first + at start of line
-	deps="${deps//,+/,}"   # remove others .. DEPS will now be just 'dep1,dep2,dep3'	
+	deps="${deps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
 
+	# for each dep of $PKGNAME, get its own deps list
+	# and add to ${TMPDIR}more_deps_list
+	for dep in $deps
+	do
+		more_deps_entry="`get_deps_entry $dep`"
+		# remove the '+' from the start of each dep
+		more_deps="${more_deps_entry/+/}" # remove first + at start of line
+		more_deps="${more_deps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
+		echo "$more_deps" >> ${TMPDIR}more_deps_list1
+	done
+	# clean and sort
+	if [ ! -z ${TMPDIR}more_deps_list1 ];then
+		LANG=C cat ${TMPDIR}more_deps_list1 | tr ' ' '\n' | tr ',' '\n' | grep -v ^$ | tr '\n' ' ' > ${TMPDIR}more_deps_list
+	fi
+	
 	# put all deps in a tmp file
-	echo "$deps" | tr ',' '\n' | grep -v "^$PKGNAME_ONLY\$" | sort | uniq > $TMPDIR/all_deps
-
+	echo "$deps" | tr ' ' '\n' | tr ',' '\n' | grep -v "^$PKGNAME_ONLY\$" > $TMPDIR/all_deps
+	[ ! -z ${TMPDIR}more_deps_list ] && cat ${TMPDIR}more_deps_list | tr ' ' '\n' | tr ',' '\n' | grep -v "^$PKGNAME_ONLY\$" >> $TMPDIR/all_deps
+	
+	# clean and sort deps list file
 	sort -u ${TMPDIR}all_deps > ${TMPDIR}all_deps_sorted
 	mv ${TMPDIR}all_deps_sorted ${TMPDIR}all_deps
 	
@@ -4588,7 +4606,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 		fi
 		
 		# if --force given or HIDE_BUILTINS=true
-		if [ "${HIDE_BUILTINS}" = true -a "$FORCE" = false ];then
+		if [ "${HIDE_BUILTINS}" = true ];then
 			# add builtins to list of pkgs to remove from final output
 			cut -f2 -d'|' $HOME/.packages/woof-installed-packages | sort | uniq >> $TMPDIR/installed_pkgs
 		fi
@@ -4605,45 +4623,21 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	# get the new deps list
 	deps="`LANG=C cat ${TMPDIR}missing_deps | tr ' ' '\n' | grep -v "^\$" | grep -v "^ " | sort | tr '\n' ' '`"
 	
-	# if $deps not empty, get deps of each pkg listed in $deps, then get deps of those pkgs too
-	if [ "$deps" != '' ];then
-		
-		# for each dep of $PKGNAME, get its (space separated) deps list and add the list to ${TMPDIR}more_deps_list
-		for dep in $deps
-		do
-			more_deps_entry="`get_deps_entry $dep`"
-			# remove the '+' from the start of each dep
-			more_deps="${more_deps_entry/+/}" # remove first + at start of line
-			more_deps="${more_deps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
-			echo "$more_deps" >> ${TMPDIR}more_deps_list1
-		done
-		
-		if [ ! -z ${TMPDIR}more_deps_list1 ];then
-			LANG=C cat ${TMPDIR}more_deps_list1 | tr ' ' '\n' | tr ',' '\n' | grep -v ^$ | sort | uniq | tr '\n' ' ' > ${TMPDIR}more_deps_list
-		fi
-		
-		# remove any deps in installed pkgs list from more_deps_list.. to leave only missing deps
-		if [ -f ${TMPDIR}installed_pkgs -a ! -z  ${TMPDIR}installed_pkgs ];then
-			LANG=C comm -23 ${TMPDIR}more_deps_list ${TMPDIR}installed_pkgs >> ${TMPDIR}missing_deps
-		fi
+	# make sure each dep listed will match field 2 (PKGNAME_ONLY)
+	for dep in $deps
+	do
+		[ "$dep" != '' ] && dep_name=`get_pkg_name_only "$dep"`
+		[ "$dep_name" != '' ] && echo "$dep_name" >> ${TMPDIR}missing_deps__names_only
+	done
+	mv ${TMPDIR}missing_deps__names_only ${TMPDIR}missing_deps
 
-		# get the new deps list
-		deps="`LANG=C cat ${TMPDIR}missing_deps | tr ' ' '\n' | grep -v "^\$" | grep -v "^ " | sort | uniq | tr '\n' ' '`"
-		
-		for dep in $deps
-		do
-			[ "$dep" != '' ] && dep_name=`get_pkg_name_only "$dep"`
-			[ "$dep_name" != '' ] && echo "$dep_name" >> ${TMPDIR}missing_deps__names_only
-		done
-		mv ${TMPDIR}missing_deps__names_only ${TMPDIR}missing_deps
-		deps="`LANG=C cat ${TMPDIR}missing_deps | sort | uniq | tr '\n' ' '`"
-		
-	fi
+	# get fixed deps list
+	deps="`LANG=C cat ${TMPDIR}missing_deps | sort | uniq | tr '\n' ' '`"
 
 	[ "$deps" != "" ] && echo "$deps" | sed -e 's/  / /g'
 	
 	# clean up
-	rm ${TMPDIR}missing_deps ${TMPDIR}installed_pkgs ${TMPDIR}all_deps ${TMPDIR}more_deps_list* ${TMPDIR}missing_deps__names_only 2>/dev/null
+	rm ${TMPDIR}missing_deps* ${TMPDIR}installed_pkgs* ${TMPDIR}all_deps* ${TMPDIR}more_deps_list* 2>/dev/null
 }
 
 
