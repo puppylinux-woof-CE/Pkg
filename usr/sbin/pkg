@@ -3144,6 +3144,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 			case "$pkg_ext" in
 				
 				pet) 
+					PKGFILE="`find ${CURDIR} -type f -name "${PKGNAME}*.pet"`"
 					#determine the compression, extend test to 'XZ'
 					file -b "${PKGFILE}" | grep -i -q "^xz" && TAREXT=xz || TAREXT=gz
 					[ "$TAREXT" = 'xz' ] && taropts='-xJf' || taropts='-zxf'
@@ -3189,7 +3190,8 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 
 					rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
 					mkdir -p "${CURDIR}/${PKGNAME}"
-					cp "${CURDIR}/${PKGNAME}.deb" "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" || exit 4
+					PKGFILE="`find ${CURDIR} -type f -name "${PKGNAME}*.deb"`"
+					cp "${PKGFILE}" "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" || exit 4
 					cd "${CURDIR}/${PKGNAME}/"
 
 					if [ -f "${CURDIR}/${PKGNAME}.deb" ];then
