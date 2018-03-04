@@ -2858,6 +2858,9 @@ pkg_download(){ 	# download a pkg to WORKDIR FUNCLIST
 				# update the filename to check/download
 				PKGFILE="${WORKDIR}/${PKG_FILENAME}"
 
+				# skip if downloaded already, print msg
+				[ -f "$PKGFILE" ] && DONE=true && echo -e "Already downloaded ${magenta}${PKG_FILENAME}${endcolour}" && continue
+
 				# update the package name, based on PKG_FILENAME
 				PKGNAME="$(basename "$PKG_FILENAME" .$curr_repo_ext)"
 				
@@ -2869,9 +2872,6 @@ pkg_download(){ 	# download a pkg to WORKDIR FUNCLIST
 					return 1
 				fi
 				
-				# skip if downloaded already, print msg
-				[ -f "$PKGFILE" ] && DONE=true && echo -e "Already downloaded ${magenta}${PKG_FILENAME}${endcolour}" && continue
-
 				# skip pings and download if already downloaded.. unless forcing download
 				if [ ! -f "$PKGFILE" -o "$FORCE" = true ];then
 				
@@ -2909,8 +2909,8 @@ pkg_download(){ 	# download a pkg to WORKDIR FUNCLIST
 						pkg_ext="$curr_repo_ext" 
 						
 						# get the best repo mirror
-						if [ "$prev_repo" != "$current_repo"  -a -f $TMPDIR/curr_repo_url ] || [ ! -f $TMPDIR/curr_repo_url ];then
-							echo "Checking '$curr_repo' repo mirrors..."
+						#if [ "$prev_repo" != "$current_repo"  -a -f $TMPDIR/curr_repo_url ] || [ ! -f $TMPDIR/curr_repo_url ];then
+							#echo "Checking '$curr_repo' repo mirrors..."
 							for URL in $curr_repo_url_list
 							do
 								LANG=C ping -W2 -c1 -q `echo  ${URL} | awk -F/ '{print $3}'` &>/dev/null
@@ -2922,9 +2922,9 @@ pkg_download(){ 	# download a pkg to WORKDIR FUNCLIST
 									break
 								fi
 							done
-						else
-							curr_repo_url="`cat $TMPDIR/curr_repo_url`"
-						fi
+						#else
+						#	curr_repo_url="`cat $TMPDIR/curr_repo_url`"
+						#fi
 
 						# lets build our DOWNLOAD_URL: set it to the working repo mirror we found above
 						DOWNLOAD_URL="${curr_repo_url}"
@@ -3873,9 +3873,16 @@ pkg_get(){ 		# find, download and install packages and deps FUNCLIST
 		if [ "$pkg_in_repo" = true -a "$pkg_name_only" != "" ];then 
 			
 			local pkg_is_builtin=`is_builtin_pkg "$pkg_name_only"`
+			local pkg_is_in_devx=`is_devx_pkg "$pkg_name_only"`
 
 			# skip getting pkg if its a builtin, unless HIDE_BUILTINS=false
 			if [ "$pkg_is_builtin" = true -a "${HIDE_BUILTINS}" = true ];then
+				echo "Skipping $pkg_name_only (already built-in).."
+				continue
+			fi
+
+			# skip getting pkg if its in the devx, unless HIDE_BUILTINS=false
+			if [ "$pkg_is_in_devx" = true -a "${HIDE_BUILTINS}" = true ];then
 				echo "Skipping $pkg_name_only (already built-in).."
 				continue
 			fi
@@ -4598,12 +4605,12 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 
 	if [ "${HIDE_INSTALLED}" = true -a "$FORCE" = false ];then
 		# add user installed pkgs to list of pkgs to remove from final output
-		cut -f2 -d'|' $HOME/.packages/user-installed-packages | sort | uniq >> $TMPDIR/installed_pkgs
+		cut -f2 -d'|' $HOME/.packages/user-installed-packages | sort -u >> $TMPDIR/installed_pkgs
 	fi
 	
 	if [ "${HIDE_BUILTINS}" = true ];then
 		# add builtins to list of pkgs to remove from final output
-		cut -f2 -d'|' $HOME/.packages/woof-installed-packages | sort | uniq >> $TMPDIR/installed_pkgs
+		cut -f2 -d'|' $HOME/.packages/woof-installed-packages | sort -u >> $TMPDIR/installed_pkgs
 	fi
 	
 	# remove any deps in installed pkgs list from all deps.. to leave only missing deps
@@ -4614,7 +4621,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	fi
 
 	# get the new deps list
-	deps="`LANG=C cat ${TMPDIR}missing_deps | tr ' ' '\n' | grep -v "^\$" | grep -v "^ " | sort | tr '\n' ' '`"
+	deps="`LANG=C cat ${TMPDIR}missing_deps | tr ' ' '\n' | grep -v "^\$" | grep -v "^ " | sort -u | tr '\n' ' '`"
 	
 	# make sure each dep listed will match field 2 (PKGNAME_ONLY)
 	for dep in $deps
@@ -4625,9 +4632,9 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	[ -f ${TMPDIR}missing_deps__names_only ] && mv ${TMPDIR}missing_deps__names_only ${TMPDIR}missing_deps
 
 	# get fixed deps list
-	deps="`LANG=C cat ${TMPDIR}missing_deps | sort | uniq | tr '\n' ' '`"
+	deps="`LANG=C cat ${TMPDIR}missing_deps |tr ' ' '\n' | grep -v ^$ | sort -u | tr '\n' ' ' | sed -e 's/  / /g'`"
 
-	[ "$deps" != "" ] && echo "$deps" | sed -e 's/  / /g'
+	[ "$deps" != "" ] && echo "$deps"
 	
 	# clean up
 	rm ${TMPDIR}missing_deps* ${TMPDIR}installed_pkgs* ${TMPDIR}all_deps* ${TMPDIR}more_deps_list* 2>/dev/null
