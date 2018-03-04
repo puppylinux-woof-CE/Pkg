@@ -3243,7 +3243,8 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 				*tlz|*tar.lzma) 
 					rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
 					mkdir -p "${CURDIR}/${PKGNAME}" 
-					cp "${CURDIR}/${PKGNAME}.$pkg_ext" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
+					PKGFILE="`find ${CURDIR} -type f -name "${PKGNAME}*.${pkg_ext}"`"
+					cp "$PKGFILE" "${CURDIR}/${PKGNAME}/`basename $PKGFILE`" || exit 4
 					cd "${CURDIR}/${PKGNAME}/"
 					
 					( umask 000 ; cat "${PKGNAME}.$pkg_ext" | lzma -dc | tar -xf - 2> $TMPDIR/$SELF-cp-errlog )
@@ -3255,7 +3256,8 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 				*tgz|*txz|*tar.gz|*tar.xz|*xz|*gz) 
 					rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
 					mkdir -p "${CURDIR}/${PKGNAME}" 
-					cp "${CURDIR}/${PKGNAME}.$pkg_ext" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
+					PKGFILE="`find ${CURDIR} -type f -name "${PKGNAME}*.${pkg_ext}"`"
+					cp "$PKGFILE" "${CURDIR}/${PKGNAME}/`basename $PKGFILE`" || exit 4
 					cd "${CURDIR}/${PKGNAME}/"
 					
 					file -b "${PKGNAME}.$pkg_ext" | grep -i -q "^xz" && TAREXT=xz || TAREXT=gz
@@ -3326,7 +3328,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 			# move the *.files to $HOME/.packages 
 			FILES=''
 			FILES="`find "$CURDIR" -iname "*.files" | head -1`"
-			[ -f "`echo $FILES`" ] && mv "${CURDIR}/"*".files" "${HOME}/.packages/" #260713
+			[ -f "`echo $FILES`" ] && mv "$FILES" "${HOME}/.packages/" 2>/dev/null #260713
 
 			#pkgname.files may need to be fixed...
 			cat ${HOME}/.packages/${PKGNAME}.files | grep -v '/$' | sed -e 's%^\\.%%' -e 's%^%/%' -e 's%^//%/%' > ${HOME}/.packages/${PKGNAME}.files2
@@ -3822,7 +3824,7 @@ pkg_get(){ 		# find, download and install packages and deps FUNCLIST
 	
 	local PREVDIR="$CURDIR"
 	local pkg_ext=`get_pkg_ext "$1"`; pkg_ext="${pkg_ext:-$EX}" # fall back to repo extension
-	local PKGNAME="$(basename "$1" .$pkg_ext)"
+	local PKGNAME="`get_pkg_name $(basename "$1" .$pkg_ext)`"
 	local PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
 	local PKGLIST="${PKGNAME}"
 	local pkg_builtin=''
