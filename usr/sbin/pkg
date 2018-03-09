@@ -4550,23 +4550,28 @@ list_all_installed_pkgs(){
 
 	if [ "${HIDE_INSTALLED}" = true -a "$FORCE" = false ];then
 		# add user installed pkgs to list of pkgs to remove from final output
-		cut -f2 -d'|' $HOME/.packages/user-installed-packages | sort -u >> $TMPDIR/installed_pkgs
+		cut -f2 -d'|' $HOME/.packages/user-installed-packages >> $TMPDIR/installed_pkgs
 	fi
 	
 	if [ "${HIDE_BUILTINS}" = true ];then
 		# add builtins to list of pkgs to remove from final output
-		cut -f2 -d'|' $HOME/.packages/woof-installed-packages | sort -u >> $TMPDIR/installed_pkgs
+		cut -f2 -d'|' $HOME/.packages/woof-installed-packages >> $TMPDIR/installed_pkgs
 	fi
 	
 	if [ -f $HOME/.packages/devx-installed-packages ];then
 		# add devx pkgs to list of pkgs to remove from final output
-		cut -f2 -d'|' $HOME/.packages/devx-installed-packages | sort -u >> $TMPDIR/installed_pkgs
+		cut -f2 -d'|' $HOME/.packages/devx-installed-packages >> $TMPDIR/installed_pkgs
 	fi
 	
 	if [ -f $HOME/.packages/layers-installed-packages ];then
 		# add layers list of pkgs to remove from final output
-		cut -f2 -d'|' $HOME/.packages/layers-installed-packages | sort -u >> $TMPDIR/installed_pkgs
-	fi	
+		cut -f2 -d'|' $HOME/.packages/layers-installed-packages >> $TMPDIR/installed_pkgs
+	fi
+	
+	if [ -f $TMPDIR/installed_pkgs -a ! -z $TMPDIR/installed_pkgs ];then
+		sort -u $TMPDIR/installed_pkgs > $TMPDIR/installed_pkgs__sorted
+		mv $TMPDIR/installed_pkgs__sorted $TMPDIR/installed_pkgs
+	fi
 }
 
 
