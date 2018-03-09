@@ -3663,6 +3663,8 @@ pkg_uninstall(){ 	# remove an installed package FUNCLIST
 
 		# get the list of files to be deleted, exact match
 		PKGFILE="`find ${HOME}/.packages/ -maxdepth 1 -type f -name "${PKGNAME}.files"`"
+		# if no exact match, search for pkgname*
+		[ ! -f "$PKGFILE" ] && PKGFILE="`find ${HOME}/.packages/ -maxdepth 1 -type f -name "${PKGNAME}*.files"`"
 		
 		#if PKG.files not found, then remove it from alien packages list 
 		if [ ! -f "$PKGFILE" ];then
@@ -4542,6 +4544,32 @@ get_deps_entry(){
 }
 
 
+list_all_installed_pkgs(){
+	# reset list of installed pkgs
+	echo -n '' > $TMPDIR/installed_pkgs
+
+	if [ "${HIDE_INSTALLED}" = true -a "$FORCE" = false ];then
+		# add user installed pkgs to list of pkgs to remove from final output
+		cut -f2 -d'|' $HOME/.packages/user-installed-packages | sort -u >> $TMPDIR/installed_pkgs
+	fi
+	
+	if [ "${HIDE_BUILTINS}" = true ];then
+		# add builtins to list of pkgs to remove from final output
+		cut -f2 -d'|' $HOME/.packages/woof-installed-packages | sort -u >> $TMPDIR/installed_pkgs
+	fi
+	
+	if [ -f $HOME/.packages/devx-installed-packages ];then
+		# add devx pkgs to list of pkgs to remove from final output
+		cut -f2 -d'|' $HOME/.packages/devx-installed-packages | sort -u >> $TMPDIR/installed_pkgs
+	fi
+	
+	if [ -f $HOME/.packages/layers-installed-packages ];then
+		# add layers list of pkgs to remove from final output
+		cut -f2 -d'|' $HOME/.packages/layers-installed-packages | sort -u >> $TMPDIR/installed_pkgs
+	fi	
+}
+
+
 list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	[ "$1" = '' -o "$1" = "-" ] && print_usage list-deps && exit 1
 	
@@ -4581,6 +4609,10 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	deps="${deps//  / }"   # remove double spaces
 	
 	if [ "$deps" != '' -a "$deps" != ' ' ];then
+
+		# put all deps of pkg in a tmp file
+		echo "$deps" | tr ' ' '\n' | tr ',' '\n' | grep -v "^$PKGNAME_ONLY\$" > $TMPDIR/all_deps
+
 		# for each dep of $PKGNAME, get its own deps list
 		# and add to ${TMPDIR}more_deps_list
 		for dep in $deps
@@ -4600,71 +4632,52 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 		done
 	fi
 
-	# recursive search deps of deps
-	for i in 1 2 3 4 5
-	do
-		deps_list_file="${TMPDIR}more_deps_list_${i}"
-		next_deps_list_file="${TMPDIR}more_deps_list_$(($i + 1))"
-		
-		if [ -f $deps_list_file ];then
-			# for each dep in more_deps, get their deps too
-			for dep in `cat $deps_list_file | tr '\n' ' '`
-			do
-				[ "$dep" = '' ] && continue
-				[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg $dep`" = true ] && continue
-				[ "$FORCE" = false -a "`is_installed_pkg $dep`" = true ] && continue
-				more_deps_entry="`get_deps_entry $dep`"
-				[ "$more_deps_entry" = '' ] && continue
-				# remove the '+' from the start of each dep
-				more_deps="${more_deps_entry/+/}" # remove first + at start of line
-				more_deps="${more_deps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
-				if [ "$more_deps" != '' ];then
-					# write the deps to the tmp list
-					echo "$more_deps" >> $next_deps_list_file
-				fi
-			done
+	if [ -f ${TMPDIR}more_deps_list_1 -a ! -z ${TMPDIR}more_deps_list_1 ];then
+		# recursive search deps of deps
+		for i in 1 2 3 4 5
+		do
+			deps_list_file="${TMPDIR}more_deps_list_${i}"
+			
+			if [ -f $deps_list_file ];then
+				next_deps_list_file="${TMPDIR}more_deps_list_$(($i + 1))"
+				# for each dep in more_deps, get their deps too
+				for dep in `cat $deps_list_file | tr '\n' ' '`
+				do
+					[ "$dep" = '' ] && continue
+					[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg $dep`" = true ] && continue
+					[ "$FORCE" = false -a "`is_installed_pkg $dep`" = true ] && continue
+					more_deps_entry="`get_deps_entry $dep`"
+					[ "$more_deps_entry" = '' ] && continue
+					# remove the '+' from the start of each dep
+					more_deps="${more_deps_entry/+/}" # remove first + at start of line
+					more_deps="${more_deps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
+					if [ "$more_deps" != '' ];then
+						# write the deps to the tmp list
+						echo "$more_deps" >> $next_deps_list_file
+					fi
+				done
+			fi
+		done
+	
+		# add all deps together
+		sort -u ${TMPDIR}more_deps_list* | tr ' ' '\n' >> ${TMPDIR}more_deps_list_all
+	
+		# clean and sort
+		if [ ! -z ${TMPDIR}more_deps_list_all ];then
+			LANG=C sort -u ${TMPDIR}more_deps_list_all | grep -v ^$ > ${TMPDIR}more_deps_list
 		fi
-	done
 	
-	# add all deps together
-	sort -u ${TMPDIR}more_deps_list* | tr ' ' '\n' >> ${TMPDIR}more_deps_list_all
+		# now add the deps of deps to the same list
+		[ ! -z ${TMPDIR}more_deps_list ] && cat ${TMPDIR}more_deps_list | grep -v "^$PKGNAME_ONLY\$" >> $TMPDIR/all_deps
 	
-	# clean and sort
-	if [ ! -z ${TMPDIR}more_deps_list_all ];then
-		LANG=C sort -u ${TMPDIR}more_deps_list_all | grep -v ^$ > ${TMPDIR}more_deps_list
 	fi
-	
-	# put all deps of pkg in a tmp file
-	echo "$deps" | tr ' ' '\n' | tr ',' '\n' | grep -v "^$PKGNAME_ONLY\$" > $TMPDIR/all_deps
-	# now add the deps of deps to the same list
-	[ ! -z ${TMPDIR}more_deps_list ] && cat ${TMPDIR}more_deps_list | grep -v "^$PKGNAME_ONLY\$" >> $TMPDIR/all_deps
 	
 	# clean and sort deps list file
 	sort -u ${TMPDIR}all_deps > ${TMPDIR}all_deps_sorted
 	mv ${TMPDIR}all_deps_sorted ${TMPDIR}all_deps
 	
-	# reset list of installed pkgs
-	echo -n '' > $TMPDIR/installed_pkgs
-
-	if [ "${HIDE_INSTALLED}" = true -a "$FORCE" = false ];then
-		# add user installed pkgs to list of pkgs to remove from final output
-		cut -f2 -d'|' $HOME/.packages/user-installed-packages | sort -u >> $TMPDIR/installed_pkgs
-	fi
-	
-	if [ "${HIDE_BUILTINS}" = true ];then
-		# add builtins to list of pkgs to remove from final output
-		cut -f2 -d'|' $HOME/.packages/woof-installed-packages | sort -u >> $TMPDIR/installed_pkgs
-	fi
-	
-	if [ -f $HOME/.packages/devx-installed-packages ];then
-		# add devx pkgs to list of pkgs to remove from final output
-		cut -f2 -d'|' $HOME/.packages/devx-installed-packages | sort -u >> $TMPDIR/installed_pkgs
-	fi
-	
-	if [ -f $HOME/.packages/layers-installed-packages ];then
-		# add layers list of pkgs to remove from final output
-		cut -f2 -d'|' $HOME/.packages/layers-installed-packages | sort -u >> $TMPDIR/installed_pkgs
-	fi
+	# create list of installed pkgs ($TMPDIR/installed_pkgs)
+	list_all_installed_pkgs
 	
 	# remove any deps in installed pkgs list from all deps.. to leave only missing deps
 	if [ -f ${TMPDIR}installed_pkgs -a ! -z  ${TMPDIR}installed_pkgs ];then
