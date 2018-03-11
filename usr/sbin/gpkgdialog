@@ -232,14 +232,15 @@ build_tree1_input () { #build the list of available packages
 		${HOME}/.packages/devx-only-installed-packages \
 		${HOME}/.packages/woof-installed-packages 2>/dev/null \
 		| tr '\n' '|' \
-		| sed -e "s/|\$//" > $TEMPDIR/gpkgdialog-installed-list
+		| sed -e "s/|\$//" \
+		| sort -u > $TEMPDIR/gpkgdialog-installed-list
 	
 	# get all pkgs or a matching search result
 	if [ ! "$1" ];then
-		cut -f1,5,6,10 -d'|' ${RFILE} > $TEMPDIR/gpkgdialog-avail-list1
+		cut -f1,5,6,10 -d'|' ${RFILE} | sort -u > $TEMPDIR/gpkgdialog-avail-list1
 		comm -23 $TEMPDIR/gpkgdialog-avail-list1 $TEMPDIR/gpkgdialog-installed-list > $AVAIL_LIST
 	else
-		cat ${RFILE} | grep -i "$1" | cut -f1,5,6,10 -d'|' > $TEMPDIR/gpkgdialog-avail-list1
+		cat ${RFILE} | grep -i "$1" | cut -f1,5,6,10 -d'|' | sort -u > $TEMPDIR/gpkgdialog-avail-list1
 		comm -23 $TEMPDIR/gpkgdialog-avail-list1 $TEMPDIR/gpkgdialog-installed-list > $AVAIL_LIST
 	fi
 	rm $TEMPDIR/gpkgdialog-avail-list1 2>/dev/null
