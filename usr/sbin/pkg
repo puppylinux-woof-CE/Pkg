@@ -4686,6 +4686,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 		dep_name=`get_pkg_name_only "$dep"`
 		[ "$dep_name" != '' ] && echo "$dep_name" >> ${TMPDIR}missing_deps__names_only
 	done
+
 	[ -f ${TMPDIR}missing_deps__names_only ] && sort -u ${TMPDIR}missing_deps__names_only > ${TMPDIR}missing_deps
 
 	# get fixed deps list
