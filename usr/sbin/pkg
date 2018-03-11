@@ -3204,7 +3204,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 
 					rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
 					mkdir -p "${CURDIR}/${PKGNAME}"
-					PKGFILE="`find ${CURDIR} -type f -name "${PKGNAME}*.deb"`"
+					[ ! -f "$PKGFILE" ] && PKGFILE="`find ${CURDIR} -type f -name "${PKGNAME}*.deb"`"
 					cp "${PKGFILE}" "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" || exit 4
 					cd "${CURDIR}/${PKGNAME}/"
 
@@ -4646,6 +4646,9 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 					do
 						[ "$dep" = '' ] && continue
 						[ "$dep" = ' ' ] && continue
+						
+						[ "`grep -m1 ^$dep ${TMPDIR}DEP_DONE 2>/dev/null`" != '' ] && continue
+						
 						[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg "$dep"`" = true ] && continue
 						[ "$FORCE" = false -a "`is_installed_pkg "$dep"`" = true ] && continue
 						more_deps_entry="`get_deps_entry "$dep" 2>/dev/null`"
@@ -4656,6 +4659,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 						more_deps="${more_deps//  / }"   # remove double spaces
 						if [ "$more_deps" != '' ];then
 							# write the deps to the tmp list
+							echo "$more_deps" | tr ' ' '\n' | grep -v ^$ >> ${TMPDIR}DEP_DONE
 							echo "$more_deps" | tr ' ' '\n' | grep -v ^$ >> $next_deps_list_file
 						fi
 					done
@@ -4695,7 +4699,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	[ "$deps" != "" ] && echo "$deps"
 	
 	# clean up
-	rm ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* 2>/dev/null
+	rm ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE 2>/dev/null
 }
 
 
