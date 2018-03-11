@@ -375,7 +375,7 @@ get_pkg_name_only(){	# return pkg name only, no version or suffix FUNCLIST
 	[ ! "$1" ] && exit 1
 	
 	# get config settings, inc current repo file
-	. ${PKGRC}
+	#. ${PKGRC}
 	
 	local pkg_name=''
 	local pkg_name_only=''
@@ -464,7 +464,7 @@ get_pkg_name_only(){	# return pkg name only, no version or suffix FUNCLIST
 get_pkg_name(){		# return pkg name with version FUNCLIST
 	
 	# get config settings, inc current repo file
-	. ${PKGRC}
+	#. ${PKGRC}
 	
 	local pkg_ext=''
 	local pkg_name=''
@@ -490,6 +490,8 @@ get_pkg_name(){		# return pkg name with version FUNCLIST
 	# if no exact match, look for $pkg_name-*, then $pkg_name_*
 	if [ -f ${TMPDIR}repo_contents ];then
 		full_name=`cat ${TMPDIR}repo_contents| grep -m1 "|${pkg_name}|"` \
+			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name//-*/}|"` \
+			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name//_*/}|"` \
 			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name}-"` \
 			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name}_"` \
 			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name}"` \
@@ -539,6 +541,10 @@ is_installed_pkg(){ 	# takes exact match of pkgname, prints true|false FUNCLIST
 
 	# check the $HOME/.packages/*.files
 	check="`find ${HOME}/.packages/ -name "$PKGNAME.files"`"
+	[ "$check" = '' ] && check="`find ${HOME}/.packages/ -name "${PKGNAME}_*.files"`"
+	[ "$check" = '' ] && check="`find ${HOME}/.packages/ -name "${PKGNAME}-*.files"`"
+	[ "$check" = '' ] && check="`find ${HOME}/.packages/ -name "${PKGNAME_ONLY}_*.files"`"
+	[ "$check" = '' ] && check="`find ${HOME}/.packages/ -name "${PKGNAME_ONLY}-*.files"`"
 
 	# slow but reliable & simple: separately check fields 1,2,8 of the various files listing installed pkgs
 	[ "$check" = '' ] && check="`cut -f1 -d'|' ${HOME}/.packages/*-installed-packages 2>/dev/null| grep -m1 "^$PKGNAME\$"`"
@@ -1033,8 +1039,11 @@ set_current_repo(){ 	# set the current default repo FUNCLIST
 	# get repo details from rc file
 	. ${PKGRC}
 	
-	# remove the default mirror tmp file, we're changing rpeo and mirrors
+	# remove the default mirror tmp file, we're changing repo and mirrors
 	rm $TMPDIR/CURREPOURL 2>/dev/null
+
+	# remove old repo files list (used in list_source_files)
+	rm -f ${TMPDIR}source_files 2>/dev/null
 
 	# if not updating the scopes or bleeding-edge,leave them as set in rcfile
 	[ "$PKGSCOPE" = "" ] && PKGSCOPE="$PKGSCOPE"
@@ -1120,10 +1129,11 @@ list_all_sources(){ 	# return all (or matching) repos (~/.pkg/sources-all) FUNCL
 
 
 list_sources_files(){ 	# list repo files of all available repos FUNCLIST
-	
 	# get the specific ordering of our supported repos from the config
 	. ${PKGRC}
 	
+	[ -f ${TMPDIR}source_files ] && cat ${TMPDIR}source_files && return 0
+
 	local repos_list
 	local FALLBACKS="`grep "^$REPONAME|" ${HOME}/.pkg/sources | cut -f8 -d'|' `"
 
@@ -1138,8 +1148,10 @@ list_sources_files(){ 	# list repo files of all available repos FUNCLIST
 	  # get the repo file name for sources-all
 	  RF="`grep "^$R|" ${HOME}/.pkg/sources-all | cut -f3 -d'|'`"
 	  # if repo file is valid, echo to stdout
-	  [ "$RF" != "" -a -f "$HOME/.packages/$RF" ] && echo $RF
+	  [ "$RF" != "" -a -f "$HOME/.packages/$RF" ] && echo $RF >> ${TMPDIR}source_files
 	done
+
+	cat ${TMPDIR}source_files
 }
 
 
@@ -1582,7 +1594,7 @@ which_repo(){		# list matching pkg and its repo, in any repo FUNCLIST
 	if [ "$repo_file" != '' ];then
 		# get the repo name
 		repo_name="`grep -m1 "$(basename $repo_file)|" ${HOME}/.pkg/sources | cut -f1 -d'|'`"
-		pkg_list="$PKGNAME $repo_name\n"
+		pkg_list="$PKGNAME $repo_name"
 	else
 
 		# for each repo
@@ -1592,13 +1604,13 @@ which_repo(){		# list matching pkg and its repo, in any repo FUNCLIST
 			repo_name="`grep -m1 "$repo_file|" ${HOME}/.pkg/sources | cut -f1 -d'|'`"
 			# create a the entries, example: "vlc slacko14.2"
 			# (each line shows a matching package, then a SPACE, then the name of repo the package lives in)
-			pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep "^$PKGNAME|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`\n"
-			[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep "|$PKGNAME_ONLY|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`\n"
-			[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep "^$PKGNAME_ONLY|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`\n"
-			[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep "|$PKGNAME.$EX|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`\n"
-			[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep "|$1.$EX|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`\n"
-			[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep "|$1|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`\n"
-			[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep "^$1|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`\n"
+			pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "^$PKGNAME|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
+			[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "|$PKGNAME_ONLY|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
+			[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "^$PKGNAME_ONLY|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
+			[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "|$PKGNAME.$EX|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
+			[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "|$1.$EX|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
+			[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "|$1|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
+			[ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "^$1|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
 		done
 	fi
 
@@ -4494,7 +4506,7 @@ get_deps_entry(){
 	[ "$1" = '' -o "$1" = "-" ] && print_usage list-deps && exit 1
 	
 	# get current $REPOFILE, $DEPSEARCH
-	. ${PKGRC}
+	#. ${PKGRC}
 	
 	local PKGNAME="$1"
 	local pkg_ext=''
@@ -4569,7 +4581,7 @@ list_all_installed_pkgs(){
 	fi
 	
 	if [ -f $TMPDIR/installed_pkgs -a ! -z $TMPDIR/installed_pkgs ];then
-		sort -u $TMPDIR/installed_pkgs > $TMPDIR/installed_pkgs__sorted
+		sort -u $TMPDIR/installed_pkgs | grep -v ^$ > $TMPDIR/installed_pkgs__sorted
 		mv $TMPDIR/installed_pkgs__sorted $TMPDIR/installed_pkgs
 	fi
 }
@@ -4579,7 +4591,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	[ "$1" = '' -o "$1" = "-" ] && print_usage list-deps && exit 1
 	
 	# get current $REPOFILE, $DEPSEARCH
-	. ${PKGRC}
+	#. ${PKGRC}
 	
 	local PKGNAME=''
 	local PKGNAME_ONLY=''
@@ -4600,6 +4612,9 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	PKGNAME=`get_pkg_name "$PKGNAME"`
 	PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
 
+	# create list of installed pkgs ($TMPDIR/installed_pkgs) for later
+	list_all_installed_pkgs &
+	
 	# get the deps of the pkg, note, in the repo deps are NOT listed by proper pkg names, .. they are +dbus,+glib,+SDL
 	
 	# search for deps entry in repo file.. look for |pkgname.ext|
@@ -4616,99 +4631,70 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	if [ "$deps" != '' -a "$deps" != ' ' ];then
 
 		# put all deps of pkg in a tmp file
-		echo "$deps" | tr ' ' '\n' | tr ',' '\n' | grep -v "^$PKGNAME_ONLY\$" > $TMPDIR/all_deps
+		echo "$deps" | tr ' ' '\n' | tr ',' '\n' | grep -v "^$PKGNAME_ONLY\$" > $TMPDIR/all_deps_1
 
-		# for each dep of $PKGNAME, get its own deps list
-		# and add to ${TMPDIR}more_deps_list
-		for dep in $deps
-		do
-			[ "$dep" = '' ] && continue
-			[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg $dep`" = true ] && continue
-			#[ "$FORCE" = false -a "`is_installed_pkg $dep`" = true ] && continue
-			more_deps_entry="`get_deps_entry $dep`"
-			[ "$more_deps_entry" = '' ] && continue
-			# remove the '+' from the start of each dep
-			more_deps="${more_deps_entry/+/}" # remove first + at start of line
-			more_deps="${more_deps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
-			if [ "$more_deps" != '' ];then
-				# write the deps to the tmp list
-				echo "$more_deps" >> ${TMPDIR}more_deps_list_1
-			fi
-		done
-	fi
-
-	if [ -f ${TMPDIR}more_deps_list_1 -a ! -z ${TMPDIR}more_deps_list_1 ];then
-		# recursive search deps of deps
-		for i in 1 2 3 4 5
-		do
-			deps_list_file="${TMPDIR}more_deps_list_${i}"
-			
-			if [ -f $deps_list_file ];then
-				next_deps_list_file="${TMPDIR}more_deps_list_$(($i + 1))"
-				# for each dep in more_deps, get their deps too
-				for dep in `cat $deps_list_file | tr '\n' ' '`
-				do
-					[ "$dep" = '' ] && continue
-					[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg $dep`" = true ] && continue
-					[ "$FORCE" = false -a "`is_installed_pkg $dep`" = true ] && continue
-					more_deps_entry="`get_deps_entry $dep`"
-					[ "$more_deps_entry" = '' ] && continue
-					# remove the '+' from the start of each dep
-					more_deps="${more_deps_entry/+/}" # remove first + at start of line
-					more_deps="${more_deps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
-					if [ "$more_deps" != '' ];then
-						# write the deps to the tmp list
-						echo "$more_deps" >> $next_deps_list_file
-					fi
-				done
-			fi
-		done
-	
-		# add all deps together
-		sort -u ${TMPDIR}more_deps_list* | tr ' ' '\n' >> ${TMPDIR}more_deps_list_all
-	
-		# clean and sort
-		if [ ! -z ${TMPDIR}more_deps_list_all ];then
-			LANG=C sort -u ${TMPDIR}more_deps_list_all | grep -v ^$ > ${TMPDIR}more_deps_list
+		if [ -f $TMPDIR/all_deps_1 -a ! -z $TMPDIR/all_deps_1 ];then
+			# recursive search deps of deps
+			for i in 1 2 3
+			do
+				deps_list_file="${TMPDIR}all_deps_${i}"
+				
+				if [ -f $deps_list_file ];then
+					next_deps_list_file="${TMPDIR}all_deps_$(($i + 1))"
+					# for each dep in more_deps, get their deps too
+					for dep in `cat $deps_list_file | tr '\n' ' '`
+					do
+						[ "$dep" = '' ] && continue
+						[ "$dep" = ' ' ] && continue
+						[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg "$dep"`" = true ] && continue
+						[ "$FORCE" = false -a "`is_installed_pkg "$dep"`" = true ] && continue
+						more_deps_entry="`get_deps_entry "$dep" 2>/dev/null`"
+						[ "$more_deps_entry" = '' ] && continue
+						# remove the '+' from the start of each dep
+						more_deps="${more_deps_entry/+/}" # remove first + at start of line
+						more_deps="${more_deps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
+						more_deps="${more_deps//  / }"   # remove double spaces
+						if [ "$more_deps" != '' ];then
+							# write the deps to the tmp list
+							echo "$more_deps" | tr ' ' '\n' | grep -v ^$ >> $next_deps_list_file
+						fi
+					done
+				fi
+			done
+		
+			# add all deps together, sorted, duplicated removed
+			sort -u ${TMPDIR}all_deps_* | grep -v ^$ > ${TMPDIR}all_deps_sorted
+			mv ${TMPDIR}all_deps_sorted ${TMPDIR}all_deps
+		
 		fi
-	
-		# now add the deps of deps to the same list
-		[ ! -z ${TMPDIR}more_deps_list ] && cat ${TMPDIR}more_deps_list | grep -v "^$PKGNAME_ONLY\$" >> $TMPDIR/all_deps
-	
+		
 	fi
-	
-	# clean and sort deps list file
-	sort -u ${TMPDIR}all_deps > ${TMPDIR}all_deps_sorted
-	mv ${TMPDIR}all_deps_sorted ${TMPDIR}all_deps
-	
-	# create list of installed pkgs ($TMPDIR/installed_pkgs)
-	list_all_installed_pkgs
+
 	
 	# remove any deps in installed pkgs list from all deps.. to leave only missing deps
 	if [ -f ${TMPDIR}installed_pkgs -a ! -z  ${TMPDIR}installed_pkgs ];then
-		sort -u ${TMPDIR}installed_pkgs > ${TMPDIR}installed_pkgs_sorted
-		mv ${TMPDIR}installed_pkgs_sorted ${TMPDIR}installed_pkgs
-		comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs > ${TMPDIR}missing_deps
+		comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}missing_deps
 	fi
 
 	# get the new deps list
-	deps="`LANG=C cat ${TMPDIR}missing_deps | tr ' ' '\n' | grep -v "^\$" | grep -v "^ " | sort -u | tr '\n' ' '`"
+	deps="`LANG=C cat ${TMPDIR}missing_deps | tr '\n' ' '`"
 	
 	# make sure each dep listed will match field 2 (PKGNAME_ONLY)
 	for dep in $deps
 	do
-		[ "$dep" != '' ] && dep_name=`get_pkg_name_only "$dep"`
+		[ "$dep" = ' ' -o "$dep" = '' ] && continue
+		dep_name=`get_pkg_name_only "$dep"`
 		[ "$dep_name" != '' ] && echo "$dep_name" >> ${TMPDIR}missing_deps__names_only
 	done
-	[ -f ${TMPDIR}missing_deps__names_only ] && mv ${TMPDIR}missing_deps__names_only ${TMPDIR}missing_deps
+	[ -f ${TMPDIR}missing_deps__names_only ] && sort -u ${TMPDIR}missing_deps__names_only ${TMPDIR}missing_deps
 
 	# get fixed deps list
-	deps="`LANG=C cat ${TMPDIR}missing_deps |tr ' ' '\n' | grep -v ^$ | sort -u | tr '\n' ' ' | sed -e 's/  / /g'`"
+	deps="`LANG=C cat ${TMPDIR}missing_deps | tr '\n' ' ' | sed -e 's/  / /g'`"
 
 	[ "$deps" != "" ] && echo "$deps"
 	
 	# clean up
-	rm ${TMPDIR}missing_deps* ${TMPDIR}installed_pkgs* ${TMPDIR}all_deps* ${TMPDIR}more_deps_list* 2>/dev/null
+	rm ${TMPDIR}missing_deps ${TMPDIR}installed_pkgs* ${TMPDIR}all_deps* 2>/dev/null
 }
 
 
