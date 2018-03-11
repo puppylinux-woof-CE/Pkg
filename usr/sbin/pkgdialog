@@ -270,15 +270,16 @@ downloaded_pkgs () {
 	LIST=''
 	# build list
 	LIST="`npkg -ld | while read LINE; do
-[ "$(npkg --pkg-installed $LINE)" = true ] && PKGACTION=uninstall || PKGACTION=install
-echo "$LINE $PKGACTION off"
+echo "$LINE [(un)install] off"
 done`" 
 	[ "$LIST" != "" ] && $DIALOG $BACKTITLE --title "$APPTITLE" --no-shadow --no-collapse --cancel-label "Back" --checklist "
 The packages below are downloaded in $WORKDIR" 22 74 22 \
 $LIST 2>$TMPFILE 
+
 	# quit if 'Cancel' button used
 	RETVAL=$?; [ "$RETVAL" = 1 ] && continue
 	THEPKG="`cat $TMPFILE 2>/dev/null| sed -e 's/\"//g' | tr ' ' '\n'`"
+
 	echo "$THEPKG" | while read LINE
 	do
 		# if pkg installed , offer to remove it, vice versa
