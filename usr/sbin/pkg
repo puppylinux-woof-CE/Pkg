@@ -4649,8 +4649,8 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 						
 						[ "`grep -m1 ^$dep ${TMPDIR}DEP_DONE 2>/dev/null`" != '' ] && continue
 						
-						[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg "$dep"`" = true ] && continue
-						[ "$FORCE" = false -a "`is_installed_pkg "$dep"`" = true ] && continue
+						[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg "$dep"`" = true ] && echo "$dep" >> ${TMPDIR}DEP_DONE && continue 
+						[ "$FORCE" = false -a "`is_installed_pkg "$dep"`" = true ] && echo "$dep" >> ${TMPDIR}DEP_DONE && continue 
 						more_deps_entry="`get_deps_entry "$dep" 2>/dev/null`"
 						[ "$more_deps_entry" = '' ] && continue
 						# remove the '+' from the start of each dep
