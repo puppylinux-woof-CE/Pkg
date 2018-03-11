@@ -237,13 +237,12 @@ build_tree1_input () { #build the list of available packages
 	
 	# get all pkgs or a matching search result
 	if [ ! "$1" ];then
-		cut -f1,5,6,10 -d'|' ${RFILE} | sort -u > $TEMPDIR/gpkgdialog-avail-list1
+		cut -f1,5,6,10 -d'|' ${RFILE} | grep -vE '^lib|BuildingBlock|_DEV' | sort -u > $TEMPDIR/gpkgdialog-avail-list1
 		comm -23 $TEMPDIR/gpkgdialog-avail-list1 $TEMPDIR/gpkgdialog-installed-list > $AVAIL_LIST
 	else
 		cat ${RFILE} | grep -i "$1" | cut -f1,5,6,10 -d'|' | sort -u > $TEMPDIR/gpkgdialog-avail-list1
 		comm -23 $TEMPDIR/gpkgdialog-avail-list1 $TEMPDIR/gpkgdialog-installed-list > $AVAIL_LIST
 	fi
-	rm $TEMPDIR/gpkgdialog-avail-list1 2>/dev/null
 	
 	#clean up the categories
 	for CAT in Archiving Business Desktop Develop Development System Setup Utility Filesystem Document Calculate Graphic Personal Help Network Internet Multimedia Fun BuildingBlock
