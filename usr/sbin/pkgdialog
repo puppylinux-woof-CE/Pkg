@@ -469,25 +469,32 @@ Do you want to uninstall '$PKG2UNINSTALL'?
 
 
 search_pkgs () { 
+
 	# just in case
 	[ -z "$SEARCHTYPE" ] && SEARCHTYPE="-ss"
+
 	# get repo details
 	. ${HOME}/.pkg/pkgrc
 	
 	# if no pkg given
 	if [ "$1" = "" ];then
 		RETURN=main_menu
+
 		# create a search box
 		$DIALOG $BACKTITLE --title "  $APPTITLE  " --no-shadow --no-collapse --cancel-label "Back" --inputbox "
 Enter the package name or search term
 " 0 0 2>$TMPFILE
+
 		# quit if 'Cancel' button used
 		RETVAL=$?; [ "$RETVAL" = 1 ] && { rm $TMPFILE 2>/dev/null; $RETURN; } 
+
 		# get search term given
 		SEARCH_TERM="`cat $TMPFILE 2>/dev/null`"
+
 		# create header text
 		[ "$SEARCHTYPE" = "-ss"  ] && SUBTITLE="Packages matching '$SEARCH_TERM' in the '$REPONAME' repo:"
 		[ "$SEARCHTYPE" = "-ssa" ] && SUBTITLE="Packages matching '$SEARCH_TERM' in all repos:"
+
 	else # pkg as given
 		RETURN=browse_pkgs
 		SEARCH_TERM="$1"
@@ -498,24 +505,20 @@ Enter the package name or search term
 
 	# get search results
 	RESULTS="`HIDE_INSTALLED=true npkg $SEARCHTYPE $SEARCH_TERM`"
+
+	LINE="`echo "$RESULTS" | sed 's/$/ [(un)install] off/g'`"
 	
-	LINE=''
-	# build menu for each result
-	for RESPKG in $RESULTS; do 
-		[ "$RESPKG" = "" ] && continue
-		RESPKG_INSTALLED="[install]"
-		[ "`npkg --pkg-installed $RESPKG`" = true ] && RESPKG_INSTALLED="[uninstall]"
-		[ "$LINE" = "" ] && LINE="$RESPKG $RESPKG_INSTALLED off" || LINE="$LINE
-$RESPKG $RESPKG_INSTALLED off"
-	done
 	# run dialog 
 	[ "$LINE" != "" ] && $DIALOG $BACKTITLE --title "$APPTITLE" --no-shadow --no-collapse --cancel-label "Back" --checklist "
 $SUBTITLE" 22 74 22 \
-	$LINE 2>$TMPFILE 
+	$LINE 2>$TMPFILE
+
 	# quit if 'Cancel' button used
 	RETVAL=$?; [ "$RETVAL" = 1 ] && { rm $TMPFILE 2>/dev/null; $RETURN; }
+
 	# get pkg to install
 	PKG2INSTALL="`cat $TMPFILE 2>/dev/null | sed -e 's/\"//g' | tr ' ' '\n'`"
+
 	echo "$PKG2INSTALL" | while read LINE
 	do
 		[ "$LINE" = "" ] && continue
@@ -524,13 +527,16 @@ $SUBTITLE" 22 74 22 \
 		PKG2UNINSTALL=$LINE
 		[ "`npkg --pkg-installed ${LINE}`" = false ] && install_pkgs || uninstall_pkgs
 	done
+
 	main_menu
+
 }
 
 
 browse_pkgs () {
 	# get repo details
 	. ${HOME}/.pkg/pkgrc
+
 	$DIALOG $BACKTITLE --title "  $APPTITLE  " --no-shadow --no-collapse --cancel-label "Back" --menu "
 Choose a package category" 22 74 22 \
 "Desktop" "window managers, graphics drivers, etc" \
@@ -547,8 +553,14 @@ Choose a package category" 22 74 22 \
 "Multimedia" "audio/video players, downloaders, editors" \
 "Fun" "games, puzzles, board games, shooters, more" \
 "BuildingBlock" "important libraries for your system" 2>$TMPFILE
-	RETVAL=$?; [ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
+
+	RETVAL=$?;
+	
+	[ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
+	[ -z ${TMPFILE} ] && rm $TMPFILE 2>/dev/null && main_menu
+	
 	SEARCHTYPE="${SEARCHTYPE}" search_pkgs "`cat ${TMPFILE}`"
+
 }
 	
 	

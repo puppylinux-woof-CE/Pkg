@@ -228,18 +228,21 @@ build_tree1_input () { #build the list of available packages
 	[ "$PKGSCOPE" = one ] || RFILE=`find ~/.packages/ -iname "Packages-*-*" -o -iname "livepackages*.txt"| grep -v -E '.bak|_BACKUP|_subdirs$'`
 
 	# get pkg names (generic names, no versions) of all installed pkgs (builtins, devx and user installed)
-	inst_pkg_list="`cut -f1 -d'|' ${HOME}/.packages/user-installed-packages \
+	cut -f1 -d'|' ${HOME}/.packages/user-installed-packages \
 		${HOME}/.packages/devx-only-installed-packages \
 		${HOME}/.packages/woof-installed-packages 2>/dev/null \
 		| tr '\n' '|' \
-		| sed -e "s/|\$//"`"
+		| sed -e "s/|\$//" > $TEMPDIR/gpkgdialog-installed-list
 	
 	# get all pkgs or a matching search result
 	if [ ! "$1" ];then
-		cut -f1,5,6,10 -d'|' ${RFILE} | grep -v -E "'$inst_pkg_list'" > $AVAIL_LIST
+		cut -f1,5,6,10 -d'|' ${RFILE} > $TEMPDIR/gpkgdialog-avail-list1
+		comm -23 $TEMPDIR/gpkgdialog-avail-list1 $TEMPDIR/gpkgdialog-installed-list > $AVAIL_LIST
 	else
-		cat ${RFILE} | grep -i "$1" | cut -f1,5,6,10 -d'|' | grep -v "'$inst_pkg_list'" > $AVAIL_LIST
+		cat ${RFILE} | grep -i "$1" | cut -f1,5,6,10 -d'|' > $TEMPDIR/gpkgdialog-avail-list1
+		comm -23 $TEMPDIR/gpkgdialog-avail-list1 $TEMPDIR/gpkgdialog-installed-list > $AVAIL_LIST
 	fi
+	rm $TEMPDIR/gpkgdialog-avail-list1 2>/dev/null
 	
 	#clean up the categories
 	for CAT in Archiving Business Desktop Develop Development System Setup Utility Filesystem Document Calculate Graphic Personal Help Network Internet Multimedia Fun BuildingBlock
