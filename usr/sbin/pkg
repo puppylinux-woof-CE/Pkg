@@ -4603,10 +4603,6 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	local pkg_ext=''
 	local repo_files=''
 	local deps_list=''
-	local subdeps_entry=''
-	local subdep=''
-	local subdeps=''
-	local subdeps_list=''
 	local deps=''
 	local repo_of_pkg=''
 	local repo_file_of_pkg=''
@@ -4645,7 +4641,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 
 		if [ -f $TMPDIR/all_deps_1 -a ! -z $TMPDIR/all_deps_1 ];then
 			# recursive search deps of deps
-			for i in 1 2 3
+			for i in 1 2
 			do
 				deps_list_file="${TMPDIR}all_deps_${i}"
 				
@@ -4654,17 +4650,19 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 					# for each dep in $deps, get their deps too
 					for subdep in `cat $deps_list_file | tr '\n' ' '`
 					do
+						local subdeps_entry=''
+						local subdeps=''
+						local subdeps_list=''
 						[ "$subdep" != '' -a "$subdep" != ' ' ] && subdep="${subdep//+[git0-9]*/}" || continue
-						[ "`grep -m1 "^${subdep}\$" ${TMPDIR}DEP_DONE 2>/dev/null`" != '' ] && continue
-						
-						subdeps_entry="`get_deps_entry "$subdep"`"
-						[ "$subdeps_entry" = '' ] && continue
 
-						# remove the '+' from the start of each dep
+						[ "`grep -m1 "^${subdep}\$" ${TMPDIR}DEP_DONE 2>/dev/null`" != '' ] && continue
+
+						subdeps_entry="`get_deps_entry "$subdep"`"
+
 						subdeps="${subdeps_entry/+/}" # remove first + at start of line
 						subdeps="${subdeps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
 						subdeps="${subdeps//  / }"   # remove double spaces
-						
+
 						if [ "$subdeps" != '' ];then
 							# write the subdeps to the tmp list and done list
 							subdeps_list="`echo "$subdeps" | tr ' ' '\n' | grep -v ^$`"
@@ -4672,6 +4670,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 							echo "$subdeps_list" >> $next_deps_list_file
 						fi
 					done
+					rm -f ${TMPDIR}DEP_DONE 2>/dev/null
 				fi
 			done
 		
@@ -4702,7 +4701,8 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 		dep_name=`get_pkg_name_only "$dep"`
 		dep_name="${dep_name//+[git0-9]*/}"
 		[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg "$dep_name"`" = true ] && continue 
-		[ "$FORCE" = false -a "`is_usr_pkg "$dep_name"`" = true ] && continue
+		[ "$HIDE_BUILTINS" = true -a "`is_devx_pkg "$dep_name"`" = true ] && continue 
+		#[ "$FORCE" = false -a "`is_usr_pkg "$dep_name"`" = true ] && continue
 		[ "$dep_name" != '' ] && echo "${dep_name}" >> ${TMPDIR}missing_deps__names_only
 	done
 
