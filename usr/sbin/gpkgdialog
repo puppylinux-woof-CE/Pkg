@@ -60,6 +60,8 @@ export ALLINSTOFF
 # get repo file
 [ "$REPOFILE" != '' ] && export RFILE="$REPOFILE" || export RFILE=Packages-puppy-noarch-offical
 
+# remove flag that, when missing enables a popup loading msg for building tree1
+rm -f $TEMPDIR/gpkgdialog-popup-msg-done 2>/dev/null
 }
 
 
@@ -216,8 +218,12 @@ build_tree1_input () { #build the list of available packages
 	rm $AVAIL_LIST &>/dev/null
 	
 	# splash msg
-	gtkdialog-splash -bg yellow -fg black -border false -text "Please wait, building package list.." &
-	XPID=$!
+	XPID=''
+	if [ ! -f $TEMPDIR/gpkgdialog-popup-msg-done ];then
+		gtkdialog-splash -bg yellow -fg black -border false -text "Please wait, building package list.." &
+		XPID=$!
+		echo done > $TEMPDIR/gpkgdialog-popup-msg-done
+	fi
 	
 	# get repo file
 	RFILE="`cat $TEMPDIR/gpkg-repofile | head -1`"
@@ -389,8 +395,13 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
     
     [ "$PKGONLY" = '' ] && exit 1
     
+	local pkg_is_installed=`pkg --pkg-installed $PKGONLY`
+	local pkg_has_deps=`pkg --has-deps $PKGONLY`
+	local pkg_in_cur_dir=`find . -maxdepth 1 -name $(basename $1)`
+	local pkg_in_current_repo=`pkg -n $PKGONLY | head -1`
+
     # get repo of pkg
-    PKGREPO="`pkg --which-repo "$PKGONLY" | cut -f2 -d' '`"
+    PKGREPO="`pkg --which-repo "$PKGONLY" | cut -f2 -d' ' &`"
     
     # set the log file
     PKGLOG=$TEMPDIR/pkg-$PKGONLY-log.txt
@@ -447,7 +458,7 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
 	[ -f $QUEUE_LIST ] && PROCESSQ='<item stock="gtk-apply">Process Queue</item><item stock="gtk-delete">Clear Queue</item>' && HEIGHT=`expr $HEIGHT + 50`
   
 	# if local file, and installing or uninstalling, remove the download and repackage options
-	if [ -f "$1" -o "`find . -maxdepth 1 -name $(basename $1)`" != "" ] && [ "$OPT1" = "Install" -o "$OPT1" = "Uninstall" ];then
+	if [ -f "$1" -o "$pkg_in_cur_dir" != "" ] && [ "$OPT1" = "Install" -o "$OPT1" = "Uninstall" ];then
 	  export ITEMS="`echo "$ITEMS" | grep -v '<item stock="gtk-apply">Download Only</item>'`" && HEIGHT=`expr $HEIGHT - 20`
       export ITEMS="`echo "$ITEMS" | grep -v '<item stock="gtk-apply">Repackage</item>'`" && HEIGHT=`expr $HEIGHT - 20`
 	fi
@@ -462,7 +473,6 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
 		OLDREPO="$REPONAME"
 		OLDPKGSCOPE=$PKGSCOPE
 		OLDDEPSCOPE=$DEPSCOPE
-		PKGREPO="`pkg --which-repo "$PKGONLY" | cut -f2 -d ' '`"
 		# if a repo was found for the file, then switch to that repo only, for this bit...
 		if [ "$PKGREPO" != "" -a "$PKGREPO" != "[]" ];then
 			pkg --repo $PKGREPO
@@ -472,30 +482,30 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
 	fi
 
 	# if not in repo generally, do not offer download option
-	if [ "`$PKGSEARCHCMD $PKGONLY`" = "" -a "`echo $ITEMS | grep 'Download Only'`" != "" ];then
+	#if [ "`$PKGSEARCHCMD $PKGONLY`" = "" -a "`echo $ITEMS | grep 'Download Only'`" != "" ];then
 		ITEMS="`echo "$ITEMS" | grep -v '<item stock="gtk-apply">Download Only</item>'`"
 		HEIGHT=`expr $HEIGHT - 20`
-	fi
+	#fi
 	
 	# remove dep options if pkg has no deps
-	if [ "`pkg --list-deps $PKGONLY`" = "" ];then
+	if [ "$pkg_has_deps" = false ];then
 	   ITEMS="`echo "$ITEMS" | grep -v '<item stock="gtk-apply">Install without deps</item>'`"  && HEIGHT=`expr $HEIGHT - 20`
 	   ITEMS="`echo "$ITEMS" | grep -v '<item stock="gtk-apply">Install dependencies</item>'`"  && HEIGHT=`expr $HEIGHT - 20`
 	   ITEMS="`echo "$ITEMS" | grep -v '<item stock="gtk-apply">Download dependencies</item>'`" && HEIGHT=`expr $HEIGHT - 20`
 	fi
 
 	# if not a local file, and no deps found in current repo, remove the combine option..
-	[ ! -f "$1" -a "`find . -maxdepth 1 -name $(basename "$1")`" = "" ] \
+	[ ! -f "$1" -a "`find . -maxdepth 1 -name "$(basename "$1")"`" = "" ] \
 		&& [ "$OPT1" = "Install" -o "$OPT1" = "Uninstall" ]  \
-		&& [ "`pkg --list-deps $PKGONLY`" = "" ] \
+		&& [ "$pkg_has_deps" = false ] \
 		&& ITEMS="`echo "$ITEMS" | grep -v '<item stock="gtk-apply">Combine</item>'`" \
 		&& HEIGHT=`expr $HEIGHT - 20`
 
 	# if not a local file, and not installed, remove the Contents option
-	[ ! -f "$1" -a "`pkg --pkg-installed $PKGONLY`" = "false" ] && ITEMS="`echo "$ITEMS" | grep -v '<item stock="gtk-apply">Contents</item>'`" && HEIGHT=`expr $HEIGHT - 20`
+	[ ! -f "$1" -a "$pkg_is_installed" = "false" ] && ITEMS="`echo "$ITEMS" | grep -v '<item stock="gtk-apply">Contents</item>'`" && HEIGHT=`expr $HEIGHT - 20`
 
 	# remove combine option if in current repo and none found
-	[ "`$PKGSEARCHCMD $PKGONLY`" != "" -a "`pkg --list-deps $PKGONLY`" = "" ] && ITEMS="`echo "$ITEMS" | grep -v '<item stock="gtk-apply">Combine</item>'`" && HEIGHT=`expr $HEIGHT - 20`
+	[ "`$PKGSEARCHCMD $PKGONLY`" != "" -a "$pkg_has_deps" = false ] && ITEMS="`echo "$ITEMS" | grep -v '<item stock="gtk-apply">Combine</item>'`" && HEIGHT=`expr $HEIGHT - 20`
 
 	# create the menu
 	menu='<window title="'$1'" decorated="true" skip_taskbar_hint="false">
@@ -529,10 +539,10 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
    [ $FORCEOFF = true ] && export FORCEOPT=""   && echo "Force option disabled."
    
    # if adding install local file to queue, that is not in ANY repo, then use install only
-   [ "$MENU" = "Add to Queue (Install)" -a "`find . -maxdepth 1 -name $(basename $1)`" != "" -a "`pkg -na $PKGONLY`" = ""  ] && OPT1="Install only"
+   [ "$MENU" = "Add to Queue (Install)" -a "$pkg_in_cur_dir" != "" -a "$PKGREPO" != ""  ] && OPT1="Install only"
    
    # if installing a local file, not in current repo, then install only: install only will check each repo for the package and install deps if poss
-   [ "`echo $MENU| grep ^Install`" != "" -a "$OPT1" = "Install" -a "`find . -maxdepth 1 -name $(basename $1)`" != "" -a "`pkg -n $PKGONLY`" = ""  ] && MENU="Install only"
+   [ "`echo $MENU| grep ^Install`" != "" -a "$OPT1" = "Install" -a "$pkg_in_cur_dir" != "" -a "$pkg_in_current_repo" = ""  ] && MENU="Install only"
    
    # build tailbox command
    tailbox(){ #200813 updated to use gtkdialog tailbox
@@ -607,7 +617,14 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
     Install*) 
 		echo -n > $PKGLOG
 		tailbox $PKGLOG &
-		gpkg $FORCEOPT -d "$PKGONLY" | grep -v 'Broken pipe' &>>$PKGLOG && gpkg $FORCEOPT -i "$PKGONLY"  | grep -v '^Downloading' | grep -v '^URL' | grep -v 'Broken pipe' &>>$PKGLOG && [ "`pkg --list-deps $PKGONLY`" != "" ] && { gpkg $FORCEOPT -e "$PKGONLY"  | grep -v '^Downloading' | grep -v '^URL' | grep -v 'Broken pipe' &>>$PKGLOG; gpkg $FORCEOPT -ec "$PKGONLY"  | grep -v 'Broken pipe' &>>$PKGLOG; }
+		echo 'Downloading...' >>$PKGLOG
+		gpkg $FORCEOPT -d "$PKGONLY" | grep -v 'Broken pipe' &>>$PKGLOG
+		echo 'Installing...' >>$PKGLOG
+		gpkg $FORCEOPT -i "$PKGONLY"  | grep -v '^Downloading' | grep -v '^URL' | grep -v 'Broken pipe' &>>$PKGLOG
+		echo 'Checking dependencies...' >>$PKGLOG
+		gpkg $FORCEOPT -e "$PKGONLY" | grep -v '^Downloading' | grep -v '^URL' | grep -v 'Broken pipe' &>>$PKGLOG
+		echo 'Checking for missing libraries...' >>$PKGLOG
+		gpkg $FORCEOPT -ec "$PKGONLY"  | grep -v 'Broken pipe' &>>$PKGLOG;
 		echo "Finished." >> $PKGLOG
 		;;
     Force*Re-Install*) 
@@ -682,8 +699,9 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
 		fi
 		;;
 	Pkg*Status*)
-		gpkg -ps $1 > $TEMPDIR/pkg-$PKGONLY-status.txt
-		tailbox $TEMPDIR/pkg-$PKGONLY-status.txt
+		echo -e "Please wait, gathering package information...\n" > $TEMPDIR/pkg-$PKGONLY-status.txt
+		gpkg -ps $1 | sed -e 's/Repo file:/Repo file:	/g' -e 's/In Repo:/In Repo:	/g' -e 's/Dependencies:	/Dependencies:\n\n/g' | fold -s -w62 >> $TEMPDIR/pkg-$PKGONLY-status.txt &
+		tailbox $TEMPDIR/pkg-$PKGONLY-status.txt &
 		;;
     Contents*)
 		gpkg --contents $PKGONLY > $TEMPDIR/pkg-$PKGONLY-contents.txt
@@ -1003,7 +1021,7 @@ GUI='<window title="'${APPNAME}'">
 <height>250</height><width>600</width>
 <variable>TREE1</variable>
 <input>cat $AVAIL_LIST</input>
-<action signal="button-release-event">[ "`echo $TREE1`" != "" ] && popup_menu $TREE1; build_tree1_input "$SEARCH"; build_tree2_input "$SEARCH"</action>
+<action signal="button-release-event">[ "`echo $TREE1`" != "" ] && popup_menu $TREE1 & build_tree1_input "$SEARCH"; build_tree2_input "$SEARCH"</action>
 <action signal="button-release-event">refresh:TREE1</action>
 <action signal="button-release-event">refresh:TREE2</action>
 </tree>
