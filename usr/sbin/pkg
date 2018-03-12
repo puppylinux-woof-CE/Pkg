@@ -4587,6 +4587,11 @@ list_all_installed_pkgs(){
 }
 
 
+has_deps(){		# return true if $1 has deps, else false
+	[ "$1" = '' -o "$1" = "-" -o ! "$1" ] && echo false
+	[ "`get_deps_entry $1`" != '' ] && echo true || echo false
+}
+
 list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	[ "$1" = '' -o "$1" = "-" ] && print_usage list-deps && exit 1
 	
@@ -5987,6 +5992,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 			--what-needs|-wn|what-needs|wn)			[ ! "$2" ] && list_dependents; for x in $opt; do [ "$x" -a "$x" != "-" ] && list_dependents "$x"; done ;; # list pkgs depending on $x, not including builtins by default
 			--list-deps|-le|list-deps|le) 			[ ! "$2" ] && list_deps; for x in $opt; do [ "$x" -a "$x" != "-" ] && list_deps "$x"; done ;; # list pkg deps, not including builtins
 			--deps|-e|deps|e) 						[ ! "$2" ] && get_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && get_deps  "$x"; done ;;
+			--has-deps|-he|has-deps|he)	  	[ ! "$2" ] && has_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && has_deps  "$x"; done ;;
 			--deps-download|-ed|deps-download|ed)	[ ! "$2" ] && get_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && NO_INSTALL=true get_deps "$x"; done ;;
 			--deps-all|-ea|deps-all|ea) 			[ ! "$2" ] && get_deps;  [ "$2" != "-" ] && NO_INSTALL=false get_all_deps "$2" ;;
 			--deps-check|-ec|depscheck|ec)	  		[ ! "$2" ] && print_usage deps-check || pkg_ldd_msg "$2" ;;
