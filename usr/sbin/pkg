@@ -4702,7 +4702,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 		dep_name=`get_pkg_name_only "$dep"`
 		dep_name="${dep_name//+[git0-9]*/}"
 		[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg "$dep_name"`" = true ] && continue 
-		[ "$HIDE_USER_PKGS" = true -a "`is_usr_pkg "$dep_name"`" = true ] && continue
+		[ "$FORCE" = false -a "`is_usr_pkg "$dep_name"`" = true ] && continue
 		[ "$dep_name" != '' ] && echo "${dep_name}" >> ${TMPDIR}missing_deps__names_only
 	done
 
