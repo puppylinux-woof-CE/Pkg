@@ -4603,8 +4603,10 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	local pkg_ext=''
 	local repo_files=''
 	local deps_list=''
-	local more_deps_entry=''
-	local more_deps=''
+	local subdeps_entry=''
+	local subdep=''
+	local subdeps=''
+	local subdeps_list=''
 	local deps=''
 	local repo_of_pkg=''
 	local repo_file_of_pkg=''
@@ -4636,7 +4638,10 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	if [ "$deps" != '' -a "$deps" != ' ' ];then
 
 		# put all deps of pkg in a tmp file
-		echo "$deps" | tr ' ' '\n' | tr ',' '\n' | grep -v "^$PKGNAME_ONLY\$" > $TMPDIR/all_deps_1
+		echo "$deps" | tr ' ' '\n' | tr ',' '\n' | sort -u > $TMPDIR/all_deps_0
+
+		# remove any deps in installed pkgs list from all deps.. to leave only missing deps
+		comm -23 ${TMPDIR}all_deps_0 ${TMPDIR}installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}all_deps_1
 
 		if [ -f $TMPDIR/all_deps_1 -a ! -z $TMPDIR/all_deps_1 ];then
 			# recursive search deps of deps
@@ -4646,26 +4651,25 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 				
 				if [ -f $deps_list_file ];then
 					next_deps_list_file="${TMPDIR}all_deps_$(($i + 1))"
-					# for each dep in more_deps, get their deps too
-					for dep in `cat $deps_list_file | tr '\n' ' '`
+					# for each dep in $deps, get their deps too
+					for subdep in `cat $deps_list_file | tr '\n' ' '`
 					do
-						[ "$dep" = '' ] && continue
-						[ "$dep" = ' ' ] && continue
+						[ "$subdep" != '' -a "$subdep" != ' ' ] && subdep="${subdep//+[git0-9]*/}" || continue
+						[ "`grep -m1 "^${subdep}\$" ${TMPDIR}DEP_DONE 2>/dev/null`" != '' ] && continue
 						
-						[ "`grep -m1 ^$dep ${TMPDIR}DEP_DONE 2>/dev/null`" != '' ] && continue
-						
-						[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg "$dep"`" = true ] && echo "$dep" >> ${TMPDIR}DEP_DONE && continue 
-						[ "$FORCE" = false -a "`is_installed_pkg "$dep"`" = true ] && echo "$dep" >> ${TMPDIR}DEP_DONE && continue 
-						more_deps_entry="`get_deps_entry "$dep" 2>/dev/null`"
-						[ "$more_deps_entry" = '' ] && continue
+						subdeps_entry="`get_deps_entry "$subdep"`"
+						[ "$subdeps_entry" = '' ] && continue
+
 						# remove the '+' from the start of each dep
-						more_deps="${more_deps_entry/+/}" # remove first + at start of line
-						more_deps="${more_deps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
-						more_deps="${more_deps//  / }"   # remove double spaces
-						if [ "$more_deps" != '' ];then
-							# write the deps to the tmp list
-							echo "$more_deps" | tr ' ' '\n' | grep -v ^$ >> ${TMPDIR}DEP_DONE
-							echo "$more_deps" | tr ' ' '\n' | grep -v ^$ >> $next_deps_list_file
+						subdeps="${subdeps_entry/+/}" # remove first + at start of line
+						subdeps="${subdeps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
+						subdeps="${subdeps//  / }"   # remove double spaces
+						
+						if [ "$subdeps" != '' ];then
+							# write the subdeps to the tmp list and done list
+							subdeps_list="`echo "$subdeps" | tr ' ' '\n' | grep -v ^$`"
+							echo "$subdeps_list" >> ${TMPDIR}DEP_DONE
+							echo "$subdeps_list" >> $next_deps_list_file
 						fi
 					done
 				fi
@@ -4685,15 +4689,21 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 		comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}missing_deps
 	fi
 
+	[ ! -f ${TMPDIR}missing_deps -o -z ${TMPDIR}missing_deps ] && return 1
+	
 	# get the new deps list
 	deps="`LANG=C cat ${TMPDIR}missing_deps | tr '\n' ' '`"
 	
 	# make sure each dep listed will match field 2 (PKGNAME_ONLY)
+	echo -n '' > ${TMPDIR}missing_deps__names_only
 	for dep in $deps
 	do
 		[ "$dep" = ' ' -o "$dep" = '' ] && continue
 		dep_name=`get_pkg_name_only "$dep"`
-		[ "$dep_name" != '' ] && echo "$dep_name" >> ${TMPDIR}missing_deps__names_only
+		dep_name="${dep_name//+[git0-9]*/}"
+		[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg "$dep_name"`" = true ] && continue 
+		[ "$HIDE_USER_PKGS" = true -a "`is_usr_pkg "$dep_name"`" = true ] && continue
+		[ "$dep_name" != '' ] && echo "${dep_name}" >> ${TMPDIR}missing_deps__names_only
 	done
 
 	[ -f ${TMPDIR}missing_deps__names_only ] && sort -u ${TMPDIR}missing_deps__names_only > ${TMPDIR}missing_deps
