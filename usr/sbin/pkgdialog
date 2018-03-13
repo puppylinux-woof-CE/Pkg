@@ -18,7 +18,23 @@ set -a
 npkg () {
 	PKG_NO_COLOURS=true pkg "$@"
 }
+
+getpkg () {
+	PKG_NO_COLOURS=true pkg -g "$@" && echo "Finished."
+}
+
+installpkg () {
+	PKG_NO_COLOURS=true pkg -i "$@" && echo "Finished."
+}
+
+uninstallpkg () {
+	PKG_NO_COLOURS=true pkg -u "$@" && echo "Finished."
+}
+
 export npkg
+export getpkg
+export installpkg
+export uninstallpkg
 
 # hide first run message if needed
 [ -f $HOME/.pkg/firstrun ] && pkg -v &>/dev/null
@@ -434,14 +450,14 @@ install_pkgs () {
 	$DIALOG $BACKTITLE --title "$APPTITLE" --no-shadow --no-collapse --cancel-label "Back" --yesno "
 Do you want to install '$PKG2INSTALL'?
 	
-`npkg --pkg-status $PKG2INSTALL`
+`npkg --pkg-status $PKG2INSTALL | sed -s 's/Status:	/Status:/'`
 	
 	" 0 0
 	# quit if 'Cancel' button used
 	RETVAL=$?; #[ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
 	if [ "$RETVAL" = 0 ];then #do it
 		echo '' > /tmp/pkgdialog_${whoami}_box_contents
-		npkg -g "${PKG2INSTALL//.$EX/}".$EX >> /tmp/pkgdialog_${whoami}_box_contents &
+		getpkg "${PKG2INSTALL//.$EX/}".$EX >> /tmp/pkgdialog_${whoami}_box_contents &
 		$DIALOG $BACKTITLE --title "$APPTITLE" --no-shadow --no-collapse --exit-label "Return" --tailbox /tmp/pkgdialog_${whoami}_box_contents 19 70
 	fi
 }
@@ -463,7 +479,7 @@ Do you want to uninstall '$PKG2UNINSTALL'?
 	RETVAL=$?; #[ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
 	if [ "$RETVAL" = 0 ];then #do it
 		echo '' > /tmp/pkgdialog_${whoami}_box_contents
-		npkg -u "$PKG2UNINSTALL" >> /tmp/pkgdialog_${whoami}_box_contents &
+		uninstallpkg "$PKG2UNINSTALL" >> /tmp/pkgdialog_${whoami}_box_contents &
 		$DIALOG $BACKTITLE --title "$APPTITLE" --no-shadow --no-collapse --exit-label "Return" --tailbox /tmp/pkgdialog_${whoami}_box_contents 19 70
 	fi
 }
