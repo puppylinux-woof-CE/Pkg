@@ -3583,7 +3583,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 			mv ${HOME}/.packages/user-installed-packages_clean ${HOME}/.packages/user-installed-packages
 			
 			# puppy specific fixes for installed package
-			postinstall_hacks "$PKGNAME" "$PKGNAMEONLY" &
+			postinstall_hacks "$PKGNAME" "$PKGNAME_ONLY" &
 
 			#100622 slackware 13.1: just in case any got through, remove c-shell scripts...
 			rm -f /etc/profile.d/*.csh* 2>/dev/null
@@ -3640,9 +3640,17 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 
 
 postinstall_hacks(){		# fix pkgs after installation
-local PKGNAME=$1
-local PKGNAME_ONLY=$2
+local PKGNAME="$1"
+local PKGNAME_ONLY="$2"
 
+# remove %u, %U, %f (etc) from Exec lines
+DESKTOPFILE="`find /usr/share/applications -iname "${PKGNAME_ONLY}*.desktop"`"
+[ -f "$DESKTOPFILE" ] && \
+	sed -i 's/ %u//' $DESKTOPFILE && \
+	sed -i 's/ %U//' $DESKTOPFILE && \
+	sed -i 's/ %f//' $DESKTOPFILE && \
+	sed -i 's/ %F//' $DESKTOPFILE
+	
 case $PKGNAME in
  0ad_*)
 	bbe -e 's/geteuid/getppid/' /usr/games/pyrogenesis > /usr/games/pyrogenesis1
@@ -3650,8 +3658,8 @@ case $PKGNAME in
 	chmod 755 /usr/games/pyrogenesis
  ;;
  vlc_*|vlc-*)
-    VLCDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname 'vlc*.desktop'`"
-    [ -f $VLCDESKTOP ] && sed -i 's/ --started-from-file %U//' $VLCDESKTOP
+	VLCDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname 'vlc*.desktop'`"
+	[ -f $VLCDESKTOP ] && sed -i 's/ --started-from-file %U//' $VLCDESKTOP
  ;;
  vlc-nox_*|vlc-bin_*)
   #120907 vlc in debian/ubuntu configured to not run as root (it is a pre-compile configure option to enable running as root).
@@ -3659,28 +3667,28 @@ case $PKGNAME in
   #note, this code is also in FIXUPHACK in 'vlc' template.
   if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
    if [ -f /usr/bin/vlc  ];then
-    bbe -e 's/geteuid/getppid/' /usr/bin/vlc > /tmp/vlc-temp1
-    mv -f /tmp/vlc-temp1 /usr/bin/vlc
-    chmod 755 /usr/bin/vlc
+	bbe -e 's/geteuid/getppid/' /usr/bin/vlc > /tmp/vlc-temp1
+	mv -f /tmp/vlc-temp1 /usr/bin/vlc
+	chmod 755 /usr/bin/vlc
    fi
   fi
  ;;
  google-chrome-*) #130221 pemasu. 130224 pemasu: limit cache size...
   if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
    if [ -f /opt/google/chrome/chrome  ];then
-    bbe -e 's/geteuid/getppid/' /opt/google/chrome/chrome > /tmp/chrome-temp1
-    mv -f /tmp/chrome-temp1 /opt/google/chrome/chrome
-    chmod 755 /opt/google/chrome/chrome
-    [ -e /usr/bin/google-chrome ] && rm -f /usr/bin/google-chrome
-    echo '#!/bin/sh
+	bbe -e 's/geteuid/getppid/' /opt/google/chrome/chrome > /tmp/chrome-temp1
+	mv -f /tmp/chrome-temp1 /opt/google/chrome/chrome
+	chmod 755 /opt/google/chrome/chrome
+	[ -e /usr/bin/google-chrome ] && rm -f /usr/bin/google-chrome
+	echo '#!/bin/sh
 exec /opt/google/chrome/google-chrome --user-data-dir=/root/.config/chrome --disk-cache-size=10000000 --media-cache-size=10000000 "$@"' > /usr/bin/google-chrome
-    chmod 755 /usr/bin/google-chrome
-    ln -s google-chrome /usr/bin/chrome
-    ln -s /opt/google/chrome/product_logo_48.png /usr/share/pixmaps/google-chrome.png
-    ln -s /opt/google/chrome/product_logo_48.png /usr/share/pixmaps/chrome.png
-    CHROMEDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname '*chrome*.desktop'`"
-    if [ "$CHROMEDESKTOP" = "" ];then #precaution.
-     echo '[Desktop Entry]
+	chmod 755 /usr/bin/google-chrome
+	ln -s google-chrome /usr/bin/chrome
+	ln -s /opt/google/chrome/product_logo_48.png /usr/share/pixmaps/google-chrome.png
+	ln -s /opt/google/chrome/product_logo_48.png /usr/share/pixmaps/chrome.png
+	CHROMEDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname '*chrome*.desktop'`"
+	if [ "$CHROMEDESKTOP" = "" ];then #precaution.
+	 echo '[Desktop Entry]
 Encoding=UTF-8
 Version=1.0
 Name=Google Chrome web browser
@@ -3691,24 +3699,24 @@ Terminal=false
 Type=Application
 Icon=google-chrome.png
 Categories=WebBrowser;' > /usr/share/applications/google-chrome.desktop
-    fi
+	fi
    fi
   fi
  ;;
 chromium*) #130221 pemasu. 130224 pemasu: limit cache size...
   if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
    if [ -f /usr/lib/chromium/chromium  ];then
-    bbe -e 's/geteuid/getppid/' /usr/lib/chromium/chromium > /tmp/chrome-temp1
-    mv -f /tmp/chrome-temp1 /usr/lib/chromium/chromium
-    chmod 755 /usr/lib/chromium/chromium
-    [ -e /usr/bin/chromium ] && rm -f /usr/bin/chromium
-    echo '#!/bin/sh
+	bbe -e 's/geteuid/getppid/' /usr/lib/chromium/chromium > /tmp/chrome-temp1
+	mv -f /tmp/chrome-temp1 /usr/lib/chromium/chromium
+	chmod 755 /usr/lib/chromium/chromium
+	[ -e /usr/bin/chromium ] && rm -f /usr/bin/chromium
+	echo '#!/bin/sh
 exec /usr/lib/chromium/chromium --user-data-dir=/root/.config/chrome --disk-cache-size=10000000 --media-cache-size=10000000 --audio-buffer-size=2048 "$@"' > /usr/bin/chromium
-    chmod 755 /usr/bin/chromium
-    ln -s /usr/share/icons/hicolor/48x48/apps/chromium.png /usr/share/pixmaps/chromium.png
-    CHROMEDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname '*chromium-br*.desktop'`"
-    if [ "$CHROMEDESKTOP" = "" ];then #precaution.
-     echo '[Desktop Entry]
+	chmod 755 /usr/bin/chromium
+	ln -s /usr/share/icons/hicolor/48x48/apps/chromium.png /usr/share/pixmaps/chromium.png
+	CHROMEDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname '*chromium-br*.desktop'`"
+	if [ "$CHROMEDESKTOP" = "" ];then #precaution.
+	 echo '[Desktop Entry]
 Encoding=UTF-8
 Version=1.0
 Name=Chromium web browser
@@ -3719,7 +3727,7 @@ Terminal=false
 Type=Application
 Icon=chromium.png
 Categories=WebBrowser;' > /usr/share/applications/chromium.desktop
-    fi
+	fi
    fi
   fi
  ;;
@@ -3729,9 +3737,9 @@ Categories=WebBrowser;' > /usr/share/applications/chromium.desktop
   LANGUSER="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
   case $LANGUSER in
    zh*|ja*|ko*) #chinese, japanese, korean
-    sed -i -e 's%DejaVu Sans%Sans%' /etc/xdg/templates/_root_*
-    sed -i -e 's%DejaVu Sans%Sans%' /root/.jwm/themes/*-jwmrc
-    sed -i -e 's%DejaVu Sans%Sans%' /root/.jwm/jwmrc-theme
+	sed -i -e 's%DejaVu Sans%Sans%' /etc/xdg/templates/_root_*
+	sed -i -e 's%DejaVu Sans%Sans%' /root/.jwm/themes/*-jwmrc
+	sed -i -e 's%DejaVu Sans%Sans%' /root/.jwm/jwmrc-theme
    ;;
   esac
   #130326 font size fix for 96 dpi...
@@ -3746,8 +3754,8 @@ Categories=WebBrowser;' > /usr/share/applications/chromium.desktop
   LANGUSER="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
   case $LANGUSER in
    zh*|ja*|ko*) #chinese, japanese, korean
-    sed -i -e 's%DejaVu Sans%Sans%' /etc/xdg/openbox/*.xml
-    sed -i -e 's%DejaVu Sans%Sans%' /root/.config/openbox/*.xml
+	sed -i -e 's%DejaVu Sans%Sans%' /etc/xdg/openbox/*.xml
+	sed -i -e 's%DejaVu Sans%Sans%' /root/.config/openbox/*.xml
    ;;
   esac
  ;;
@@ -3757,11 +3765,11 @@ Categories=WebBrowser;' > /usr/share/applications/chromium.desktop
   LANGUSER="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
   case $LANGUSER in
    zh*|ja*|ko*) #chinese, japanese, korean
-    GTKRCFILE="$(find /usr/share/themes -type f -name gtkrc | tr '\n' ' ')"
-    for ONEGTKRC in $GTKRCFILE
-    do
-     sed -i -e 's%DejaVu Sans%Sans%' $ONEGTKRC
-    done
+	GTKRCFILE="$(find /usr/share/themes -type f -name gtkrc | tr '\n' ' ')"
+	for ONEGTKRC in $GTKRCFILE
+	do
+	 sed -i -e 's%DejaVu Sans%Sans%' $ONEGTKRC
+	done
    ;;
   esac
   #130326 font size fix for 96 dpi...
@@ -3776,11 +3784,11 @@ Categories=WebBrowser;' > /usr/share/applications/chromium.desktop
   LANGUSER="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
   case $LANGUSER in
    zh*|ja*|ko*) #chinese, japanese, korean
-    MOZFILE="$(find /root/.mozilla -type f -name prefs.js -o -name '*.css' | tr '\n' ' ')"
-    for ONEMOZ in $MOZFILE
-    do
-     sed -i -e 's%DejaVu Sans%Sans%' $ONEMOZ
-    done
+	MOZFILE="$(find /root/.mozilla -type f -name prefs.js -o -name '*.css' | tr '\n' ' ')"
+	for ONEMOZ in $MOZFILE
+	do
+	 sed -i -e 's%DejaVu Sans%Sans%' $ONEMOZ
+	done
    ;;
   esac
  ;;
@@ -3794,9 +3802,9 @@ Categories=WebBrowser;' > /usr/share/applications/chromium.desktop
   #WARNING: this may only work for x86 binary.
   if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
    if [ -f /usr/bin/xsane  ];then
-    bbe -e 's/\x6b\x00getuid/\x6b\x00getpid/' /usr/bin/xsane > /tmp/xsane-temp1
-    mv -f /tmp/xsane-temp1 /usr/bin/xsane
-    chmod 755 /usr/bin/xsane
+	bbe -e 's/\x6b\x00getuid/\x6b\x00getpid/' /usr/bin/xsane > /tmp/xsane-temp1
+	mv -f /tmp/xsane-temp1 /usr/bin/xsane
+	chmod 755 /usr/bin/xsane
    fi
   fi
  ;;
