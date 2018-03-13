@@ -3644,6 +3644,11 @@ local PKGNAME=$1
 local PKGNAME_ONLY=$2
 
 case $PKGNAME in
+ 0ad_*)
+	bbe -e 's/geteuid/getppid/' /usr/games/pyrogenesis > /usr/games/pyrogenesis1
+	mv /usr/games/pyrogenesis1 /usr/games/pyrogenesis
+	chmod 755 /usr/games/pyrogenesis
+ ;;
  vlc-nox_*|vlc-bin_*)
   #120907 vlc in debian/ubuntu configured to not run as root (it is a pre-compile configure option to enable running as root).
   #this hack will fix it...
