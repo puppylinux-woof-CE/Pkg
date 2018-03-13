@@ -4940,15 +4940,32 @@ get_deps(){ 		# find, get and install the deps of pkg FUNCLIST
 				local DEPNAME_ONLY=`get_pkg_name_only "$DEPNAME"`
 				local DEPFILE=''
 	
-				local dep_is_builtin=`is_builtin_pkg "$DEPNAME_ONLY"`
-				local dep_already_done=`LANG=C grep -m1 "^$DEPNAME_ONLY\$" $TMPDIR/PKGSDONE 2>/dev/null`
-
-				# if pkg is builtin, and HIDE_BUILTINS=true (the default), skip it, we dont need to get its dependencies
-				[ "$dep_is_builtin" = true -a "${HIDE_BUILTINS}" = true ] && echo "Skipping $DEPNAME_ONLY (already built-in)..." && continue
-
 				# skip if already processed, it should be listed in $TMPDIR/PKGSDONE
+				local dep_already_done=`LANG=C grep -m1 "^$DEPNAME_ONLY\$" $TMPDIR/PKGSDONE 2>/dev/null`
 				[ "$dep_already_done" != "" -a "$FORCE" = false ] && continue 
 				
+				local dep_is_builtin=`is_builtin_pkg "$DEPNAME_ONLY"`
+				local dep_is_usr_pkg=`is_usr_pkg "$DEPNAME_ONLY"`
+				local dep_is_in_devx=`is_devx_pkg "$DEPNAME_ONLY"`
+
+				# skip getting pkg if its a builtin, unless HIDE_BUILTINS=false
+				if [ "$dep_is_builtin" = true -a "${HIDE_BUILTINS}" = true ];then
+					echo "Skipping $DEPNAME_ONLY (already built-in).."
+					continue
+				fi
+
+				# skip getting pkg if its user installed and not using --force
+				if [ "$dep_is_usr_pkg" = true -a "${FORCE}" != true ];then
+					echo "Skipping $DEPNAME_ONLY (already installed).."
+					continue
+				fi
+
+				# skip getting pkg if its in the devx, unless HIDE_BUILTINS=false
+				if [ "$dep_is_in_devx" = true -a "${HIDE_BUILTINS}" = true ];then
+					echo "Skipping $DEPNAME_ONLY (already built-in).."
+					continue
+				fi
+
 				#DOWNLOAD THE PKG
 				pkg_download "$DEPNAME"
 
