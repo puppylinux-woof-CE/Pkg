@@ -3509,11 +3509,6 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 			 sync
 			fi
 
-			#080413 do fixmenus, if menu entry found #200713 moved here
-			if [ "`grep -m1 '/usr/share/applications' $HOME/.packages/${PKGNAME}.files 2>/dev/null | grep desktop$`" != "" ];then
-				update_menus
-			fi
-
 			# get pkg size, category and description
 			[ "$PKGCAT" = ''  ] && PKGCAT=`LANG=C  grep -m1 "|${PKGNAME_ONLY}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f5 -d'|' | head -1`
 			[ "$PKGCAT" = ''  ] && PKGCAT=`LANG=C  grep -m1 "^${PKGNAME}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f5 -d'|' | head -1`
@@ -3575,6 +3570,10 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 				echo -e "${green}Installed:${endcolour} $PKGNAME"
 				# show if pkg has menu entry
 				menu_entry_msg "$PKGNAME_ONLY" 
+				#080413 do fixmenus, if menu entry found #200713 moved here
+				if [ "`grep -m1 '/usr/share/applications' $HOME/.packages/${PKGNAME}.files 2>/dev/null | grep desktop$`" != "" ];then
+					update_menus &
+				fi
 				[ "`which logger`" != '' ] && logger "$0 Package $PKGNAME installed by $APP $APPVER"
 			else
 				error "$PKGNAME may not have installed correctly."
@@ -5697,13 +5696,11 @@ menu_entry_msg(){	# show menu entry details of installed pkg FUNCLIST
 
 	. ${PKGRC}
 
-	local PKGNAME=`get_pkg_name "$1"`
-	local PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
 	local MENUFILE=''
 	local pkg_file_list=''
 
 	# get the menu file, if it exists
-	pkg_file_list=`find ${HOME}/.packages/ -maxdepth 1 -type f -name "${PKGNAME}*.files"`
+	pkg_file_list=`find ${HOME}/.packages/ -maxdepth 1 -type f -name "${1}*.files"`
 
 	[ -f "$pkg_file_list" ] && MENUFILE="`LANG=C grep -m1 '/usr/share/applications/' "$pkg_file_list" | grep -i -m1 ".desktop\$"`" || return 1
 
@@ -5712,6 +5709,14 @@ menu_entry_msg(){	# show menu entry details of installed pkg FUNCLIST
 	
 	# if pkg has a .desktop file
 	 if [ -f "$MENUFILE" ];then
+		# fix menu entries
+		sed -i 's/ %u//g' "$MENUFILE"
+		sed -i 's/ %U//g' "$MENUFILE"
+		sed -i 's/ %f//g' "$MENUFILE"
+		sed -i 's/ %F//g' "$MENUFILE"
+		sed -i 's/ %d//g' "$MENUFILE"
+		sed -i 's/ %D//g' "$MENUFILE"
+		
 		# get the details for a final msg
 		MENU_CAT="`LANG=C grep -m1 "^Categories=" $MENUFILE 2>/dev/null | cut -f2 -d'=' | sed -e 's/\(.*\);/\1/g' -e 's/.*;//g' | head -1`"
 		APATTERN="[ ,]${MENU_CAT}" #MHHP
@@ -5722,6 +5727,14 @@ menu_entry_msg(){	# show menu entry details of installed pkg FUNCLIST
 		fi
 		MENU_NAME="`LANG=C grep -m1 "^Name=" $MENUFILE | cut -f2 -d'=' | head -1`"
 		
+		[ "$TOPMENU" = '' ] && TOPMENU="$MENU_CAT"
+		
+		# replace the Categories= line with one which has only the top, main category..
+		# .. this should prevent duplicate menu entries
+		#cat "$MENUFILE" | grep -v ^Categories > ${TMPDIR}fixed.desktop
+		#echo "Categories=${TOPMENU};" >> ${TMPDIR}fixed.desktop
+		#mv ${TMPDIR}fixed.desktop $MENUFILE
+
 		# print msg
 		echo -e "Menu entry:	${lightblue}${TOPMENU:-[None]}${endcolour} -> ${lightblue}${MENU_NAME:-[None]}${endcolour}"
 		return 0
