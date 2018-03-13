@@ -3661,6 +3661,11 @@ pkg_uninstall(){ 	# remove an installed package FUNCLIST
 	# get pkg name only .. without versions or suffix
 	PKGNAME_ONLY="`get_pkg_name_only "$PKGNAME"`"
 	
+	local pkg_is_builtin=`is_builtin_pkg "$PKGNAME_ONLY"`
+	
+	# skip pkg if its a builtin
+	[ "$pkg_is_builtin" = true ] && return 1
+	
 	# get the list of files to be deleted, exact match
 	PKGFILE="`find ${HOME}/.packages/ -maxdepth 1 -type f -name "$PKGNAME.files"`"
 
