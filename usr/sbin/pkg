@@ -5316,8 +5316,10 @@ list_dependents(){	# list user installed pkgs that depend on $1 FUNCLIST
 deb2pet(){ 		# $1 must be valid deb file or repo pkg FUNCLIST
 	[ ! -f "$1" ] && print_usage deb2pet && exit 1
 	
+	local DEB="${CURDIR}/$(basename "${1}")" 
+	local DIRNAME="${CURDIR}"
 	#create file name we work with
-	DEB="${CURDIR}/$(basename "${1}")" 
+	[ -f "$1" ] && DEB="$1" && DIRNAME="`dirname "$1"`"
 	
 	#keep old file, download it if needed
 	#[ -f "$(basename "$1" .deb)" ] || ASK=$ASK FORCE=$FORCE pkg_download "$(basename "$1" .deb)"
@@ -5343,11 +5345,10 @@ deb2pet(){ 		# $1 must be valid deb file or repo pkg FUNCLIST
 		#this will be something like  PKGNAME=atari800_3.1.0-2+b2_i386
 		PKGNAME="`basename "$DEB" .deb`"
 		
-		#now we package up the stuff int a pet
-		dir2pet "$PKGNAME"
+		#now we package up the stuff into a pet
+		[ -d "${FOLDR}/$PKGNAME" ] && dir2pet "${FOLDR}/$PKGNAME" || dir2pet "$PKGNAME"
 
-		#dont need msg below, as tgz2pet gives a message
-		[ -f "$FOLDR.pet" ] || error "$FOLDR.deb NOT converted to PET package!"
+		[ ! -f "$FOLDR.pet" -a ! -f "${CURDIR}/${PKGNAME}.pet" ] && error "$FOLDR.deb NOT converted to PET package!"
 		
 		#clean up
 		rm -rf "$FOLDR"
@@ -5369,6 +5370,8 @@ dir2pet(){ 		# dir to PET, $1 must be valid dir FUNCLIST
 	
 	[ "$2" != "" ] && SUFFIX="$2"
 	
+	#[ -d "$DIR" ] && cd `dirname "$DIR"`
+
 	# get pkg name only, 
 	DIR="$(basename "${DIR}")" 
 	[ "$SUFFIX" != "" ] && cp -R "$DIR" "${DIR}${SUFFIX}" && DIR="${DIR}${SUFFIX}" 
