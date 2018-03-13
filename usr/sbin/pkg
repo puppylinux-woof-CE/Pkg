@@ -543,8 +543,6 @@ is_installed_pkg(){ 	# takes exact match of pkgname, prints true|false FUNCLIST
 	check="`find ${HOME}/.packages/ -name "$PKGNAME.files"`"
 	[ "$check" = '' ] && check="`find ${HOME}/.packages/ -name "${PKGNAME}_*.files"`"
 	[ "$check" = '' ] && check="`find ${HOME}/.packages/ -name "${PKGNAME}-*.files"`"
-	[ "$check" = '' ] && check="`find ${HOME}/.packages/ -name "${PKGNAME_ONLY}_*.files"`"
-	[ "$check" = '' ] && check="`find ${HOME}/.packages/ -name "${PKGNAME_ONLY}-*.files"`"
 
 	# slow but reliable & simple: separately check fields 1,2,8 of the various files listing installed pkgs
 	[ "$check" = '' ] && check="`cut -f1 -d'|' ${HOME}/.packages/*-installed-packages 2>/dev/null| grep -m1 "^$PKGNAME\$"`"
