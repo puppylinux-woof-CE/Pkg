@@ -3660,6 +3660,7 @@ case $PKGNAME in
  vlc_*|vlc-*)
 	VLCDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname 'vlc*.desktop'`"
 	[ -f $VLCDESKTOP ] && sed -i 's/ --started-from-file %U//' $VLCDESKTOP
+	[ -f $VLCDESKTOP ] && sed -i 's/ --started-from-file//' $VLCDESKTOP
  ;;
  vlc-nox_*|vlc-bin_*)
   #120907 vlc in debian/ubuntu configured to not run as root (it is a pre-compile configure option to enable running as root).
