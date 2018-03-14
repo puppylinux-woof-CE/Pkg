@@ -94,7 +94,7 @@ _pkg() {
 		
 			opts="`echo $(pkg -nea $2)`" ;;
 
-		--repo|-r|--repo-list|-rl|--repo-info|-ri|--repo-update|-ru|repo|repo-list|rl|repo-info|ri|repo-update|ru) 
+		--repo|-r|--repo-list|-rl|--repo-info|-ri|--repo-update|-ru|repo|r|repo-list|rl|repo-info|ri|repo-update|ru) 
 			
 			[ ! "$2" ] && opts="`echo $(pkg -rl)`" || opts="`echo $(pkg -rl $2)`" ;;
 
