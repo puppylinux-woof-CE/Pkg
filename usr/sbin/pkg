@@ -3519,7 +3519,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 			PKGARCH="`LANG=C echo "$PKGNAME" | cut -f3 -d'-' | grep -E 'i[3-9]|x[8-9]|noarch'`"
 
 			# last check for pkg info
-			[ "$DEPSLIST" = '' ] && DEPSLIST="`grep -m1 "^${PKGNAME}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f9 -d'|' | grep '+' | head -1`"
+			[ "$DEPSLIST" = '' ] && DEPSLIST="`grep -m1 "^${PKGNAME}|" ${HOME}/.packages/Packages-* 2>/dev/null | cut -f9 -d'|' | grep '+' | head -1`"
 			[ "$PKGDESC" = ''  ] && PKGDESC="No description"
 
 			#080917 - build woof compatible repo line .. #090817
@@ -5229,6 +5229,7 @@ $MISSING" >> $TMPDIR/pkg-$PKGNAME-MISSING.txt
 	else
 		echo -e "${green}OK:${endcolour} $PKGNAME has with no missing dependencies."
 	fi
+	rm -f ${TMPDIR}ldd_file_list 2>/dev/null
 }
 
 
@@ -5299,33 +5300,44 @@ list_dependents(){	# list user installed pkgs that depend on $1 FUNCLIST
 		exit 1
 	fi
 
-	# list names of all user installed packages with "$PKGNAME_ONLY" 
-	# as a dependency.. (we check for "+$PKGNAME_ONLY" to find the exact 
-	# match)
-	cut -f1,2,9 -d'|' $HOME/.packages/user-installed-packages \
+	# list all pkgs (from all repos) with $PKGNAME_ONLY as a dep
+	cut -f1,2,9 -d'|' $HOME/.packages/Packages-* \
 		| sed -e "s/:any//g" -e "s/&[geql][eqt][0-9a-z._-]*//g" \
 		| grep -E "+${PKGNAME_ONLY},|+${PKGNAME_ONLY}\|" \
-		| sort \
-		| uniq \
 		| cut -f2 -d'|' \
 		| grep -v "^\$" \
 		| grep -v "^#" \
-		| grep -v "^$PKGNAME_ONLY\$"
+		| grep -v "^$PKGNAME_ONLY\$" \
+		| sort -u \
+		>> ${TMPDIR}/dependents_list
 
-	if [ "$FORCE" = true -o "$HIDE_BUILTINS" = false ];then
-		# list names of all builtin and devx packages with "$PKGNAME_ONLY" 
-		# as a dependency.. (we check for "+$PKGNAME_ONLY" to find the 
-		# exact match)
-		cut -f1,2,9 -d'|' $HOME/.packages/woof-installed-packages \
+	if [ "$HIDE_BUILTINS" = false ];then
+		# list all builtin and devx packages with $PKGNAME_ONLY as a dependency.. 
+		cut -f1,2,9 -d'|' $HOME/.packages/woof-installed-packages  $HOME/.packages/devx-installed-packages\
 			$HOME/.packages/devx-only-installed-packages \
 			| grep -E "+${PKGNAME_ONLY},|+${PKGNAME_ONLY}\|" \
-			| sort \
-			| uniq \
 			| cut -f2 -d'|' \
 			| grep -v "^\$" \
 			| grep -v "^#" \
-			| grep -v "^$PKGNAME_ONLY\$"
+			| grep -v "^$PKGNAME_ONLY\$" \
+			| sort -u \
+			>> ${TMPDIR}/dependents_list
 	fi
+
+	# remove duplicates
+	sort -u ${TMPDIR}/dependents_list > ${TMPDIR}/dependents_list__sorted
+	mv ${TMPDIR}/dependents_list__sorted ${TMPDIR}/dependents_list_tmp
+	rm ${TMPDIR}/dependents_list
+
+	# only keep the user installed pkgs in the list
+	for pkg in `cat ${TMPDIR}/dependents_list_tmp`
+	do
+		[ "`is_usr_pkg $pkg`" = true ] && echo "$pkg" >> ${TMPDIR}/dependents_list
+	done
+	
+	# print the list if we have one
+	[ -f ${TMPDIR}/dependents_list -a ! -z ${TMPDIR}/dependents_list ] && cat ${TMPDIR}/dependents_list
+	rm ${TMPDIR}/dependents_lis* 2>/dev/null
 }
 
 
