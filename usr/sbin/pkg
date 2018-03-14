@@ -6182,10 +6182,10 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 
 			# package search
 			--all-pkgs|--all|all) 				[ ! "$2" ] && cat ${HOME}/.packages/${REPOFILE} || cat ${HOME}/.packages/${REPOFILE} | grep "$2"; exit 0;; 
-			--search|-s|search|s) 				[ ! "$2" ] && search_pkgs          || for x in $opt; do [ "$x" -a "$x" != "-" ] && search_pkgs "$x";          done; exit 0 ;; 
-			-ss) 								[ ! "$2" ] && search_fast          || for x in $opt; do [ "$x" -a "$x" != "-" ] && search_fast "$x";          done; exit 0 ;; 
-			--search-all|-sa|search-all|sa) 	[ ! "$2" ] && search_all_pkgs      || for x in $opt; do [ "$x" -a "$x" != "-" ] && search_all_pkgs "$x";      done; exit 0 ;; 
-			-ssa) 								[ ! "$2" ] && search_all_fast      || for x in $opt; do [ "$x" -a "$x" != "-" ] && search_all_fast "$x";      done; exit 0 ;; 
+			--search|-s|search|s) 				[ ! "$2" ] && search_pkgs          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_pkgs "$x";          done; exit 0 ;; 
+			-ss) 								[ ! "$2" ] && search_fast          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_fast "$x";          done; exit 0 ;; 
+			--search-all|-sa|search-all|sa) 	[ ! "$2" ] && search_all_pkgs      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_pkgs "$x";      done; exit 0 ;; 
+			-ssa) 								[ ! "$2" ] && search_all_fast      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_fast "$x";      done; exit 0 ;; 
 			--names|-n|names|n)				  	[ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x"; 			done; exit 0 ;; 
 			--names-exact|-ne|names-exact|ne)	[ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x\$"; 		done; exit 0 ;; 
 			--names-all|-na|names-all|na)		[ ! "$2" ] && list_all_pkg_names   || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x"; 	done; exit 0 ;; 
