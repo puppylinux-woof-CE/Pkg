@@ -6009,19 +6009,23 @@ first_run (){
 	echo '============================================================'
 	echo -e "${bold}$APPNAME $APPVER${endcolour} - a command-line package manager"
 	echo '============================================================'
-	echo "You can run the commands below to learn more about Pkg."
 	echo
-	echo "  pkg --update-sources	# update the list of supported repos"
-	echo "  pkg --repo-update	# update the contents of each installed repo"
-	echo "  pkg --repo-list	# list all available repos"
-	echo "  pkg --repo <name>	# change to the chosen repo"
-	echo "  pkg --get <pkgname>	# install & download packages and dependencies"
-	echo "  pkg --search <term>	# seacrh the current repo"
-	echo "  pkg --show-config	# show current Pkg settings"
-	echo "  pkg --workdir <DIR>	# change where to keep downloaded packages"
-	echo "  pkg --examples	# show lots more example Pkg commands"
-	echo "  pkg -h		# help info, all options and some tips"
-	echo "  pkg -H		# full help info, including advanced usage"
+	echo "  pkg repo-update	# update the contents of each installed repo"
+	echo "  pkg repo-list		# list all available repos"
+	echo "  pkg repo <name>	# change to the chosen repo"
+	echo "  pkg show-config	# show current Pkg settings"
+	echo "  pkg workdir <DIR>	# change where to keep downloaded packages"
+	echo
+	echo "  pkg search <term>	# search all fields in the current repo"
+	echo "  pkg names <pkgname>	# search package names in the current repo"
+	echo "  pkg status <pkgname>	# print info about the given package"
+	echo "  pkg get <pkgname>	# install & download packages and dependencies"
+	echo
+	echo "You can run the commands below to learn more about Pkg:"
+	echo
+	echo "  pkg examples		# show lots more example Pkg commands"
+	echo "  pkg help		# help info, all options and some tips"
+	echo "  pkg help-all		# full help info, including advanced usage"
 	echo
 	echo "HINT: Use the TAB key to auto-complete package and repo names (and more).."
 	echo
