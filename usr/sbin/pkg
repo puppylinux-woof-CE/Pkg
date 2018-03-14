@@ -229,13 +229,13 @@ deps           names-exact-all  show-config
 deps-all       pet2sfs          tgz2pet
 deps-check     pet2tgz          txz2pet
 deps-download  pet2txz          uninstall
-dir2pet        pkg-build        uninstall-all
-dir2sfs        pkg-build-list   unpack
+dir2pet        build        	uninstall-all
+dir2sfs        build-list   	unpack
 dir2tgz        pkg-combine      update-sources
-download       pkg-installed    version
-examples       pkg-repack       which
-extract        pkg-status       which-repo
-force          pkg-update       recursive-dep-check
+download       installed    	version
+examples       repack       	which
+extract        status       	which-repo
+force          update       	recursive-dep-check
 func-list      workdir          what-needs
 Usage: ${bold}$SELF --usage CMD${endcolour}"
 		#cd /usr/lib/pkg/docs/usage/; echo `ls` | fold -w 70 -s
