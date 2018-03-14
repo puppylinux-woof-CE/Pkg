@@ -66,10 +66,7 @@ error(){
 
 # for correct error output, trap commands early
 cleanup(){
-	rm -f ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* \
-				${TMPDIR}DEP_DONE /tmp/pkg/list_deps_busy ${TMPDIR}pkg_file_list \
-				${TMPDIR}/dependents_list ${TMPDIR}DEP_DONE \
-				${TMPDIR}ldd_file_list &>/dev/null
+	rm -f ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE /tmp/pkg/list_deps_busy ${TMPDIR}pkg_file_list ${TMPDIR}/dependents_list ${TMPDIR}DEP_DONE ${TMPDIR}ldd_file_list &>/dev/null
 	
 	# prevent double msg output if error=130 (user Ctrl-C)
 	[ -f /tmp/pkg/error130 -a "$2" = '130' ] && exit "$2"
@@ -4814,7 +4811,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	deps_list="`LANG=C get_deps_entry "$PKGNAME"`"
 
 	# if no deps, exit with error
-	[ "$deps_list" = "" ] && rm /tmp/pkg/list_deps_busy && return 1
+	[ "$deps_list" = "" ] && rm /tmp/pkg/list_deps_busy 2>/dev/null && return 1
 	
 	# remove the '+' from the start of each dep
 	deps="${deps_list/+/}" # remove first + at start of line
@@ -4878,7 +4875,9 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 		comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}missing_deps
 	fi
 
-	[ ! -f ${TMPDIR}missing_deps -o -z ${TMPDIR}missing_deps ] && rm /tmp/pkg/list_deps_busy && return 1
+	[ ! -f ${TMPDIR}missing_deps -o -z ${TMPDIR}missing_deps ] && rm /tmp/pkg/list_deps_busy 2>/dev/null && return 1
+	
+	[ ! -f ${TMPDIR}missing_deps ] && return 1
 	
 	# get the new deps list
 	deps="`LANG=C cat ${TMPDIR}missing_deps | tr '\n' ' '`"
