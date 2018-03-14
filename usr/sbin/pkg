@@ -5207,13 +5207,13 @@ pkg_ldd_msg(){ 		# prints final dep check msg FUNCLIST
 	[ ! -f "$FNDFILES" ] && exit 1
 	
 	# get list of ldd-able file
-	LIST="`cat "$FNDFILES" | grep -E '/lib/|/bin/' | sort | uniq`"
-	[ "$LIST" = '' ] && exit 0
+	cat "$FNDFILES" | grep -E '/lib/|/bin/' | sort -u > ${TMPDIR}ldd_file_list
+	[ -z ${TMPDIR}ldd_file_list ] && exit 0
 	
 	echo "Searching for missing dependencies.. Please wait."
 	
 	#loop through list
-	for line in $LIST
+	for line in `cat ${TMPDIR}ldd_file_list`
 	do
 		[ ! -x "$line" ] && continue 
 		RES="`ldd $line 2>/dev/null`"
