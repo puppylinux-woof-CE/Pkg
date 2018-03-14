@@ -3661,16 +3661,15 @@ case $PKGNAME in
 	VLCDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname 'vlc*.desktop'`"
 	[ -f $VLCDESKTOP ] && sed -i 's/ --started-from-file %U//' $VLCDESKTOP
 	[ -f $VLCDESKTOP ] && sed -i 's/ --started-from-file//' $VLCDESKTOP
- ;;
- vlc-nox_*|vlc-bin_*)
+
   #120907 vlc in debian/ubuntu configured to not run as root (it is a pre-compile configure option to enable running as root).
   #this hack will fix it...
   #note, this code is also in FIXUPHACK in 'vlc' template.
   if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
    if [ -f /usr/bin/vlc  ];then
-	bbe -e 's/geteuid/getppid/' /usr/bin/vlc > /tmp/vlc-temp1
-	mv -f /tmp/vlc-temp1 /usr/bin/vlc
-	chmod 755 /usr/bin/vlc
+	   bbe -e 's/geteuid/getppid/' /usr/bin/vlc > /tmp/vlc-temp1
+	   mv -f /tmp/vlc-temp1 /usr/bin/vlc
+	   chmod 755 /usr/bin/vlc
    fi
   fi
  ;;
@@ -5938,6 +5937,8 @@ menu_entry_msg(){	# show menu entry details of installed pkg FUNCLIST
 		sed -i 's/ %d//g' "$MENUFILE"
 		sed -i 's/ %D//g' "$MENUFILE"
 		
+		update_menus &
+
 		# get the details for a final msg
 		MENU_CAT="`LANG=C grep -m1 "^Categories=" $MENUFILE 2>/dev/null | cut -f2 -d'=' | sed -e 's/\(.*\);/\1/g' -e 's/.*;//g' | head -1`"
 		APATTERN="[ ,]${MENU_CAT}" #MHHP
