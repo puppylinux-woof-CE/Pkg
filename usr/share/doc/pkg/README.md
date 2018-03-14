@@ -36,35 +36,35 @@ Here are some important common commands:
 
 See current repo:  
 
-`pkg --repo`
+`pkg repo`
 
 See available repos:  
 
-`pkg --repo-list`
+`pkg repo-list`
 
 Set a new repo:  
 
-`pkg --repo REPO`
+`pkg repo REPO`
 
 Search a repo by package name:  
 
-`pkg --names PKGNAME`
+`pkg names PKGNAME`
 
 Search all package info in a repo:  
-`pkg --search WORDS`
+`pkg search WORDS`
 
 
 Download and install a package, plus its dependencies:
 
-`pkg --get PKGNAME`
+`pkg get PKGNAME`
 
 Download a package, plus its dependencies, but don't install:
 
-`pkg --get-only PKGNAME`
+`pkg get-only PKGNAME`
 
 Or manually download and install packages without dependencies:
 
-`pkg --download PKGNAME; pkg --install PKGNAME`
+`pkg download PKGNAME; pkg install PKGNAME`
 
 
 ## 
@@ -73,11 +73,11 @@ Or manually download and install packages without dependencies:
 Choose from a selection of matching packages, and decide which 
 ones to download, install, which dependencies to get, as you go:
 
-`pkg --ask --get "firefox mplayer"`
+`pkg --ask get "firefox mplayer"`
 
 Ask to uninstall each '_DEV' package you have installed:
 
-`pkg --list-installed | grep _DEV | pkg --ask --uninstall -`
+`pkg list-installed | grep _DEV | pkg --ask uninstall -`
 
 Display busybox package status, and package contents:
 
