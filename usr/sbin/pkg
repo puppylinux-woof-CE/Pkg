@@ -6032,7 +6032,7 @@ first_run (){
 	echo '============================================================'
 
 	# get the right list of repos
-	update_sources 1>/dev/null
+	update_sources &>/dev/null &
 
 	# delete first run flag
 	rm -f ~/.pkg/firstrun 2>/dev/null
