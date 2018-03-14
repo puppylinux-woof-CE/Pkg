@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --help PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg help PKGNAME${endcolour}
 
 Print all available commands.
 

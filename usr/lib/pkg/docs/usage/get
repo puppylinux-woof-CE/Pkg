@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --get PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg get PKGNAME${endcolour}
 
 Will download and install the best match 
 of PKGNAME, as well as its dependencies, 

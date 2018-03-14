@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --pkg-update PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg update PKGNAME${endcolour}
 
 Download and install the newest version available 
 of PKGNAME found in any supported repositories.

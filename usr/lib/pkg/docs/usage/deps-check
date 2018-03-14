@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --deps-check PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg deps-check PKGNAME${endcolour}
 
 List missing dependencies of PKGNAME, using 'ldd'.
 PKGNAME must be an installed package."

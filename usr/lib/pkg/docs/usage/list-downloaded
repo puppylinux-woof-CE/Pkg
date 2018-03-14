@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --list-downloaded [PKGNAME]${endcolour}
+USAGE="Usage: ${bold}pkg list-downloaded [PKGNAME]${endcolour}
 
 List the downloaded packages in $WORKDIR.
 PKGNAME is an optional search filter."

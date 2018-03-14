@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --list-installed [PKGNAME]${endcolour}
+USAGE="Usage: ${bold}pkg list-installed [PKGNAME]${endcolour}
 
 List the user installed packages.
 PKGNAME is an optional search filter.

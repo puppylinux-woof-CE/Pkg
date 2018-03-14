@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --get-only PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg get-only PKGNAME${endcolour}
 
 Will download the best match of PKGNAME, 
 as well as its dependencies, excluding builtins.

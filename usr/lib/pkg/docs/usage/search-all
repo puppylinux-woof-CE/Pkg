@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --search-all SEARCH${endcolour}
+USAGE="Usage: ${bold}pkg search-all SEARCH${endcolour}
 
 Search all repos for matching SEARCH, 
 including  package name, desc, deps, size, 

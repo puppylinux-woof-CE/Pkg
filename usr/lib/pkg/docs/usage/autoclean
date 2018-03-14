@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --autoclean [yes|no]${endcolour}
+USAGE="Usage: ${bold}pkg autoclean [yes|no]${endcolour}
 
 Auto-remove packages from ${lightblue}$WORKDIR${endcolour} that 
 have been installed.

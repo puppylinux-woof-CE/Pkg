@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --which FILE${endcolour}
+USAGE="Usage: ${bold}pkg which FILE${endcolour}
 
 Print name of package containing FILE.
 

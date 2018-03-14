@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --repo-convert REPO_FILE${endcolour}
+USAGE="Usage: ${bold}pkg repo-convert REPO_FILE${endcolour}
 
 Convert a repo file to/from a woof2 compatible format.
 Supports pre/post woof2 Puppy repo files.

@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --download PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg download PKGNAME${endcolour}
 
 Download a package from a supported repo.
 PKGNAME must be a valid pkg repo

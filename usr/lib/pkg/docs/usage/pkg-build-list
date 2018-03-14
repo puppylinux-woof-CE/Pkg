@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --pkg-build-list PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg build-list PKGNAME${endcolour}
 
 List all available build scripts.
 PKGNAME is an optional filter.

@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --names-all PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg names-all PKGNAME${endcolour}
 
 Search all repos for matching package names.
 PKGNAME is an optional filter.

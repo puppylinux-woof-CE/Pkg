@@ -2,7 +2,7 @@
 
 case ${BUILDTOOL:-petbuild} in 
   petbuild|buildpet)
-    USAGE="Usage: ${bold}pkg --pkg-build PKGNAME${endcolour}
+    USAGE="Usage: ${bold}pkg build PKGNAME${endcolour}
 
 Compile and build a package from source.
 
@@ -12,7 +12,7 @@ program, then package it up into PET packages.
 Uses build scripts in /usr/share/$BUILDTOOL/."
   ;;
   sbopkg)
-    USAGE="Usage: ${bold}pkg --pkg-build PKGNAME${endcolour}
+    USAGE="Usage: ${bold}pkg build PKGNAME${endcolour}
     
 Compile and build a package from source.
 
@@ -22,7 +22,7 @@ program, then package it up into PET packages.
 Uses SBopkg if installed."
     ;;
   src2pkg)
-    USAGE="Usage: ${bold}pkg --pkg-build FILE|URL${endcolour}
+    USAGE="Usage: ${bold}pkg build FILE|URL${endcolour}
     
 Compile and build a package from source.
 

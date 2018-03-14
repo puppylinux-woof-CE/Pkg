@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --list-deps PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg list-deps PKGNAME${endcolour}
 
 List the dependencies of PKGNAME
 By default only missing dependencies are listed.

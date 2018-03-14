@@ -4,4 +4,4 @@ Use a different rc file (config file) than the default,
 which is currently ${bold}$PKGRC${endcolour}.
 
 You can see the current settings with:
-  ${bold}$SELF --show-config${endcolour}"
+  ${bold}$SELF show-config${endcolour}"

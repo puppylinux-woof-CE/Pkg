@@ -1,5 +1,5 @@
 . /root/.pkg/pkgrc
-USAGE="Usage: ${bold}pkg --names-exact-all PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg names-exact-all PKGNAME${endcolour}
 
 Search all repos for matching package names, 
 exact match. PKGNAME is an optional filter.

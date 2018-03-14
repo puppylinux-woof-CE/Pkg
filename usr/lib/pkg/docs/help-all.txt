@@ -59,11 +59,11 @@ each package, depending on whether or not the package is installed:
 
 You can give multiple packages by encasing them in double quotes (\"\")
 
- ${SELF:-pkg} -g \"PKG1 PKG2\"		download & install PKG1 and PKG2, plus deps
- ${SELF:-pkg} -u \"PKG1 PKG2\"		uninstall multiple packages from the system
- ${SELF:-pkg} -d \"PKG1 PKG2\"		download multiple packages from the repo
- ${SELF:-pkg} -pb \"PKG1 PKG2\"		compile, build & install multiple pkgs
- ${SELF:-pkg} -li \"PKG1 PKG2\"		list installed pkgs matching PKG1 or PKG2
+ ${SELF:-pkg} g \"PKG1 PKG2\"		download & install PKG1 and PKG2, plus deps
+ ${SELF:-pkg} u \"PKG1 PKG2\"		uninstall multiple packages from the system
+ ${SELF:-pkg} d \"PKG1 PKG2\"		download multiple packages from the repo
+ ${SELF:-pkg} pb \"PKG1 PKG2\"		compile, build & install multiple pkgs
+ ${SELF:-pkg} li \"PKG1 PKG2\"		list installed pkgs matching PKG1 or PKG2
 
 Below are the command line options you can pass to ${APPNAME:-Pkg}, 
 with examples at the end. 

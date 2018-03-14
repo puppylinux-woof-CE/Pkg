@@ -1,5 +1,5 @@
 USAGE="Usage: 
-${bold}pkg --add-source 'RepoName|PkgExt|RepoFile|URL1|URL2|URL3|URL4|FallbackList'${endcolour}
+${bold}pkg add-source 'RepoName|PkgExt|RepoFile|URL1|URL2|URL3|URL4|FallbackList'${endcolour}
 
 - Name:		the name of the repo.
 - PkgExt:	the file extension of the packages in the repo.
@@ -9,7 +9,7 @@ ${bold}pkg --add-source 'RepoName|PkgExt|RepoFile|URL1|URL2|URL3|URL4|FallbackLi
 
 Here is an example:
 
-  $SELF --add-source 'slacko14.2|pet|Packages-puppy-slacko14.2-official|http://distro.ibiblio.org/puppylinux/pet_packages-slacko14.2/|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-slacko14.2/|||slackware14.2 slackware14.2-extra noarch common'
+  $SELF add-source 'slacko14.2|pet|Packages-puppy-slacko14.2-official|http://distro.ibiblio.org/puppylinux/pet_packages-slacko14.2/|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-slacko14.2/|||slackware14.2 slackware14.2-extra noarch common'
 
 For some repos, you may need to replace one or more values in the URLs 
 with some (or all) the following variables:
@@ -25,7 +25,7 @@ If you're unsure, look at some existing sources and copy them.
 After adding your new repo source, run this command to make your 
 new repo available:
 
-  ${bold}$SELF --update-sources${endcolour}
+  ${bold}$SELF update-sources${endcolour}
 
 To see all your AVAILABLE 'sources', open the file '/root/.pkg/sources'
 in a text editor, or use 'cat /root/.pkg/sources' in a console.

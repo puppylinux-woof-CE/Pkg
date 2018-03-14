@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --pkg-repack PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg repack PKGNAME${endcolour}
 
 Re-package an already installed package.
 PKGNAME must be an installed package.

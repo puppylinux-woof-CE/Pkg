@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --which-repo PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg which-repo PKGNAME${endcolour}
 
 Print the repo name which contains PKGNAME.
 

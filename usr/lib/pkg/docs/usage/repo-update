@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --repo-update PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg repo-update PKGNAME${endcolour}
 
 Download the latest repo files from online 
 to get the latest packages available."

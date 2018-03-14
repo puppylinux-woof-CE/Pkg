@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --workdir DIR${endcolour}
+USAGE="Usage: ${bold}pkg workdir DIR${endcolour}
 
 ${bold}DIR${endcolour} must be a path to a directory.
 The work dir is your package working directory.

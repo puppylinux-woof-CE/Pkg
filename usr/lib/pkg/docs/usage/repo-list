@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --repo-list${endcolour}
+USAGE="Usage: ${bold}pkg repo-list${endcolour}
 
 List all available repos in the fall back order 
 as defined in the /root/.pkg/pkgrc file."

@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --pkg-status PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg status PKGNAME${endcolour}
 
 Shows the status of PKGNAME.
 

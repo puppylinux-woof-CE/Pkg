@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --sfs-combine PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg sfs-combine PKGNAME${endcolour}
 
 Combine a package and its dependencies 
 into a single SFS package.

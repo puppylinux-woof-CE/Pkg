@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --pkg-entry PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg entry PKGNAME${endcolour}
 
 Shows the repo entry of PKGNAME.
 

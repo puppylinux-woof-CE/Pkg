@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --func-list PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg func-list PKGNAME${endcolour}
 
 Lists the internal functions that are available 
 to use directly on the command line.
@@ -12,5 +12,5 @@ on the command line.
 This is feature EXPERIMENTAL.
 
 List of funcs:
-$(pkg --func-list)
+$(pkg func-list)
 "

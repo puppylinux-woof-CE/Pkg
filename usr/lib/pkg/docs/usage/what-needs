@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --what-needs PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg what-needs PKGNAME${endcolour}
 
 List the packages that depend on PKGNAME.
 

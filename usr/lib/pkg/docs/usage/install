@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --install PKGFILE${endcolour}
+USAGE="Usage: ${bold}pkg install PKGFILE${endcolour}
 
 Install a package file.
 

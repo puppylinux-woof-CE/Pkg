@@ -1,4 +1,4 @@
-USAGE="Usage: ${bold}pkg --deps-all${endcolour}
+USAGE="Usage: ${bold}pkg deps-all${endcolour}
 
 Get (download and install) the missing dependencies of 
 all installed packages"
