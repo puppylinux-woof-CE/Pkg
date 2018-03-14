@@ -4772,6 +4772,7 @@ has_deps(){		# return true if $1 has deps, else false
 	[ "`get_deps_entry $1`" != '' ] && echo true || echo false
 }
 
+
 list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	[ "$1" = '' -o "$1" = "-" ] && print_usage list-deps && exit 1
 	
