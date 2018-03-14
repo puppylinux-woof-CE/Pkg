@@ -4810,7 +4810,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	deps_list="`LANG=C get_deps_entry "$PKGNAME"`"
 
 	# if no deps, exit with error
-	[ "$deps_list" = "" ] && return 1
+	[ "$deps_list" = "" ] && rm /tmp/pkg/list_deps_busy && return 1
 	
 	# remove the '+' from the start of each dep
 	deps="${deps_list/+/}" # remove first + at start of line
@@ -4874,7 +4874,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 		comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}missing_deps
 	fi
 
-	[ ! -f ${TMPDIR}missing_deps -o -z ${TMPDIR}missing_deps ] && return 1
+	[ ! -f ${TMPDIR}missing_deps -o -z ${TMPDIR}missing_deps ] && rm /tmp/pkg/list_deps_busy && return 1
 	
 	# get the new deps list
 	deps="`LANG=C cat ${TMPDIR}missing_deps | tr '\n' ' '`"
@@ -5077,13 +5077,15 @@ get_deps(){ 		# find, get and install the deps of pkg FUNCLIST
 	# skip if already processed, it should be listed in $TMPDIR/PKGSDONE
 	[ "$pkg_already_done" != "" -a "$FORCE" = false ] && continue 
 
-	echo "Resolving dependencies.." # find deps will append ... as it goes
+	echo -n "Resolving dependencies.." # find deps will append ... as it goes
 
 	# wait until list_deps() is finished (if it's running at all...)
 	while [ -f /tmp/pkg/list_deps_busy ];do
 		echo -n '.' 
-		sleep 0.1
+		sleep 0.75
 	done
+
+	echo
 	
 	# if list_deps() created a file listing the deps, get it from the file created, else, run list deps to be sure
 	[ -f ${TMPDIR}/${pkg_name}_dep_list ] && DEPS_MISSING="`cat ${TMPDIR}/${pkg_name}_dep_list`" || DEPS_MISSING="`list_deps "$PKGNAME"`"
