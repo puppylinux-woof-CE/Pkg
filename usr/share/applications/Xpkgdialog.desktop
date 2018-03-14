@@ -1,0 +1,11 @@
+[Desktop Entry]
+Categories=X-SetupEntry
+Comment=Pkgdialog - ncurses frontend for Pkg 
+Encoding=UTF-8
+Exec=Xpkgdialog
+GenericName=Pkgdialog
+Icon=pet48.png
+Name=Pkgdialog package manager
+Terminal=false
+MimeType=application/pet
+Type=Application
