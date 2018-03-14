@@ -6201,9 +6201,9 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 			--unpack|--extract|unpack|extract)	[ ! "$2" ] && pkg_unpack   || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_unpack "$x";    done;;
 			--clean|clean)						[ ! "$2" ] && clean_pkgs   || for x in $opt; do [ "$x" -a "$x" != "-" ] && clean_pkgs "$x";    done;;
 			--get|-g|get|g)						[ ! "$2" ] && pkg_get      || for x in $opt; do if [ "$x" -a "$x" != "-" ];then choose_pkg "$x"; pkg_get "$x"; fi; done ;;  
-			--get-only|-go|go) 					[ ! "$2" ] && print_usage get-only || for x in $opt; do if [ "$x" -a "$x" != "-" ];then choose_pkg "$x"; NO_INSTALL=true  pkg_get "$x"; fi; done ;;  
-			--delete|-l|l)						[ ! "$2" ] && print_usage delete   || for x in $opt; do [ "$x" = '-' ] && continue; if [ -f "${WORKDIR}/$(basename "$x")" ];then if [ "$ASK" = true ];then echo -n "Remove package `basename $x`$QTAG "; read -n 1 CONFIRM </dev/tty; echo; else CONFIRM=y; fi; [ "$CONFIRM" = "y" ] && rm -v "${WORKDIR}/$(basename "$x")"; else not_found "$x"; fi; done ;; #110213,0.9.1  renamed to --delete|-l 
-			--delete-all|-la|la) 				ASK=true; QTAG="?  (y/N)"; if [ "$ASK" = true ];then echo -en "Remove all downloaded packages in ${lightblue}${WORKDIR}/${endcolour}$QTAG"; read -n 1 CONFIRM </dev/tty; echo; else CONFIRM=y; fi; [ "$CONFIRM" = "y" ] && rm -v ${WORKDIR}/*.pet ${WORKDIR}/*.pkg.* ${WORKDIR}/*.sfs ${WORKDIR}/*.tar.* ${WORKDIR}/*.tcz ${WORKDIR}/*.txz ${WORKDIR}/*.tgz ${WORKDIR}/*.deb ${WORKDIR}/*.rpm ${WORKDIR}/*.apk ${WORKDIR}/*.gz ${WORKDIR}/*.xz 2>/dev/null; exit 0;;
+			--get-only|-go|get-only|go) 					[ ! "$2" ] && print_usage get-only || for x in $opt; do if [ "$x" -a "$x" != "-" ];then choose_pkg "$x"; NO_INSTALL=true  pkg_get "$x"; fi; done ;;  
+			--delete|-l|delete|l)						[ ! "$2" ] && print_usage delete   || for x in $opt; do [ "$x" = '-' ] && continue; if [ -f "${WORKDIR}/$(basename "$x")" ];then if [ "$ASK" = true ];then echo -n "Remove package `basename $x`$QTAG "; read -n 1 CONFIRM </dev/tty; echo; else CONFIRM=y; fi; [ "$CONFIRM" = "y" ] && rm -v "${WORKDIR}/$(basename "$x")"; else not_found "$x"; fi; done ;; #110213,0.9.1  renamed to --delete|-l 
+			--delete-all|-la|delete-all|la) ASK=true; QTAG="?  (y/N)"; if [ "$ASK" = true ];then echo -en "Remove all downloaded packages in ${lightblue}${WORKDIR}/${endcolour}$QTAG"; read -n 1 CONFIRM </dev/tty; echo; else CONFIRM=y; fi; [ "$CONFIRM" = "y" ] && rm -v ${WORKDIR}/*.pet ${WORKDIR}/*.pkg.* ${WORKDIR}/*.sfs ${WORKDIR}/*.tar.* ${WORKDIR}/*.tcz ${WORKDIR}/*.txz ${WORKDIR}/*.tgz ${WORKDIR}/*.deb ${WORKDIR}/*.rpm ${WORKDIR}/*.apk ${WORKDIR}/*.gz ${WORKDIR}/*.xz 2>/dev/null; exit 0;;
 			--install-all|-ia)  				list_downloaded_pkgs | while read pkg; do [ "$pkg" -a "$pkg" != "-" ] && pkg_install "$pkg";   done;;
 			--uninstall-all|-ua)				list_installed_pkgs  | while read pkg; do [ "$pkg" -a "$pkg" != "-" ] && pkg_uninstall "$pkg"; done;;
 
@@ -6268,17 +6268,17 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 			--autoclean) 		[ "$2" = "yes" -o "$2" = "no" ] && set_autoclean "$2" || { echo "$AUTOCLEAN"; exit 1; } ;;
 			
 			# usage, help funcs, version info, etc
-			--welcome)    touch $HOME/.pkg/firstrun; first_run; exit 0;;
-			--show-config)  show_config; exit 0;;
-			--version|-v) 	echo "$APPNAME $APPVER"; exit 0;;
+			--welcome|welcome)    touch $HOME/.pkg/firstrun; first_run; exit 0;;
+			--show-config|show-config)  show_config; exit 0;;
+			--version|-v|version|v) 	echo "$APPNAME $APPVER"; exit 0;;
 			--usage|usage) print_usage "$2"; exit 0;;
 			
-			--examples|-ex) 
+			--examples|-ex|examples|ex) 
 				. /usr/lib/pkg/docs/examples.txt;
 				echo -e "$EXAMPLES\n"
 				exit 0
 				;;
-			--help-all|-H)  
+			--help-all|-H|help-all|H)  
 					. /usr/lib/pkg/docs/help.txt
 					. /usr/lib/pkg/docs/examples.txt
 					. /usr/lib/pkg/docs/help-all.txt
@@ -6286,7 +6286,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 					exit 0
 					;;
 					
-      --help|-h) 
+      --help|-h|help|h) 
 					. /usr/lib/pkg/docs/help.txt
 					echo -e "$HELP\n"
 					exit 0
