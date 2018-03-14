@@ -489,15 +489,15 @@ get_pkg_name(){		# return pkg name with version FUNCLIST
 	# add '|' to start and end of lines, then find exact match of $pkg_name.. 
 	# if no exact match, look for $pkg_name-*, then $pkg_name_*
 	if [ -f ${TMPDIR}repo_contents ];then
-		full_name=`cat ${TMPDIR}repo_contents| grep -m1 "|${pkg_name}|"` \
-			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name//-*/}|"` \
-			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name//_*/}|"` \
-			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name}-"` \
-			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name}_"` \
-			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "|${pkg_name}"` \
-			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "^${pkg_name}|"` \
-			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "^${pkg_name}-"` \
-			|| full_name=`cat ${TMPDIR}repo_contents|grep -m1 "^${pkg_name}_"`
+		full_name=`cat ${TMPDIR}repo_contents 2>/dev/null| grep -m1 "|${pkg_name}|"` \
+			|| full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name//-*/}|"` \
+			|| full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name//_*/}|"` \
+			|| full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name}-"` \
+			|| full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name}_"` \
+			|| full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name}"` \
+			|| full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "^${pkg_name}|"` \
+			|| full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "^${pkg_name}-"` \
+			|| full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "^${pkg_name}_"`
 
 		rm ${TMPDIR}repo_contents &>/dev/null
 	fi
@@ -2469,7 +2469,7 @@ pkg_status(){ 		# print package name, status, deps, etc FUNCLIST
 			# if pkg has many deps, checking the deps might take a while, print a 'please wait' msg
 			please_wait=false
 			# count deps of pkg
-			[ `list_deps "$PKGNAME" | wc -w` -gt 5 ] && please_wait=true
+			[ "`has_deps "$PKGNAME"`" = true ] && please_wait=true
 			[ "$please_wait" = true ] && echo -ne "Please wait.. Gathering dependency information.\n"
 
 			set_current_repo $pkg_repo 1>/dev/null
@@ -4093,6 +4093,9 @@ pkg_get(){ 		# find, download and install packages and deps FUNCLIST
 				fi
 			fi
 			
+			# get deps early (if any)
+			list_deps "$pkg_name" > ${TMPDIR}/${pkg_name}_dep_list &
+
 			# DOWNLOAD PKG
 			pkg_download "$pkg_name"
 
@@ -4776,6 +4779,8 @@ has_deps(){		# return true if $1 has deps, else false
 list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	[ "$1" = '' -o "$1" = "-" ] && print_usage list-deps && exit 1
 	
+	echo true > /tmp/pkg/list_deps_busy
+	
 	# get current $REPOFILE, $DEPSEARCH
 	#. ${PKGRC}
 	
@@ -4890,12 +4895,12 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	[ -f ${TMPDIR}missing_deps__names_only ] && sort -u ${TMPDIR}missing_deps__names_only > ${TMPDIR}missing_deps
 
 	# get fixed deps list
-	deps="`LANG=C cat ${TMPDIR}missing_deps | tr '\n' ' ' | sed -e 's/  / /g'`"
+	deps="`LANG=C cat ${TMPDIR}missing_deps 2>/dev/null | tr ' ' '\n' | sort -u | uniq | tr '\n' ' ' | sed -e 's/  / /g'`"
 
 	[ "$deps" != "" ] && echo "$deps"
 	
 	# clean up
-	rm ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE 2>/dev/null
+	rm ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE /tmp/pkg/list_deps_busy 2>/dev/null
 }
 
 
@@ -5074,9 +5079,14 @@ get_deps(){ 		# find, get and install the deps of pkg FUNCLIST
 
 	echo "Resolving dependencies.." # find deps will append ... as it goes
 
-	# find the deps!! .. sorts deps into two lists
-	#find_deps "${PKGNAME}"
-	DEPS_MISSING="`list_deps $PKGNAME`"
+	# wait until list_deps() is finished (if it's running at all...)
+	while [ -f /tmp/pkg/list_deps_busy ];do
+		echo -n '.' 
+		sleep 0.1
+	done
+	
+	# if list_deps() created a file listing the deps, get it from the file created, else, run list deps to be sure
+	[ -f ${TMPDIR}/${pkg_name}_dep_list ] && DEPS_MISSING="`cat ${TMPDIR}/${pkg_name}_dep_list`" || DEPS_MISSING="`list_deps "$PKGNAME"`"
 	
 	# if we have missing deps, or are downloading them all regardless (INSTALLDEPS=false), or using --force
 	if [ "$DEPS_MISSING" != "" -o "${NO_INSTALL}" = true -o "$FORCE" = true ];then 
