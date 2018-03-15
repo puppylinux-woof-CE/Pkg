@@ -4826,33 +4826,42 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 		# remove any deps in installed pkgs list from all deps.. to leave only missing deps
 		comm -23 ${TMPDIR}all_deps_0 ${TMPDIR}installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}all_deps_1
 
+		rm -f ${TMPDIR}DEP_DONE 2>/dev/null
+		
 		if [ -f $TMPDIR/all_deps_1 -a ! -z $TMPDIR/all_deps_1 ];then
 			# recursive search deps of deps
-			for i in 1 2
+			for i in 1 2 3 4
 			do
 				deps_list_file="${TMPDIR}all_deps_${i}"
 				
 				if [ -f $deps_list_file ];then
 					next_deps_list_file="${TMPDIR}all_deps_$(($i + 1))"
 					# for each dep in $deps, get their deps too
-					for subdep in `cat $deps_list_file | tr '\n' ' '`
+					for subdep in `cat $deps_list_file | sort -u | uniq | grep -v ^$`
 					do
 						local subdeps_entry=''
 						local subdeps=''
 						local subdeps_list=''
-						[ "$subdep" != '' -a "$subdep" != ' ' ] && subdep="${subdep//+[git0-9]*/}" || continue
 
-						[ "`grep -m1 "^${subdep}\$" ${TMPDIR}DEP_DONE 2>/dev/null`" != '' ] && continue
+						[ "$subdep" = '' -o "$subdep" = ' ' ] && continue
+
+						local already_done=`grep -m1 "^${subdep}\$" ${TMPDIR}DEP_DONE 2>/dev/null`
+						[ "$already_done" != '' ] && continue
+
+						local is_builtin=`is_builtin_pkg "$subdep" &`
+						local is_in_devx=`is_devx_pkg "$subdep" &`
+
+						[ "$HIDE_BUILTINS" = true -a "$is_builtin" = true ] && continue 
+						[ "$HIDE_BUILTINS" = true -a "$is_in_devx" = true ] && continue 
 
 						subdeps_entry="`get_deps_entry "$subdep"`"
-
 						subdeps="${subdeps_entry/+/}" # remove first + at start of line
-						subdeps="${subdeps//,+/ }"   # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
-						subdeps="${subdeps//  / }"   # remove double spaces
+						subdeps="${subdeps//,+/ }"    # remove others .. DEPS will now be just 'dep1 dep2 dep3'	
+						subdeps="${subdeps//  / }"    # remove double spaces
 
 						if [ "$subdeps" != '' ];then
-							# write the subdeps to the tmp list and done list
-							subdeps_list="`echo "$subdeps" | tr ' ' '\n' | grep -v ^$`"
+							# remove everything after the + (if the + is followed by alphanumeric chars), then add to tmp files
+							subdeps_list="`echo "$subdeps" | tr ' ' '\n' | grep -v ^$ | sed -e 's/++/+++/g' -e 's/+[a-z0-9].*//g'`"
 							echo "$subdeps_list" >> ${TMPDIR}DEP_DONE
 							echo "$subdeps_list" >> $next_deps_list_file
 						fi
@@ -4860,7 +4869,8 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 					rm -f ${TMPDIR}DEP_DONE 2>/dev/null
 				fi
 			done
-		
+			rm -f ${TMPDIR}DEP_DONE 2>/dev/null
+	
 			# add all deps together, sorted, duplicated removed
 			sort -u ${TMPDIR}all_deps_* | grep -v ^$ > ${TMPDIR}all_deps_sorted
 			mv ${TMPDIR}all_deps_sorted ${TMPDIR}all_deps
@@ -4869,7 +4879,6 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 		
 	fi
 
-	
 	# remove any deps in installed pkgs list from all deps.. to leave only missing deps
 	if [ -f ${TMPDIR}installed_pkgs -a ! -z  ${TMPDIR}installed_pkgs ];then
 		comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}missing_deps
@@ -4878,27 +4887,9 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	[ ! -f ${TMPDIR}missing_deps -o -z ${TMPDIR}missing_deps ] && rm /tmp/pkg/list_deps_busy 2>/dev/null && return 1
 	
 	[ ! -f ${TMPDIR}missing_deps ] && return 1
-	
-	# get the new deps list
-	deps="`LANG=C cat ${TMPDIR}missing_deps | tr '\n' ' '`"
-	
-	# make sure each dep listed will match field 2 (PKGNAME_ONLY)
-	echo -n '' > ${TMPDIR}missing_deps__names_only
-	for dep in $deps
-	do
-		[ "$dep" = ' ' -o "$dep" = '' ] && continue
-		dep_name=`get_pkg_name_only "$dep"`
-		dep_name="${dep_name//[a-zA-Z0-9]+[git0-9]*/}"
-		[ "$HIDE_BUILTINS" = true -a "`is_builtin_pkg "$dep_name"`" = true ] && continue 
-		[ "$HIDE_BUILTINS" = true -a "`is_devx_pkg "$dep_name"`" = true ] && continue 
-		#[ "$FORCE" = false -a "`is_usr_pkg "$dep_name"`" = true ] && continue
-		[ "$dep_name" != '' ] && echo "${dep_name}" >> ${TMPDIR}missing_deps__names_only
-	done
-
-	[ -f ${TMPDIR}missing_deps__names_only ] && sort -u ${TMPDIR}missing_deps__names_only > ${TMPDIR}missing_deps
 
 	# get fixed deps list
-	deps="`LANG=C cat ${TMPDIR}missing_deps 2>/dev/null | tr ' ' '\n' | sort -u | uniq | tr '\n' ' ' | sed -e 's/  / /g'`"
+	deps="`LANG=C cat ${TMPDIR}missing_deps 2>/dev/null | tr ' ' '\n' | sort -u | tr '\n' ' '`"
 
 	[ "$deps" != "" ] && echo "$deps"
 	
