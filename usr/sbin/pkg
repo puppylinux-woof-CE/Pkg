@@ -3573,7 +3573,7 @@ pkg_install(){ 		# install a downloaded package FUNCLIST
 				menu_entry_msg "$PKGNAME_ONLY" 
 				#080413 do fixmenus, if menu entry found #200713 moved here
 				if [ "`grep -m1 '/usr/share/applications' $HOME/.packages/${PKGNAME}.files 2>/dev/null | grep desktop$`" != "" ];then
-					update_menus &
+					[ ! -f /tmp/pkg/update_menus_busy ] && update_menus &
 				fi
 				[ "`which logger`" != '' ] && logger "$0 Package $PKGNAME installed by $APP $APPVER"
 			else
@@ -3979,7 +3979,7 @@ pkg_uninstall(){ 	# remove an installed package FUNCLIST
 			
 			# do fixmenus, if menu entry found
 			if [ "$HASMENUENTRY" = true ];then
-				update_menus
+				[ ! -f /tmp/pkg/update_menus_busy ] && update_menus &
 			fi
 			
 			# UNINSTALL DONE .. print message
@@ -5977,9 +5977,11 @@ menu_entry_msg(){	# show menu entry details of installed pkg FUNCLIST
 
 
 update_menus() {
+	echo started > /tmp/pkg/update_menus_busy
 	fixmenus &>/dev/null
 	# refresh JWM menus if using JWM window manager
 	[ "`which jwm`" != "" -a "`ps -e | grep jwm`" != "" ] && jwm -reload &>/dev/null
+	rm /tmp/pkg/update_menus_busy 2>/dev/null
 	return 0
 }
 
