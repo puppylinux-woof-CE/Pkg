@@ -4845,6 +4845,8 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 
 						[ "$subdep" = '' -o "$subdep" = ' ' ] && continue
 
+						subdep="`get_pkg_name_only $subdep`"
+						
 						local already_done=`grep -m1 "^${subdep}\$" ${TMPDIR}DEP_DONE 2>/dev/null`
 						[ "$already_done" != '' ] && continue
 
@@ -4861,7 +4863,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 
 						if [ "$subdeps" != '' ];then
 							# remove everything after the + (if the + is followed by alphanumeric chars), then add to tmp files
-							subdeps_list="`echo "$subdeps" | tr ' ' '\n' | grep -v ^$ | sed -e 's/++/+++/g' -e 's/+[a-z0-9].*//g'`"
+							subdeps_list="`echo "${subdeps}" | tr ' ' '\n' | grep -v ^$ | sed -e 's/++/+++/g' -e 's/+[a-z0-9].*//g'`"
 							echo "$subdeps_list" >> ${TMPDIR}DEP_DONE
 							echo "$subdeps_list" >> $next_deps_list_file
 						fi
@@ -4889,7 +4891,10 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	[ ! -f ${TMPDIR}missing_deps ] && return 1
 
 	# get fixed deps list
-	deps="`LANG=C cat ${TMPDIR}missing_deps 2>/dev/null | tr ' ' '\n' | sort -u | tr '\n' ' '`"
+	deps="`LANG=C cat ${TMPDIR}missing_deps 2>/dev/null | tr ' ' '\n' | while read dep
+	do
+		echo $(get_pkg_name_only "$dep")
+	done | sort -u | tr '\n' ' '`"
 
 	[ "$deps" != "" ] && echo "$deps"
 	
