@@ -3,9 +3,22 @@ a command line package manager for Puppy Linux
 
 ## Features
 
-* list
-* of
-* features
+- powerful command line interface, lots of options
+- context-sensitive TAB completion of package, file, dir and repo names
+- automatically find best matching packages or let the user choose
+- search for packages in individual or all repos
+- easily compile packages from source
+- supports buildtools: petbuild, src2pkg, sbopkg, buildpet
+- supports packages: .pet, tar.gz, .txz, .deb, .sfs, .rpm, more
+- install/uninstall SFS files just like regular packages
+- combine packages and dependencies into SFS files
+- convert packages between supported filetypes
+- find out which package a file belongs to
+- find out which repo a package belongs to
+- compatible with Puppy Package Manager (petget)
+- includes a console frontend (dialog) menu called Pkgdialog
+- includes a GTK frontend (GTKdialog) called Gpkgdialog 
+
 
 ## Files
 
