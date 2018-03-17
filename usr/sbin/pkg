@@ -95,6 +95,10 @@ cleanup(){
 }
 trap 'cleanup ${LINENO:-none} $?' EXIT INT TERM
 
+#run as root only
+whoami=$(whoami)
+[ "$whoami" != "root" ] && echo "You must be root to run Pkg." && exit 1
+
 #080413 make sure all config files are present, copy from /etc if need be
 if [ ! -f ${PKGRC} ];then
 	echo "Restoring default settings from /etc/pkg"
@@ -152,10 +156,6 @@ if [ ! -d "$WORKDIR" ];then
 	exit 3
 fi
 export WORKDIR=~/pkg 
-
-#run as root only
-whoami=$(whoami)
-#[ "$whoami" != "root" ] && exec sudo -A ${0} ${@}
 
 # add to tab completion settings to bashrc and print hint
 if [ "`grep -m1 '/etc/bash_completion.d/pkg' ~/.bashrc 2>/dev/null`" = "" ];then
