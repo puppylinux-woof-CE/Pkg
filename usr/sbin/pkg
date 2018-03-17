@@ -3655,10 +3655,15 @@ DESKTOPFILE="`find /usr/share/applications -iname "${PKGNAME_ONLY}*.desktop"`"
 	sed -i 's/ %F//' $DESKTOPFILE
 	
 case $PKGNAME in
- 0ad_*)
-	bbe -e 's/geteuid/getppid/' /usr/games/pyrogenesis > /usr/games/pyrogenesis1
+ 0ad-*|0ad_*)
+	bbe -e 's/geteuid/getppid/' /usr/games/pyrogenesis > /usr/games/pyrogenesis1 2>/dev/null
 	mv /usr/games/pyrogenesis1 /usr/games/pyrogenesis
 	chmod 755 /usr/games/pyrogenesis
+ ;;
+ openclonk-*|openclonk_*)
+	bbe -e 's/geteuid/getppid/' /usr/games/openclonk > /usr/games/openclonk1 2>/dev/null
+	mv /usr/games/openclonk1 /usr/games/openclonk
+	chmod 755 /usr/games/openclonk
  ;;
  vlc_*|vlc-*)
 	VLCDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname 'vlc*.desktop'`"
