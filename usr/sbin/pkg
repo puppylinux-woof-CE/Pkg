@@ -973,7 +973,7 @@ show_config(){ 		# show config settings from ~/.pkg/pkgrc FUNCLIST
 	PKGSCOPETXT="Search for packages in all repos."
 	DEPSCOPETXT="Search for dependencies in all repos."
 	FALLBACKTXT="Accessing other repos in this order:"
-	FALLBACKTXT="$FALLBACKTXT\n`echo $REPOFALLBACKS | fold -w 55 -s | sed -e 's/ /, /g' -e "s/^/  /g"`"
+	FALLBACKTXT="$FALLBACKTXT\n`repo_list | grep -v "^$REPONAME" | tr '\n' ' ' | sed -e "s/ /, /g" -e "s/, $//" | fold -w 54 -s`"
 	RDCHECKTXT="Recursive dependency search is NOT enabled."
 
 	# update with values from PKGRC file
@@ -1669,6 +1669,7 @@ search_all_pkgs(){ 	# all repos, show pkg name and desc in columns FUNCLIST
 	local name
 	local desc
 	local descfull
+
 
 	for repo_file in `list_sources_files`
 	do #090817
