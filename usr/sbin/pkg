@@ -4100,7 +4100,7 @@ pkg_get(){ 		# find, download and install packages and deps FUNCLIST
 			fi
 			
 			# get deps early (if any)
-			list_deps "$pkg_name" > ${TMPDIR}/${pkg_name}_dep_list &
+			[ ! -f ${TMPDIR}/${pkg_name}_dep_list ] && list_deps "$pkg_name" > ${TMPDIR}/${pkg_name}_dep_list &
 
 			# DOWNLOAD PKG
 			pkg_download "$pkg_name"
@@ -4807,6 +4807,16 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 	PKGNAME=`get_pkg_name "$PKGNAME"`
 	PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
 
+	local pre_prepared_dep_list="`find /tmp/pkg/ -maxdepth 1 -type f -name "${PKGNAME}*_dep_list" | head -1`"
+	
+	if [ -f "$pre_prepared_dep_list" ];then
+		deps="`cat $pre_prepared_dep_list`"
+		[ "$deps" != "" ] && echo "$deps"
+		# clean up
+		rm ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE /tmp/pkg/list_deps_busy 2>/dev/null
+		return 0
+	fi
+	
 	# create list of installed pkgs ($TMPDIR/installed_pkgs) for later
 	list_all_installed_pkgs &
 	
@@ -4901,7 +4911,7 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 		echo $(get_pkg_name_only "$dep")
 	done | sort -u | tr '\n' ' '`"
 
-	[ "$deps" != "" ] && echo "$deps"
+	[ "$deps" != "" ] && echo "$deps" && echo "$deps" > ${TMPDIR}/${PKGNAME}_dep_list
 	
 	# clean up
 	rm ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE /tmp/pkg/list_deps_busy 2>/dev/null
@@ -4961,7 +4971,7 @@ find_deps(){ 		# make 2 lists: DEPS_INSTALLED and DEPS_MISSING FUNCLIST
 	[ "$DEPSEARCH" = "list_all_pkg_names" ] && repo_files="`list_sources_files | sed -e "s|^|$HOME/.packages/|g" | tr '\n' ' '`" || repo_files="$HOME/.packages/$REPOFILE"
 	
 	# get the list of deps from the repo entry of this pkg
-	deps_list="`LANG=C list_deps "$PKGNAME"`"
+	[ -f ${TMPDIR}/${pkg_name}_dep_list ] && deps_list="`cat ${TMPDIR}/${pkg_name}_dep_list`" || deps_list="`LANG=C list_deps "$PKGNAME"`"
 	
 	# remove builtins from list unless HIDE_BUILTINS=false
 	if [ "${HIDE_BUILTINS}" = true ];then
