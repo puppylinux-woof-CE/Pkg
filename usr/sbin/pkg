@@ -459,7 +459,8 @@ get_pkg_name_only(){	# return pkg name only, no version or suffix FUNCLIST
 		pkg_name_only="${pkg_name_only/-[0-9]*/}"
 	fi
 
-	[ "$pkg_name_only" != '' ] && echo $pkg_name_only || return 1
+	# the sed bit changes 'liblzma5+20120614' to 'liblzma5'
+	[ "$pkg_name_only" != '' ] && echo $pkg_name_only | sed -e 's/++/+++/g' -e 's/+[a-z0-9].*//g' || return 1
 }
 
 
@@ -4854,8 +4855,8 @@ list_deps(){ 		# list all deps of PKG, space separated on one line FUNCLIST
 						local already_done=`grep -m1 "^${subdep}\$" ${TMPDIR}DEP_DONE 2>/dev/null`
 						[ "$already_done" != '' ] && continue
 
-						local is_builtin=`is_builtin_pkg "$subdep" &`
-						local is_in_devx=`is_devx_pkg "$subdep" &`
+						local is_builtin=`is_builtin_pkg "$subdep"`
+						local is_in_devx=`is_devx_pkg "$subdep"`
 
 						[ "$HIDE_BUILTINS" = true -a "$is_builtin" = true ] && continue 
 						[ "$HIDE_BUILTINS" = true -a "$is_in_devx" = true ] && continue 
