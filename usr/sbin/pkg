@@ -3844,13 +3844,11 @@ pkg_uninstall(){ 	# remove an installed package FUNCLIST
 	PKGNAME_ONLY="`get_pkg_name_only "$PKGNAME"`"
 	
 	local pkg_is_builtin=`is_builtin_pkg "$PKGNAME_ONLY"`
+	local is_installed=`is_installed_pkg "$PKGNAME"`
 	
 	# skip pkg if its a builtin
 	[ "$pkg_is_builtin" = true ] && return 1
 	
-	# get the list of files to be deleted, exact match
-	PKGFILE="`find ${HOME}/.packages/ -maxdepth 1 -type f -name "$PKGNAME.files"`"
-
 	# if pkg is SFS, "uninstall" it here and quit
 	if [ "`sfs_loadr -q -i | grep -v ^sfs_loadr | grep ^$PKGNAME`" -o "$pkg_ext" = "sfs" ];then
 		sfs_loadr -q --cli -"${CURDIR}/${PKGNAME}" && rm -f $PKGFILE #2>/dev/null
@@ -3858,10 +3856,11 @@ pkg_uninstall(){ 	# remove an installed package FUNCLIST
 	fi
 	
 
-	if [ "`is_installed_pkg $PKGNAME`" = true -o "$FORCE" = true ];then #250713
+	if [ "$is_installed" = true -o "$FORCE" = true ];then #250713
 
 		# get the list of files to be deleted, exact match
-		PKGFILE="`find ${HOME}/.packages/ -maxdepth 1 -type f -name "${PKGNAME}.files"`"
+		PKGFILE="`find ${HOME}/.packages/ -maxdepth 1 -type f -name "$PKGNAME.files"`"
+
 		# if no exact match, search for pkgname*
 		[ ! -f "$PKGFILE" ] && PKGFILE="`find ${HOME}/.packages/ -maxdepth 1 -type f -name "${PKGNAME}*.files"`"
 		
@@ -3893,17 +3892,16 @@ pkg_uninstall(){ 	# remove an installed package FUNCLIST
 		# if we are here, we have a $HOME/.packages/***.files to work with (or using --force)
 		
 		# get pkgs that depend on $PKGNAME
-		dependents="`list_dependents "$PKGNAME_ONLY"`"
+		[ "$FORCE" = false ] && dependents="`list_dependents "$PKGNAME"`"
 
 		# if we have dependents, we should not uninstall and just exit, unless --force was given
 		if [ "$dependents" != "" -a "`echo "$dependents" | grep 'not installed'`" = '' -a "$FORCE" != true ];then
 		
 			# inform user of dependent pkgs
-			echo -e "${yellow}Warning${endcolour}: The following packages need $PKGNAME_ONLY:  "
-			echo "$dependents"
-			echo
+			echo -e "${yellow}Warning${endcolour}: $PKGNAME_ONLY is needed by:  "
+			echo -e "${magenta}$dependents${endcolour}"
 			echo "Uninstall the packages above first, or use:"
-			echo -e "${bold}pkg --force --uninstall $PKGNAME${endcolour}."
+			echo -e "${bold}pkg --force uninstall $PKGNAME${endcolour}."
 			echo
 			return 1
 		
@@ -4093,9 +4091,9 @@ pkg_get(){ 		# find, download and install packages and deps FUNCLIST
 			# if we are intending to install the pkg
 			if [ "$NO_INSTALL" = false -a "$FORCE" = false ];then
 				# skip if package is already installed, unless --force given
-				if [ "$FORCE" = false -a "`is_installed_pkg $PKGNAME`" = true ];then
+				if [ "$FORCE" = false -a "`is_installed_pkg $pkg_name`" = true ];then
 					echo -e "Package ${magenta}${pkg_name_only}${endcolour} already installed."
-					echo -e "Use the -f option to force installation: $SELF -f -g $PKGNAME_ONLY"
+					echo -e "Use the -f option to force installation: $SELF -f -g $pkg_name_only"
 					continue
 				fi
 			fi
@@ -5348,9 +5346,9 @@ list_dependents(){	# list user installed pkgs that depend on $1 FUNCLIST
 	rm ${TMPDIR}/dependents_list
 
 	# only keep the user installed pkgs in the list
-	for pkg in `cat ${TMPDIR}/dependents_list_tmp`
+	for pkg in `list_installed_pkgs | grep -v ^$PKGNAME`
 	do
-		[ "`is_usr_pkg $pkg`" = true ] && echo "$pkg" >> ${TMPDIR}/dependents_list
+		[ "`grep -m1 "^$(get_pkg_name_only $pkg)\$" ${TMPDIR}/dependents_list_tmp`" != '' ] && echo "$pkg" >> ${TMPDIR}/dependents_list
 	done
 	
 	# print the list if we have one
