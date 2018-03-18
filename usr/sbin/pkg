@@ -3892,7 +3892,7 @@ pkg_uninstall(){ 	# remove an installed package FUNCLIST
 		# if we are here, we have a $HOME/.packages/***.files to work with (or using --force)
 		
 		# get pkgs that depend on $PKGNAME
-		[ "$FORCE" = false ] && dependents="`list_dependents "$PKGNAME"`"
+		[ "$FORCE" = false ] && dependents="`list_dependents "$PKGNAME"`" || dependents=''
 
 		# if we have dependents, we should not uninstall and just exit, unless --force was given
 		if [ "$dependents" != "" -a "`echo "$dependents" | grep 'not installed'`" = '' -a "$FORCE" != true ];then
