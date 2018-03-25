@@ -23,7 +23,7 @@
 #==================  setup script vars  =====================#
 
 APPNAME="Pkg"
-APPVER="1.9.19alpha"
+APPVER="1.9.20alpha"
 APPTITLE="$APPNAME $APPVER"
 
 # get current locale settings
