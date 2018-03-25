@@ -6305,11 +6305,11 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 			-LE|LE) 														[ ! "$2" ] && HIDE_BUILTINS=false list_deps || for x in $opt; do [ "$x" -a "$x" != "-" ] && HIDE_BUILTINS=false list_deps "$x"; done ;;  # list a pkg deps, including builtins
 			 
 			# repo
-			--repo|-r|repo|r) 		 		 						[ "$2" != "-" ] && echo $REPONAME || set_current_repo "$2" ;; 
+			--repo|-r|repo|r) 		 		 						[ ! "$2" ] && echo $REPONAME || set_current_repo "$2" ;; 
+			--repo-convert|-rc|repo-convert|rc)		[ ! "$2" ] && print_usage repo-convert || for x in $opt; do [ "$x" -a "$x" != "-" ]  && convert_repofile "$x"; done ;;
 			--repo-list|-rl|repo-list|rl)	 				[ "$2" != "-" ] && repo_list "$2"      ;;
 			--repo-info|-ri|repo-info|ri)	 				[ "$2" != "-" ] && print_repo_info "$2";;
 	--repo-file-list|-rfl|repo-file-list|rfl) [ "$2" != "-" ] && repo_file_list "$2" ;;
-			--repo-convert|-rc|repo-convert|rc)		[ "$2" != "-" ] && print_usage repo-convert || for x in $opt; do [ "$x" -a "$x" != "-" ]  && convert_repofile "$x"; done ;;
 			--repo-update|-ru|repo-update|ru) 		update_repo "$2";;
 			--add-source|add-source)		    			[ "`echo $2|grep '|'`" = '' -o "$2" = '-' ] && print_usage add-source || add_source "$2";; 
 			--update-sources|update-sources) 		update_sources ;; 
