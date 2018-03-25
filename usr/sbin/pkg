@@ -6156,6 +6156,10 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 					done
 				fi
 			;; 
+			--ask|-a) 				export ASK=true ; export QTAG="?  (y/N)";;
+			--force|-f) 			export FORCE=true ;;
+			--no-color)				green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
+			--no-colour|-nc)	green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
 	  esac
     
     # accept from stdin, pkg -x -x -
@@ -6173,6 +6177,10 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 					done
 				fi
 			;; 
+			--ask|-a) 				export ASK=true ; export QTAG="?  (y/N)";;
+			--force|-f) 			export FORCE=true ;;
+			--no-color)				green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
+			--no-colour|-nc)	green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
 	  esac
     
     # accept from stdin, pkg -x- x- x -
@@ -6190,10 +6198,37 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 					done
 				fi
 			;; 
+			--ask|-a) 				export ASK=true ; export QTAG="?  (y/N)";;
+			--force|-f) 			export FORCE=true ;;
+			--no-color)				green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
+			--no-colour|-nc)	green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
 	  esac
-	
+
+    # accept from stdin, pkg -x- x- x- x -
+    case $5 in 
+			-)
+				if [ "$5" = "" ];then 
+					while true; do
+						read ALINE
+						[ "$ALINE" -a "$ALINE" != '-' ] || break
+						[ "$(echo $ALINE| cut -b1)" = '#' ] && continue	# skip comment
+						ALINE=`echo $ALINE` #strip spaces
+						OPTS="${@%-}"       #get all opts, strip last dash
+						OPTS="${OPTS% }"    #get all opts, strip last space
+						$SELF $OPTS "$ALINE"
+					done
+				fi
+			;; 
+			--ask|-a) 				export ASK=true ; export QTAG="?  (y/N)";;
+			--force|-f) 			export FORCE=true ;;
+			--no-color)				green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
+			--no-colour|-nc)	green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
+	  esac
+
+
 		## main options	  
     case $1 in
+
 			-) # accept from stdin, pkg -i (defaults to pkg -g $1 or pkg -u $1)
 				if [ "$2" = "" ];then 
 					while true; do
@@ -6210,75 +6245,74 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 				fi
 			;; 
 
-			# modifier options, must precede all others
-			--ask|-a) 					export ASK=true ; export QTAG="?  (y/N)";;
-			--force|-f) 				export FORCE=true ;;
-			--no-color)					green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
-			--no-colour|-nc)			green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
+			--ask|-a) 				export ASK=true ; export QTAG="?  (y/N)";;
+			--force|-f) 			export FORCE=true ;;
+			--no-color)				green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
+			--no-colour|-nc)	green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
 
 			# package search
-			--all-pkgs|--all|all) 				[ ! "$2" ] && cat ${HOME}/.packages/${REPOFILE} || cat ${HOME}/.packages/${REPOFILE} | grep "$2"; exit 0;; 
-			--search|-s|search|s) 				[ ! "$2" ] && search_pkgs          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_pkgs "$x";          done; exit 0 ;; 
-			-ss) 								[ ! "$2" ] && search_fast          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_fast "$x";          done; exit 0 ;; 
-			--search-all|-sa|search-all|sa) 	[ ! "$2" ] && search_all_pkgs      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_pkgs "$x";      done; exit 0 ;; 
-			-ssa) 								[ ! "$2" ] && search_all_fast      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_fast "$x";      done; exit 0 ;; 
-			--names|-n|names|n)				  	[ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x"; 			done; exit 0 ;; 
-			--names-exact|-ne|names-exact|ne)	[ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x\$"; 		done; exit 0 ;; 
-			--names-all|-na|names-all|na)		[ ! "$2" ] && list_all_pkg_names   || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x"; 	done; exit 0 ;; 
-	--names-exact-all|-nea|names-all-exact|nea) [ ! "$2" ] && list_all_pkg_names   || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x\$"; done; exit 0 ;;
-		--list-installed|-li|li) 				[ ! "$2" ] && list_installed_pkgs  || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_installed_pkgs "$x";  done; exit 0 ;; 
-	 --list-downloaded|-ld|ld) 					[ ! "$2" ] && list_downloaded_pkgs || list_downloaded_pkgs "$2"; exit 0 ;;
-			-LI|LI)								[ ! "$2" ] && HIDE_BUILTINS=false list_installed_pkgs || for x in $opt; do HIDE_BUILTINS=false list_installed_pkgs "$x"; done ;; # list all installed pkgs inc builtins
+			--all-pkgs|--all|all) 						[ ! "$2" ] && cat ${HOME}/.packages/${REPOFILE} || cat ${HOME}/.packages/${REPOFILE} | grep "$2"; exit 0;; 
+			--search|-s|search|s) 						[ ! "$2" ] && search_pkgs          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_pkgs "$x";         done; exit 0 ;; 
+			-ss) 															[ ! "$2" ] && search_fast          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_fast "$x";         done; exit 0 ;; 
+			--search-all|-sa|search-all|sa) 	[ ! "$2" ] && search_all_pkgs      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_pkgs "$x";     done; exit 0 ;; 
+			-ssa) 														[ ! "$2" ] && search_all_fast      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_fast "$x";     done; exit 0 ;; 
+			--names|-n|names|n)				  			[ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x"; 				done; exit 0 ;; 
+			--names-exact|-ne|names-exact|ne)	[ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x\$"; 			done; exit 0 ;; 
+			--names-all|-na|names-all|na)			[ ! "$2" ] && list_all_pkg_names   || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x"; 		done; exit 0 ;; 
+		--list-installed|-li|li) 						[ ! "$2" ] && list_installed_pkgs  || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_installed_pkgs "$x";  	done; exit 0 ;; 
+	 --list-downloaded|-ld|ld) 						[ ! "$2" ] && list_downloaded_pkgs || list_downloaded_pkgs "$2"; exit 0 ;;
+			-LI|LI)														[ ! "$2" ] && HIDE_BUILTINS=false list_installed_pkgs || for x in $opt; do HIDE_BUILTINS=false list_installed_pkgs "$x"; done ;; # list all installed pkgs inc builtins
+	--names-exact-all|-nea|names-all-exact|nea) [ ! "$2" ] && list_all_pkg_names || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x\$"; done; exit 0 ;;
 			 
 			# get, download, install, remove, pkgs
-			--download|-d|download|d) 			[ ! "$2" ] && pkg_download || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_download "$x";  done;; 
-			--install|-i|install|i) 			[ ! "$2" ] && pkg_install  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_install "$x";   done;; 
-			--uninstall|-u|uninstall|u) 		[ ! "$2" ] && pkg_uninstall|| for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_uninstall "$x"; done;; 
-			--unpack|--extract|unpack|extract)	[ ! "$2" ] && pkg_unpack   || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_unpack "$x";    done;;
-			--clean|clean)						[ ! "$2" ] && clean_pkgs   || for x in $opt; do [ "$x" -a "$x" != "-" ] && clean_pkgs "$x";    done;;
-			--get|-g|get|g)						[ ! "$2" ] && pkg_get      || for x in $opt; do if [ "$x" -a "$x" != "-" ];then choose_pkg "$x"; pkg_get "$x"; fi; done ;;  
-			--get-only|-go|get-only|go) 					[ ! "$2" ] && print_usage get-only || for x in $opt; do if [ "$x" -a "$x" != "-" ];then choose_pkg "$x"; NO_INSTALL=true  pkg_get "$x"; fi; done ;;  
-			--delete|-l|delete|l)						[ ! "$2" ] && print_usage delete   || for x in $opt; do [ "$x" = '-' ] && continue; if [ -f "${WORKDIR}/$(basename "$x")" ];then if [ "$ASK" = true ];then echo -n "Remove package `basename $x`$QTAG "; read -n 1 CONFIRM </dev/tty; echo; else CONFIRM=y; fi; [ "$CONFIRM" = "y" ] && rm -v "${WORKDIR}/$(basename "$x")"; else not_found "$x"; fi; done ;; #110213,0.9.1  renamed to --delete|-l 
-			--delete-all|-la|delete-all|la) ASK=true; QTAG="?  (y/N)"; if [ "$ASK" = true ];then echo -en "Remove all downloaded packages in ${lightblue}${WORKDIR}/${endcolour}$QTAG"; read -n 1 CONFIRM </dev/tty; echo; else CONFIRM=y; fi; [ "$CONFIRM" = "y" ] && rm -v ${WORKDIR}/*.pet ${WORKDIR}/*.pkg.* ${WORKDIR}/*.sfs ${WORKDIR}/*.tar.* ${WORKDIR}/*.tcz ${WORKDIR}/*.txz ${WORKDIR}/*.tgz ${WORKDIR}/*.deb ${WORKDIR}/*.rpm ${WORKDIR}/*.apk ${WORKDIR}/*.gz ${WORKDIR}/*.xz 2>/dev/null; exit 0;;
-			--install-all|-ia)  				list_downloaded_pkgs | while read pkg; do [ "$pkg" -a "$pkg" != "-" ] && pkg_install "$pkg";   done;;
-			--uninstall-all|-ua)				list_installed_pkgs  | while read pkg; do [ "$pkg" -a "$pkg" != "-" ] && pkg_uninstall "$pkg"; done;;
+			--download|-d|download|d) 				[ ! "$2" ] && pkg_download || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_download "$x";  done;; 
+			--install|-i|install|i) 					[ ! "$2" ] && pkg_install  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_install "$x";   done;; 
+			--uninstall|-u|uninstall|u) 			[ ! "$2" ] && pkg_uninstall|| for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_uninstall "$x"; done;; 
+			--unpack|--extract|unpack|extract)[ ! "$2" ] && pkg_unpack   || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_unpack "$x";    done;;
+			--clean|clean)										[ ! "$2" ] && clean_pkgs   || for x in $opt; do [ "$x" -a "$x" != "-" ] && clean_pkgs "$x";    done;;
+			--get|-g|get|g)										[ ! "$2" ] && pkg_get      || for x in $opt; do if [ "$x" -a "$x" != "-" ];then choose_pkg "$x"; pkg_get "$x"; fi; done ;;  
+			--get-only|-go|get-only|go) 			[ ! "$2" ] && print_usage get-only || for x in $opt; do if [ "$x" -a "$x" != "-" ];then choose_pkg "$x"; NO_INSTALL=true  pkg_get "$x"; fi; done ;;  
+			--delete|-l|delete|l)							[ ! "$2" ] && print_usage delete   || for x in $opt; do [ "$x" = '-' ] && continue; if [ -f "${WORKDIR}/$(basename "$x")" ];then if [ "$ASK" = true ];then echo -n "Remove package `basename $x`$QTAG "; read -n 1 CONFIRM </dev/tty; echo; else CONFIRM=y; fi; [ "$CONFIRM" = "y" ] && rm -v "${WORKDIR}/$(basename "$x")"; else not_found "$x"; fi; done ;; #110213,0.9.1  renamed to --delete|-l 
+			--delete-all|-la|delete-all|la) 	ASK=true; QTAG="?  (y/N)"; if [ "$ASK" = true ];then echo -en "Remove all downloaded packages in ${lightblue}${WORKDIR}/${endcolour}$QTAG"; read -n 1 CONFIRM </dev/tty; echo; else CONFIRM=y; fi; [ "$CONFIRM" = "y" ] && rm -v ${WORKDIR}/*.pet ${WORKDIR}/*.pkg.* ${WORKDIR}/*.sfs ${WORKDIR}/*.tar.* ${WORKDIR}/*.tcz ${WORKDIR}/*.txz ${WORKDIR}/*.tgz ${WORKDIR}/*.deb ${WORKDIR}/*.rpm ${WORKDIR}/*.apk ${WORKDIR}/*.gz ${WORKDIR}/*.xz 2>/dev/null; exit 0;;
+			--install-all|-ia)  							list_downloaded_pkgs | while read pkg; do [ "$pkg" -a "$pkg" != "-" ] && pkg_install "$pkg";   done;;
+			--uninstall-all|-ua)							list_installed_pkgs  | while read pkg; do [ "$pkg" -a "$pkg" != "-" ] && pkg_uninstall "$pkg"; done;;
 
 			# pkg status, info
 			--pkg-installed|-pi|installed|pi)		[ ! "$2" ] && is_installed_pkg || for x in $opt; do [ "$x" -a "$x" != "-" ] && is_installed_pkg "$x"; done;;
 			--pkg-entry|-pe|entry|pe) 	  			[ ! "$2" ] && pkg_entry   || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_entry "$x";    done;;  # print repo entry, each field on a new line
-			--pkg-status|-ps|status|ps) 			[ ! "$2" ] && pkg_status  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_status "$x";   done;;
+			--pkg-status|-ps|status|ps) 				[ ! "$2" ] && pkg_status  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_status "$x";   done;;
 			--contents|-c|contents|c) 	    		[ ! "$2" ] && pkg_contents|| for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_contents "$x"; done;;
-			--which|-w|which|w) 					[ ! "$2" ] && which_pkg   || for x in $opt; do [ "$x" -a "$x" != "-" ] && which_pkg "$x";    done;;
+			--which|-w|which|w) 								[ ! "$2" ] && which_pkg   || for x in $opt; do [ "$x" -a "$x" != "-" ] && which_pkg "$x";    done;;
 			--which-repo|-wr|which-repo|wr) 		[ ! "$2" ] && which_repo  || for x in $opt; do [ "$x" -a "$x" != "-" ] && which_repo "$x";   done;;
-			--pkg-repack|-pr|repack|pr) 			[ ! "$2" ] && pkg_repack  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_repack "$x";   done;;
-			--pkg-update|-pu|update|pu) 			[ ! "$2" ] && pkg_update  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_update "$x";   done;;
-			--pkg-combine|-pc|pkg-combine|pc)  		[ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" -a "$x" != "-" ] && COMBINE2SFS=false pkg_combine "$x"; done;;
-			--sfs-combine|-sc|sfs-combine|sc)  		[ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" -a "$x" != "-" ] && COMBINE2SFS=true  pkg_combine "$x"; done;;
-			-PS|PS)									[ ! "$2" ] && pkg_status  || for x in $opt; do [ "$x" -a "$x" != "-" ] && HIDE_USER_PKGS=false FULL_PKG_STATUS=true pkg_status "$x"; done;; # full pkg status, with sorted deps
+			--pkg-repack|-pr|repack|pr) 				[ ! "$2" ] && pkg_repack  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_repack "$x";   done;;
+			--pkg-update|-pu|update|pu) 				[ ! "$2" ] && pkg_update  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_update "$x";   done;;
+			--pkg-combine|-pc|pkg-combine|pc)  	[ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" -a "$x" != "-" ] && COMBINE2SFS=false pkg_combine "$x"; done;;
+			--sfs-combine|-sc|sfs-combine|sc)  	[ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" -a "$x" != "-" ] && COMBINE2SFS=true  pkg_combine "$x"; done;;
+			-PS|PS)															[ ! "$2" ] && pkg_status  || for x in $opt; do [ "$x" -a "$x" != "-" ] && HIDE_USER_PKGS=false FULL_PKG_STATUS=true pkg_status "$x"; done;; # full pkg status, with sorted deps
 
 			# pkg compiling
-			--pkg-build|-pb|build|pb)			 	[ ! "$2" ] && pkg_build || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_build "$x"; done;;
-	 --pkg-build-list|-pbl|build-list|pbl) 			[ ! "$2" ] && list_build_scripts || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_build_scripts "$x"; done;;
+			--pkg-build|-pb|build|pb)			 			[ ! "$2" ] && pkg_build || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_build "$x"; done;;
+	 --pkg-build-list|-pbl|build-list|pbl) 	[ ! "$2" ] && list_build_scripts || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_build_scripts "$x"; done;;
 			
 			# dependencies
 			--what-needs|-wn|what-needs|wn)			[ ! "$2" ] && list_dependents; for x in $opt; do [ "$x" -a "$x" != "-" ] && list_dependents "$x"; done ;; # list pkgs depending on $x, not including builtins by default
 			--list-deps|-le|list-deps|le) 			[ ! "$2" ] && list_deps; for x in $opt; do [ "$x" -a "$x" != "-" ] && list_deps "$x"; done ;; # list pkg deps, not including builtins
-			--deps|-e|deps|e) 						[ ! "$2" ] && get_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && get_deps  "$x"; done ;;
-			--has-deps|-he|has-deps|he)	  	[ ! "$2" ] && has_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && has_deps  "$x"; done ;;
-			--deps-download|-ed|deps-download|ed)	[ ! "$2" ] && get_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && NO_INSTALL=true get_deps "$x"; done ;;
-			--deps-all|-ea|deps-all|ea) 			[ ! "$2" ] && get_deps;  [ "$2" != "-" ] && NO_INSTALL=false get_all_deps "$2" ;;
-			--deps-check|-ec|depscheck|ec)	  		[ ! "$2" ] && print_usage deps-check || pkg_ldd_msg "$2" ;;
-			-LE|LE) 								[ ! "$2" ] && HIDE_BUILTINS=false list_deps || for x in $opt; do [ "$x" -a "$x" != "-" ] && HIDE_BUILTINS=false list_deps "$x"; done ;;  # list a pkg deps, including builtins
+			--deps|-e|deps|e) 									[ ! "$2" ] && get_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && get_deps  "$x"; done ;;
+			--deps-download|-ed|deps-download|ed)[ ! "$2" ] && get_deps; for x in $opt; do [ "$x" -a "$x" != "-" ] && NO_INSTALL=true get_deps "$x"; done ;;
+			--has-deps|-he|has-deps|he)	  			[ ! "$2" ] && has_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && has_deps  "$x"; done ;;
+			--deps-all|-ea|deps-all|ea) 				[ ! "$2" ] && get_deps;  [ "$2" != "-" ] && NO_INSTALL=false get_all_deps "$2" ;;
+			--deps-check|-ec|depscheck|ec)	  	[ ! "$2" ] && print_usage deps-check || pkg_ldd_msg "$2" ;;
+			-LE|LE) 														[ ! "$2" ] && HIDE_BUILTINS=false list_deps || for x in $opt; do [ "$x" -a "$x" != "-" ] && HIDE_BUILTINS=false list_deps "$x"; done ;;  # list a pkg deps, including builtins
 			 
 			# repo
-			--repo|-r|repo|r) 		 		 	[ ! "$2" ] && echo $REPONAME || set_current_repo "$2" ;; 
-			--repo-list|-rl|repo-list|rl)	 	[ "$2" != "-" ] && repo_list "$2"      ;;
-			--repo-info|-ri|repo-info|ri)	 	[ "$2" != "-" ] && print_repo_info "$2";;
-	--repo-file-list|-rfl|repo-file-list|rfl) 	[ "$2" != "-" ] && repo_file_list "$2" ;;
-			--repo-update|-ru|repo-update|ru) 	update_repo "$2";;
-			--repo-convert|-rc|repo-convert|rc)	[ ! "$2" ] && print_usage repo-convert || for x in $opt; do [ "$x" -a "$x" != "-" ]  && convert_repofile "$x"; done ;;
-			--add-source|add-source)		    [ "`echo $2|grep '|'`" = '' -o "$2" = '-' ] && print_usage add-source || add_source "$2";; 
-			--update-sources|update-sources) 	update_sources ;; 
+			--repo|-r|repo|r) 		 		 						[ "$2" -a "$2" != "-" ] && echo $REPONAME || set_current_repo "$2" ;; 
+			--repo-list|-rl|repo-list|rl)	 				[ "$2" -a "$2" != "-" ] && repo_list "$2"      ;;
+			--repo-info|-ri|repo-info|ri)	 				[ "$2" -a "$2" != "-" ] && print_repo_info "$2";;
+	--repo-file-list|-rfl|repo-file-list|rfl) [ "$2" -a "$2" != "-" ] && repo_file_list "$2" ;;
+			--repo-convert|-rc|repo-convert|rc)		[ "$2" -a "$2" != "-" ] && print_usage repo-convert || for x in $opt; do [ "$x" -a "$x" != "-" ]  && convert_repofile "$x"; done ;;
+			--repo-update|-ru|repo-update|ru) 		update_repo "$2";;
+			--add-source|add-source)		    			[ "`echo $2|grep '|'`" = '' -o "$2" = '-' ] && print_usage add-source || add_source "$2";; 
+			--update-sources|update-sources) 		update_sources ;; 
 
 			# set repo settings
 			--repo-pkg-scope|-rps)  if [ "$2" -a "$2" != "-" ];then set_pkg_scope "$2";      else echo "$PKGSCOPE"; fi; exit 0;;
@@ -6340,10 +6374,13 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 				;;
 
       esac
+
       shift
       I=$(($I + 1))
     done
 done
+
+
 }
 #====================  main interface  ======================#
 code=$?
