@@ -4847,7 +4847,7 @@ list_deps(){                     # list all deps of PKG, space separated on one 
     
     if [ -f $TMPDIR/all_deps_1 -a ! -z $TMPDIR/all_deps_1 ];then
       # recursive search deps of deps
-      for i in 1 2 3 4
+      for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
       do
         deps_list_file="${TMPDIR}all_deps_${i}"
         
