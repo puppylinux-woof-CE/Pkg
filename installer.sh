@@ -1,6 +1,6 @@
 #!/bin/ash
 
-pkgname=pkg-1.9.19alpha-noarch
+pkgname=pkg-1.9.xalpha-noarch
 
 cp -r etc/ root/ sbin/ usr/ / && echo "Pkg installed OK" || echo "Pkg was NOT installed!"
 
