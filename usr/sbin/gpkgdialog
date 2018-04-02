@@ -239,7 +239,7 @@ build_tree1_input () { #build the list of available packages
 		${HOME}/.packages/woof-installed-packages 2>/dev/null \
 		| tr '\n' '|' \
 		| sed -e "s/|\$//" \
-		| sort -u > $TEMPDIR/gpkgdialog-installed-list
+		| uniq > $TEMPDIR/gpkgdialog-installed-list
 	
 	# get all pkgs or a matching search result
 	if [ ! "$1" ];then
@@ -284,7 +284,7 @@ build_tree2_input () { #build the list of installed packages
 	if [ -f $TEMPDIR/gpkg-allinstoff ];then
 		cut -f1,5,6,10 -d'|' "${RFILE}" 2>/dev/null | sort | uniq > $INST_LIST
 	else
-		cut -f1,5,6,10 -d'|' "${HOME}/.packages/user-installed-packages" 2>/dev/null | sort | uniq >> $INST_LIST
+		cut -f1,5,6,10 -d'|' "${HOME}/.packages/user-installed-packages" 2>/dev/null | uniq >> $INST_LIST
 	fi
 
 	# refine list if a pkg search
