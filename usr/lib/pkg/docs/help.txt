@@ -5,6 +5,7 @@ OPTIONS:
 These options can be used together and MUST precede all others:
   
  --ask|-a 			ask before doing stuff (give as 1st option)
+ --quiet|-q 			suppress some output, like download progress
  --force |-f			force downloading, installing and uninstalling
  --no-colour|-nc		disable ANSI colours in $SELF output
 
