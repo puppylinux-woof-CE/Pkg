@@ -1,5 +1,5 @@
 #!/bin/bash
-#290713 first bash at an X based gui for Pkg 1.0
+#290713 first bash at an X based gui for Pkg
 #150813 many fixes for building tree input files from repo files, fixes in find pkgs and deps.. support more categories.. improved tailbox.. added alt-f4 msg to popup.. 
 
 # hide first run message if needed
@@ -19,7 +19,7 @@ set -a
 . ${HOME}/.pkg/pkgrc
 
 export WORKDIR="$WORKDIR"
-export APPVER="0.4"
+export APPVER="0.5"
 export APPNAME="GPkgdialog $APPVER"
 export TEMPDIR=/tmp/gpkgdialog/`whoami`
 export AVAIL_LIST=$TEMPDIR/gpkgdialog-avail-list
@@ -29,6 +29,8 @@ export QUEUE_LIST=$TEMPDIR/gpkgdialog-queue-list
 mkdir -p "$WORKDIR" 
 mkdir -p "$TEMPDIR"
 chmod 1777 "$TEMPDIR"
+
+cd "$WORKDIR"
 
 # set defaults for settings tab
 [ "$PKGSCOPE" = one ] 				&& PKGSCOPEONE=true 	&& PKGSCOPEALL=false
@@ -69,6 +71,10 @@ rm -f $TEMPDIR/gpkgdialog-popup-msg-done 2>/dev/null
 # funcs start below
 #
 {
+
+pkgr() {
+	pkg --no-color --quiet "$FORCEOPT" "$@" 2>/dev/null
+}
 
 set_gtkrc () { # set gtk theme for gui 
 	CURRFONTNAME="`cat $HOME/.gtkrc-2.0 | grep font_name | cut -d '=' -f2 | cut -d ' ' -f2,3 | sed 's/\"//g'`"
@@ -282,7 +288,7 @@ build_tree2_input () { #build the list of installed packages
 	
 	#  if showing installed pkgs from all repos or current only, build the appropriate list
 	if [ -f $TEMPDIR/gpkg-allinstoff ];then
-		cut -f1,5,6,10 -d'|' "${RFILE}" 2>/dev/null | sort | uniq > $INST_LIST
+		cut -f1,5,6,10 -d'|' "${RFILE}" 2>/dev/null | uniq > $INST_LIST
 	else
 		cut -f1,5,6,10 -d'|' "${HOME}/.packages/user-installed-packages" 2>/dev/null | uniq >> $INST_LIST
 	fi
@@ -412,9 +418,8 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
 	case $2 in
 	Uninstall) 
 		OPT1=Uninstall
-		ITEM2='<item stock="gtk-apply">Force Re-Install</item>
-		<item stock="gtk-apply">Repackage</item>'
-		HEIGHT=300
+		ITEM2='<item stock="gtk-apply">Repackage</item>'
+		HEIGHT=290
 		;;
 
 	Build) 
@@ -424,12 +429,13 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
 	*) 
 		OPT1=Install
 		ITEM2='<item stock="gtk-apply">Install without deps</item>'
-		HEIGHT=270
+		HEIGHT=290
 		;;
 	esac
 	
 	# build the list
 	ITEMS='<item stock="gtk-apply">'$OPT1'</item>
+	<item stock="gtk-apply">Force Install</item>
 	'$ITEM2'
 	<item stock="gtk-apply">Contents</item>
 	<item stock="gtk-apply">Download Only</item>
@@ -547,32 +553,52 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
    # build tailbox command
    tailbox(){ #200813 updated to use gtkdialog tailbox
 	   [ ! "$1" ] && INFILE="$PKGLOG" || INFILE="$1"
-	   [ ! "$2" ] && THEIGHT=300 || THEIGHT="$2"
-	   [ ! "$3" ] && TWIDTH=500 || TWIDTH="$3"
-	   TBOX="<window title=\"$PKGONLY : $MENU\">
-		<vbox>
+	   [ ! "$2" ] && THEIGHT=350 || THEIGHT="$2"
+	   [ ! "$3" ] && TWIDTH=400  || TWIDTH="$3"
+	   TBOX="<window resizable=\"true\" allow-shrink=\"false\" allow-grow=\"true\" title=\"$PKGONLY : $MENU\">
+		<vbox width=\"400\" height=\"480\">
 		<edit auto-refresh=\"true\">
-		<width>$TWIDTH</width>
-		<height>$THEIGHT</height>
-		<input file>$INFILE</input>
-		</edit>
-		<button><label>OK</label><input file stock=\"gtk-ok\"></input></button>
+		    <width>$TWIDTH</width>
+		    <height>$THEIGHT</height>
+		    <input file>$INFILE</input>
+		</edit>"
+		[ "`echo $MENU | grep 'Pkg Status'`" != "" ] && TBOX="${TBOX}<button><label>Install</label><input file stock=\"gtk-ok\"></input></button>"
+		TBOX="${TBOX}<button><label>Exit</label><input file stock=\"gtk-cancel\"></input></button>
 		</vbox>
 		</window>"
 		export TBOX
-		gtkdialog -p TBOX -c
-	   #Xdialog --title "$PKGONLY : $MENU" --no-ok --cancel-label=Close --tailbox $PKGLOG 25 85
+		RETVAL="`gtkdialog -p TBOX -c`"
+
+		# get the user choice
+		eval "$RETVAL"
+		
+		# process it
+		if [ "$EXIT" = "Install" ];then
+			echo -n > $PKGLOG
+			tailbox $PKGLOG &
+			echo 'Downloading...' >>$PKGLOG
+			pkgr -d "$PKGONLY" >>$PKGLOG
+			echo 'Installing...' >>$PKGLOG
+			pkgr -i "$PKGONLY" >>$PKGLOG
+			pkgr -e "$PKGONLY" >>$PKGLOG
+			echo 'Checking for missing libraries...' >>$PKGLOG
+			pkgr -ec "$PKGONLY" >>$PKGLOG;
+			echo "Finished." >> $PKGLOG
+		fi
+		
+		
+		#Xdialog --title "$PKGONLY : $MENU" --no-ok --cancel-label=Close --tailbox $PKGLOG 25 85
    }
    
    # now run chosen menu option
    case $MENU in
     Add*to*Queue*)  
 		if [ "$OPT1" = "Install only" ];then
-			echo "gpkg --force --install $1" >> $QUEUE_LIST
+			echo "pkgr --install $1" >> $QUEUE_LIST
 		else
-			[ "$OPT1" = "Install" ] && { echo "gpkg $FORCEOPT -d $1" >> $QUEUE_LIST; echo "gpkg $FORCEOPT -i $1" >> $QUEUE_LIST;} 
-			[ "$OPT1" = "Uninstall" ] && echo "gpkg $FORCEOPT -u $1" >> $QUEUE_LIST 
-			[ "$OPT1" = "Build" ] && echo "gpkg --pkg-build ${1%%-*}" >> $QUEUE_LIST 
+			[ "$OPT1" = "Install" ] && { echo "pkgr -d $1" >> $QUEUE_LIST; echo "pkgr -i $1" >> $QUEUE_LIST;} 
+			[ "$OPT1" = "Uninstall" ] && echo "pkgr -u $1" >> $QUEUE_LIST 
+			[ "$OPT1" = "Build" ] && echo "pkgr --pkg-build ${1%%-*}" >> $QUEUE_LIST 
 		fi
 		;;
     Clear*Queue) 
@@ -584,7 +610,7 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
 		tailbox $TEMPDIR/gpkgdialog-queue-log.txt & #200813 use gtkdialog tailbox
 		cat $QUEUE_LIST | while read LINE; do
 			if [ "$LINE" != "" -a "$LINE" != " " ];then
-				$LINE | grep -v 'Broken pipe' &>>$TEMPDIR/gpkgdialog-queue-log.txt
+				$LINE &>>$TEMPDIR/gpkgdialog-queue-log.txt
 				echo "Finished." >> $TEMPDIR/gpkgdialog-queue-log.txt
 			fi
 		done
@@ -594,8 +620,8 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
     Install*without*deps)
 		echo -n > $PKGLOG
 		tailbox $PKGLOG &
-		gpkg $FORCEOPT -d "$PKGONLY" | grep -v 'Broken pipe' &>>$PKGLOG
-		gpkg $FORCEOPT -i "$PKGONLY" | grep -v 'Broken pipe' &>>$PKGLOG
+		pkgr -d "$PKGONLY" &>>$PKGLOG
+		pkgr -i "$PKGONLY" &>>$PKGLOG
 		echo "Finished." >> $PKGLOG
 		;;
 	Install*only) # install only will force install of pkg, without download, and if pkgname is from a repo, will then temporarily switch to that repo, and install deps of pkg
@@ -603,60 +629,59 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
 		PKGREPO="`pkg --which-repo $PKGONLY | cut -f2 -d' '`"
 		[ "$PKGREPO" != "" ] && pkg --repo $PKGREPO && echo "$PKGONLY in $PKGREPO repo." > $PKGLOG || echo -n > $PKGLOG
 		tailbox $PKGLOG &
-		gpkg -f -i "$1" | grep -v 'Broken pipe' &>>$PKGLOG
-		[ "`pkg --list-deps $1`" != "" ] && { gpkg $FORCEOPT -e "$1" | grep -v 'Broken pipe' &>>$PKGLOG; gpkg $FORCEOPT -ec "$1" | grep -v 'Broken pipe' &>>$PKGLOG; }
+		FORCEOPT='=f' pkgr -i "$1" &>>$PKGLOG
+		[ "`pkg --list-deps $1`" != "" ] && { pkgr -e "$1" &>>$PKGLOG; pkgr -ec "$1" &>>$PKGLOG; }
 		echo "Finished." >> $PKGLOG
 		[ "$PKGREPO" != "" ] && pkg --repo $OLDREPO
 		;;
     Install*depend*)
 		echo -n > $PKGLOG
 		tailbox $PKGLOG & 
-		gpkg $FORCEOPT -e $PKGONLY &>>$PKGLOG
-		gpkg $FORCEOPT -ec $PKGONLY &>>$PKGLOG  && echo "Finished." >> $PKGLOG
+		pkgr -e $PKGONLY &>>$PKGLOG
+		pkgr -ec $PKGONLY &>>$PKGLOG  && echo "Finished." >> $PKGLOG
 		;;
     Install*) 
 		echo -n > $PKGLOG
 		tailbox $PKGLOG &
 		echo 'Downloading...' >>$PKGLOG
-		gpkg $FORCEOPT -d "$PKGONLY" | grep -v 'Broken pipe' &>>$PKGLOG
+		pkgr -d "$PKGONLY" >>$PKGLOG
 		echo 'Installing...' >>$PKGLOG
-		gpkg $FORCEOPT -i "$PKGONLY"  | grep -v '^Downloading' | grep -v '^URL' | grep -v 'Broken pipe' &>>$PKGLOG
-		echo 'Checking dependencies...' >>$PKGLOG
-		gpkg $FORCEOPT -e "$PKGONLY" | grep -v '^Downloading' | grep -v '^URL' | grep -v 'Broken pipe' &>>$PKGLOG
+		pkgr -i "$PKGONLY" >>$PKGLOG
+		pkgr -e "$PKGONLY" >>$PKGLOG
 		echo 'Checking for missing libraries...' >>$PKGLOG
-		gpkg $FORCEOPT -ec "$PKGONLY"  | grep -v 'Broken pipe' &>>$PKGLOG;
+		pkgr -ec "$PKGONLY" >>$PKGLOG;
 		echo "Finished." >> $PKGLOG
 		;;
-    Force*Re-Install*) 
+    Force*Install*) 
 		echo -n > $PKGLOG
 		tailbox $PKGLOG & 
-		gpkg $FORCEOPT -d "$PKGONLY" | grep -v 'Broken pipe' &>>$PKGLOG 
-		gpkg -f -i "$PKGONLY" | grep -v 'Broken pipe' &>>$PKGLOG && [ "`pkg --list-deps $PKGONLY`" != "" ] && { gpkg -f -e "$PKGONLY" | grep -v 'Broken pipe' &>>$PKGLOG; }
-		gpkg -ec "$PKGONLY" | grep -v 'Broken pipe' &>>$PKGLOG
+		pkgr -d "$PKGONLY" &>>$PKGLOG 
+		FORCEOPT='-f' pkgr -i "$PKGONLY" &>>$PKGLOG && [ "`pkg --list-deps $PKGONLY`" != "" ] && { FORCEOPT='-f' pkgr -e "$PKGONLY" &>>$PKGLOG; }
+		pkgr -ec "$PKGONLY" &>>$PKGLOG
 		echo "Finished." >> $PKGLOG
 		;;
     Download*depend*)
 		echo -n > $PKGLOG
 		tailbox $PKGLOG &
-		gpkg $FORCEOPT -ed $PKGONLY | grep -v '^Downloading' | grep -v '^URL' | grep -v 'Broken pipe' &>>$PKGLOG
+		pkgr -ed $PKGONLY &>>$PKGLOG
 		echo "Finished." >> $PKGLOG
 		;;
     Download*)
 		echo -n > $PKGLOG
 		tailbox $PKGLOG &
-		gpkg $FORCEOPT -d "$PKGONLY" | grep -v '^Downloading' | grep -v '^URL' | grep -v 'Broken pipe' &>>$PKGLOG
+		pkgr -d "$PKGONLY" &>>$PKGLOG
 		echo "Finished." >> $PKGLOG
 		;;
     Uninstall*)
 		echo -n > $PKGLOG
 		tailbox $PKGLOG &
-		gpkg $FORCEOPT -u "$PKGONLY" | grep -v 'Broken pipe' &>>$PKGLOG
+		pkgr -u "$PKGONLY" &>>$PKGLOG
 		echo "Finished." >> $PKGLOG
 		;;
     Repackage*)
 		echo -n > $PKGLOG
 		tailbox $PKGLOG &
-		gpkg $FORCEOPT --pkg-repack "$PKGONLY" &>>$PKGLOG
+		pkgr --pkg-repack "$PKGONLY" &>>$PKGLOG
 		echo "Finished." >> $PKGLOG
 		;;
 	Convert*) 
@@ -664,7 +689,7 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
 		;;
 	
 	Combine*) #200813 use gtkdialog not xdialog
-		COMB_GUI="<window title=\"$APPNAME: $MENU\" ><vbox><text><label>What format do you want to convert to, after combining '$PKGONLY' with its dependencies?</label></text>
+		COMB_GUI="<window title=\"$APPNAME: $MENU\"><vbox><text><label>What format do you want to convert to, after combining '$PKGONLY' with its dependencies?</label></text>
 		<hbox>
 		<button>
 		<label>PET</label>
@@ -688,29 +713,29 @@ popup_menu () { #build the popup menu that appears when a user clicks on a packa
 			EXT=pet
 			echo -n > $PKGLOG
 			tailbox $PKGLOG &
-			gpkg -pc $PKGONLY | grep -v 'Broken pipe' &>>$PKGLOG
+			pkgr -pc $PKGONLY &>>$PKGLOG
 			echo "Finished." >> $PKGLOG
 		elif [ "$EXIT" = "SFS" ];then
 			EXT=sfs
 			echo -n > $PKGLOG
 			tailbox $PKGLOG &
-			gpkg -sc $PKGONLY | grep -v 'Broken pipe' &>>$PKGLOG
+			pkgr -sc $PKGONLY &>>$PKGLOG
 			echo "Finished." >> $PKGLOG
 		fi
 		;;
 	Pkg*Status*)
 		echo -e "Please wait, gathering package information...\n" > $TEMPDIR/pkg-$PKGONLY-status.txt
-		gpkg -ps $1 | sed -e 's/Repo file:/Repo file:	/g' -e 's/In Repo:/In Repo:	/g' -e 's/Dependencies:	/Dependencies:\n\n/g' | fold -s -w62 >> $TEMPDIR/pkg-$PKGONLY-status.txt &
 		tailbox $TEMPDIR/pkg-$PKGONLY-status.txt &
+		pkgr -ps $1 | sed -e 's/Repo file:/Repo file:	/g' -e 's/In Repo:/In Repo:	/g' -e 's/Dependencies:	/Dependencies:\n\n/g' | fold -s -w62 >> $TEMPDIR/pkg-$PKGONLY-status.txt
 		;;
     Contents*)
-		gpkg --contents $PKGONLY > $TEMPDIR/pkg-$PKGONLY-contents.txt
+		pkgr --contents $PKGONLY > $TEMPDIR/pkg-$PKGONLY-contents.txt
 		tailbox $TEMPDIR/pkg-$PKGONLY-contents.txt
 		;;
     Build*)
 		cd "$WORKDIR"
 		echo -n > $PKGLOG
-		tailbox $PKGLOG & gpkg --pkg-build ${1%%-*} &>>$PKGLOG  && echo "Finished." >> $PKGLOG
+		tailbox $PKGLOG & pkgr --pkg-build ${1%%-*} &>>$PKGLOG  && echo "Finished." >> $PKGLOG
 		;;
     Edit*buildscript)
 		. ${HOME}/.pkg/pkgrc
@@ -1195,7 +1220,7 @@ if [ -f "$1" ];then
 	elif [ "`echo $(dirname "$1") | grep /usr/share/petbuild`" != "" ];then
 		popup_menu "`basename "$1"`" Build
 	# if its an installed pkg
-	elif [ "`gpkg -li "$(basename "${1%.*}")"`" != "" ];then
+	elif [ "`pkgr -li "$(basename "${1%.*}")"`" != "" ];then
 		popup_menu "`basename "$1"`" Uninstall
 	# else show generic menu
 	else

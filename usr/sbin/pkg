@@ -487,7 +487,7 @@ get_pkg_name(){                   # return pkg name with version FUNCLIST
   # get the relevant repo contents (fields 1,2,8) from all repos, 
   # then add pipes to line start/end for easier parsing later, then do 
   # a basic search, for $pkg* (we'll refine it later), to avoid 'Argument list too long'.. 
-  cut -f1,2,8 $HOME/.packages/user-installed-packages $HOME/.packages/woof-installed-packages $supported_repo_files | sed -e "s/^/|/g" -e "s/$/|/g" | grep -i "|$pkg_name" > ${TMPDIR}repo_contents
+  cut -f1,2,8 $HOME/.packages/user-installed-packages $HOME/.packages/woof-installed-packages $supported_repo_files | sed -e "s/^/|/g" -e "s/$/|/g" 2>/dev/null | grep -i "|$pkg_name" > ${TMPDIR}repo_contents
   
   # get fields 1,2 and 8 (the 3 name fields) from all supported repo files, then 
   # add '|' to start and end of lines, then find exact match of $pkg_name.. 
@@ -3018,7 +3018,7 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
             fi # end if WORKDIR/PKG not a file or FORCE=true
             
             # clean up output
-            echo -ne "\b\b\b\b"
+            [ "$QUIET" != true ] && echo -ne "\b\b\b\b"
             echo
 
             # if file downloaded ok
@@ -5081,10 +5081,10 @@ get_deps(){                      # find, get and install the deps of pkg FUNCLIS
   local PKGNAME="$(LANG=C basename "$1" .$EX)" 
   
   # don't rely on user input, get the name w version from repos
-  local PKGNAME=`get_pkg_name "$PKGNAME"`
-  local PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
+  local PKGNAME=`get_pkg_name "$PKGNAME" 2>/dev/null`
+  local PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME" 2>/dev/null`
   
-  local pkg_is_builtin=`is_builtin_pkg "$PKGNAME_ONLY"`
+  local pkg_is_builtin=`is_builtin_pkg "$PKGNAME_ONLY" 2>/dev/null`
   local pkg_already_done=`LANG=C grep -m1 "^$PKGNAME_ONLY\$" $TMPDIR/PKGSDONE 2>/dev/null`
 
   # if pkg is builtin, skip it, we dont need to get its dependencies
@@ -5104,7 +5104,7 @@ get_deps(){                      # find, get and install the deps of pkg FUNCLIS
   echo
   
   # if list_deps() created a file listing the deps, get it from the file created, else, run list deps to be sure
-  [ -f ${TMPDIR}/${pkg_name}_dep_list ] && DEPS_MISSING="`cat ${TMPDIR}/${pkg_name}_dep_list`" || DEPS_MISSING="`list_deps "$PKGNAME"`"
+  [ -f ${TMPDIR}/${pkg_name}_dep_list ] && DEPS_MISSING="`cat ${TMPDIR}/${pkg_name}_dep_list 2>/dev/null`" || DEPS_MISSING="`list_deps "$PKGNAME" 2>/dev/null`"
   
   # if we have missing deps, or are downloading them all regardless (INSTALLDEPS=false), or using --force
   if [ "$DEPS_MISSING" != "" -o "${NO_INSTALL}" = true -o "$FORCE" = true ];then 
@@ -5141,17 +5141,17 @@ get_deps(){                      # find, get and install the deps of pkg FUNCLIS
         
         [ "$DEP" = "" -o "$DEP" = "${PKGNAME_ONLY}" -o "$DEP" = "${PKGNAME}" ] && continue #skip if the dep is the main package
         
-        local DEPNAME=`get_pkg_name "$DEP"`
-        local DEPNAME_ONLY=`get_pkg_name_only "$DEPNAME"`
+        local DEPNAME=`get_pkg_name "$DEP" 2>/dev/null`
+        local DEPNAME_ONLY=`get_pkg_name_only "$DEPNAME" 2>/dev/null`
         local DEPFILE=''
   
         # skip if already processed, it should be listed in $TMPDIR/PKGSDONE
         local dep_already_done=`LANG=C grep -m1 "^$DEPNAME_ONLY\$" $TMPDIR/PKGSDONE 2>/dev/null`
         [ "$dep_already_done" != "" -a "$FORCE" = false ] && continue 
         
-        local dep_is_builtin=`is_builtin_pkg "$DEPNAME_ONLY"`
-        local dep_is_usr_pkg=`is_usr_pkg "$DEPNAME_ONLY"`
-        local dep_is_in_devx=`is_devx_pkg "$DEPNAME_ONLY"`
+        local dep_is_builtin=`is_builtin_pkg "$DEPNAME_ONLY" 2>/dev/null`
+        local dep_is_usr_pkg=`is_usr_pkg "$DEPNAME_ONLY" 2>/dev/null`
+        local dep_is_in_devx=`is_devx_pkg "$DEPNAME_ONLY" 2>/dev/null`
 
         # skip getting pkg if its a builtin, unless HIDE_BUILTINS=false
         if [ "$dep_is_builtin" = true -a "${HIDE_BUILTINS}" = true ];then
@@ -5172,16 +5172,16 @@ get_deps(){                      # find, get and install the deps of pkg FUNCLIS
         fi
 
         #DOWNLOAD THE PKG
-        pkg_download "$DEPNAME"
+        pkg_download "$DEPNAME" 2>/dev/null
 
         # skip install unless NO_INSTALL=true
         if [ "${NO_INSTALL}" = false ];then
         
           # get the actual file we just downloaded to WORKDIR
-          DEPFILE="`find "$WORKDIR" -maxdepth 1 -type f -name "$DEPNAME*"`"
+          DEPFILE="`find "$WORKDIR" -maxdepth 1 -type f -name "$DEPNAME*" 2>/dev/null`"
 
           #INSTALL THE DEP, if it was downloaded
-          [ "`is_local_pkg "$DEPFILE"`" = true ] && pkg_install "$DEPFILE"
+          [ "`is_local_pkg "$DEPFILE" 2>/dev/null`" = true ] && pkg_install "$DEPFILE" 2>/dev/null
           
           # mark the pkg as done!
           echo "$DEPNAME_ONLY" >> $TMPDIR/PKGSDONE
@@ -5331,9 +5331,9 @@ list_dependents(){               # list user installed pkgs that depend on $1 FU
 
   # list all pkgs (from all repos) with $PKGNAME_ONLY as a dep
   cut -f1,2,9 -d'|' $HOME/.packages/Packages-* \
-    | sed -e "s/:any//g" -e "s/&[geql][eqt][0-9a-z._-]*//g" \
-    | grep -E "+${PKGNAME_ONLY},|+${PKGNAME_ONLY}\|" \
-    | cut -f2 -d'|' \
+    | sed -e "s/:any//g" -e "s/&[geql][eqt][0-9a-z._-]*//g" 2>/dev/null \
+    | grep -E "+${PKGNAME_ONLY},|+${PKGNAME_ONLY}\|" 2>/dev/null \
+    | cut -f2 -d'|' 2>/dev/null \
     | grep -v "^\$" \
     | grep -v "^#" \
     | grep -v "^$PKGNAME_ONLY\$" \
