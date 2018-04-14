@@ -2874,7 +2874,7 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
   
   # set download options
   [ "$FORCE" = true  ] && CONTINUE='' || CONTINUE='-c'
-  [ "${ASK}" != true ] && QTAG=''
+  [ "$ASK"  != true  ] && QTAG=''
   
   #if pkg not yet downloaded, or we are downloading all, or we are forcing downloads
   if [ ! -f "$PKGFILE" -o "$NO_INSTALL" = true -o "$FORCE" = true ];then
@@ -2924,7 +2924,7 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
         PKGFILE="${WORKDIR}/${PKG_FILENAME}"
 
         # skip if downloaded already, print msg
-        [ -f "$PKGFILE" ] && DONE=true && echo -e "Already downloaded ${magenta}${PKG_FILENAME}${endcolour}" && continue
+        [ -f "$PKGFILE" -a "$FORCE" = false ] && DONE=true && echo -e "Already downloaded ${magenta}${PKG_FILENAME}${endcolour}" && continue
 
         # update the package name, based on PKG_FILENAME
         PKGNAME="$(basename "$PKG_FILENAME" .$curr_repo_ext)"
@@ -2942,11 +2942,14 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
         
           # ask user to download
           echo -en "Download ${magenta}${PKGNAME_ONLY}${endcolour} from ${lightblue}${curr_repo}${endcolour} repo$QTAG:  " 
-          [ "${ASK}" = true ] && read -n 1 CONFIRM </dev/tty || CONFIRM=y
+          [ "$ASK" = true ] && read -n 1 CONFIRM </dev/tty || CONFIRM=y
           [ "$CONFIRM" != 'y' ] && echo
 
           # if user answered yes, we will now download the pkgs
           if [ "$CONFIRM" = "y" ];then #25073
+
+            # only ask once
+            export ASK=false
 
             echo # start a new line
 
@@ -3207,6 +3210,9 @@ pkg_install(){                   # install a downloaded package FUNCLIST
       # print new line if we didnt take any user input on tty
       [ "$ASK" != true ] && echo
       
+      # only ask once
+      export ASK=false
+
       #if [ "`pkg_contents "$PKGFILE" 2>/dev/null`" = '' ];then
       # error "$PKGFILE not a valid package."
       # exit 1
@@ -4090,6 +4096,9 @@ pkg_get(){                       # find, download and install packages and deps 
   local PKGLIST="${PKGNAME}"
   local pkg_builtin=''
 
+  # dont ask to download or install pkg or deps, as choose_pkg() already asked
+  export ASK=false
+
   # exit if no valid pkg name
   [ ! "$PKGNAME" -o "$PKGNAME" = "" -o "$PKGNAME" = "-" ] && print_usage get && exit 1
   
@@ -4189,8 +4198,12 @@ pkg_get(){                       # find, download and install packages and deps 
 
           # if a valid pkg, with files to extract
           if [ "`pkg_contents "$PKGFILE" 2>/dev/null`" != '' ];then
+            
+            
             #INSTALL PKG
             [ "`is_local_pkg "$PKGFILE"`" = true ] && pkg_install "${PKGFILE}"
+          
+          
           fi
           
         fi
@@ -4322,6 +4335,9 @@ $PKGS"
     
     # user can now input which actual pkgs to get, chosen by number
     if [ "$ASK" = true ];then
+      # only ask once
+      ASK=false
+
       echo 
       echo "Give the numbers of the packages you want to install,"
       echo -n "separated by a comma, or hit ENTER only to skip: "
@@ -5191,6 +5207,10 @@ get_deps(){                      # find, get and install the deps of pkg FUNCLIS
 
     # if user answered yes, we will now download (and maybe install) the deps
     if [ "$DEPCONFIRM" = "y" -o "$FORCE" = true ];then
+
+      # only ask once
+      export ASK=false
+
       # make a list of the deps, each on a new line for each dep/newline
       WARNLIBS=''; SEP='';
       
