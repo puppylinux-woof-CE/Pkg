@@ -4077,6 +4077,53 @@ pkg_uninstall(){                 # remove an installed package FUNCLIST
 }
 
 
+pkg_remove(){                    # remove pkg and its leftover deps FUNC_LIST
+ 
+  # quit if no valid options
+  [ ! "$1" -o "$1" = "-" ] && print_usage uninstall && exit 1
+
+  local PKGNAME
+  local PKGNAME_ONLY
+  local PKGFILE
+  local pkg_ext
+  
+  # get pkg extension
+  pkg_ext=`get_pkg_ext "$1"`
+  
+  #get pkg name with version, but no extension or path 
+  PKGNAME="$(basename "$1" .$pkg_ext)" 
+  PKGNAME=`get_pkg_name "$PKGNAME"`
+
+  # get pkg name only .. without versions or suffix
+  PKGNAME_ONLY="`get_pkg_name_only "$PKGNAME"`"
+  
+  pkg_uninstall "$PKGNAME"
+
+  # now we will remove any left over dependencies
+  
+  file="`find $TMPDIR -iname "${1}*_dep_list"`"
+
+  if [ -f "$file" ];then
+    
+    # if we have a deps list file, go over it three times, uninstalling all deps 
+    # that have no packages that depend on them ... fugly solution, but works ok..
+
+    for x in 1 2 3 4
+    do 
+      cat "$file" | tr ' ' '\n' | while read user_installed_dep
+      do
+        [ "$user_installed_dep" = '' ] && continue
+        ASK=false pkg_uninstall $user_installed_dep &>/dev/null && \
+          echo -e "${green}Uninstalled:${endcolour} $(get_pkg_name $user_installed_dep)"
+      done
+    done
+
+  fi
+  
+  return 0
+}
+
+
 pkg_get(){                       # find, download and install packages and deps FUNCLIST
   
   # The function `choose_pkg` is run just before this one. It gives us $TMPDIR/USRPKGLIST,
@@ -4768,7 +4815,8 @@ clean_pkgs(){                    # delete downloaded pkg files of installed pkgs
 
 
 # dependency funcs
-get_deps_entry(){
+
+get_deps_entry(){                # $1 is PKGNAME, returns dep entry from repo db
   [ "$1" = '' -o "$1" = "-" ] && print_usage list-deps && exit 1
   
   # get current $REPOFILE, $DEPSEARCH
@@ -4822,7 +4870,7 @@ get_deps_entry(){
 }
 
 
-list_all_installed_pkgs(){
+list_all_installed_pkgs(){       # list inc builtins if HIDE_BUILTINS=false
   # reset list of installed pkgs
   echo -n '' > $TMPDIR/installed_pkgs
 
@@ -5281,6 +5329,9 @@ get_deps(){                      # find, get and install the deps of pkg FUNCLIS
           
           # mark the pkg as done!
           echo "$DEPNAME_ONLY" >> $TMPDIR/PKGSDONE
+
+          # add dep to list of user installed deps
+          add_to_user_installed_dep_list "$DEPNAME_ONLY"
 
         else # if not installing, 
           # skip dep checking of the deps that dont get installed
@@ -6380,9 +6431,10 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --download|-d|download|d)         [ ! "$2" ] && pkg_download || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_download "$x";  done;; 
       --install|-i|install|i)           [ ! "$2" ] && pkg_install  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_install "$x";   done;; 
       --uninstall|-u|uninstall|u)       [ ! "$2" ] && pkg_uninstall|| for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_uninstall "$x"; done;; 
+      --remove|-rm|remove|rm)           [ ! "$2" ] && pkg_remove   || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_remove "$x";    done;; 
       --unpack|--extract|unpack|extract)[ ! "$2" ] && pkg_unpack   || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_unpack "$x";    done;;
       --clean|clean)                    [ ! "$2" ] && clean_pkgs   || for x in $opt; do [ "$x" -a "$x" != "-" ] && clean_pkgs "$x";    done;;
-      --get|-g|get|g)                   [ ! "$2" ] && pkg_get      || for x in $opt; do [ "$x" -a "$x" != "-" ] && { choose_pkg "$x"; pkg_get "$x"; }; done ;;  
+      --get|-g|get|g|--add|add|a)       [ ! "$2" ] && pkg_get      || for x in $opt; do [ "$x" -a "$x" != "-" ] && { choose_pkg "$x"; pkg_get "$x"; }; done ;;  
       --get-only|-go|get-only|go)       [ ! "$2" ] && print_usage get-only || for x in $opt; do if [ "$x" -a "$x" != "-" ];then choose_pkg "$x"; NO_INSTALL=true  pkg_get "$x"; fi; done ;;  
       --delete|-l|delete|l)             [ ! "$2" ] && print_usage delete   || for x in $opt; do [ "$x" = '-' ] && continue; if [ -f "${WORKDIR}/$(basename "$x")" ];then if [ "$ASK" = true ];then echo -n "Remove package `basename $x`$QTAG "; read -n 1 CONFIRM </dev/tty; echo; else CONFIRM=y; fi; [ "$CONFIRM" = "y" ] && rm -v "${WORKDIR}/$(basename "$x")"; else not_found "$x"; fi; done ;; #110213,0.9.1  renamed to --delete|-l 
       --delete-all|-la|delete-all|la)   ASK=true; QTAG="?  (y/N)"; if [ "$ASK" = true ];then echo -en "Remove all downloaded packages in ${lightblue}${WORKDIR}/${endcolour}$QTAG"; read -n 1 CONFIRM </dev/tty; echo; else CONFIRM=y; fi; [ "$CONFIRM" = "y" ] && rm -v ${WORKDIR}/*.pet ${WORKDIR}/*.pkg.* ${WORKDIR}/*.sfs ${WORKDIR}/*.tar.* ${WORKDIR}/*.tcz ${WORKDIR}/*.txz ${WORKDIR}/*.tgz ${WORKDIR}/*.deb ${WORKDIR}/*.rpm ${WORKDIR}/*.apk ${WORKDIR}/*.gz ${WORKDIR}/*.xz 2>/dev/null; exit 0;;
