@@ -540,6 +540,7 @@ is_blacklisted_pkg(){             # return true if PKGNAME ($1) is blacklisted F
   [ "`echo "$PKG_NAME_IGNORE" | grep "$PKGNAME_ONLY "`" != '' ] && echo true || echo false
 }
 
+
 is_installed_pkg(){               # takes exact match of pkgname, prints true|false FUNCLIST
   
   # exit if no valid options
@@ -1458,7 +1459,7 @@ print_repo_info(){                # get repo settings, return current repo name 
 
 #pkg funcs
 
-hide_blacklisted_pkgs_from_search_results(){  # hide BUILTIN and installed pkgs from searches NOLIST
+hide_blacklisted_pkgs_from_search_results(){ # hide BUILTIN and installed pkgs from searches NOLIST
 
   # dont hide package if using --force (the user may want to force a re-install of already installed pkg, for example)
   [ "$FORCE" = true ] && return 0
