@@ -5431,6 +5431,9 @@ pkg_ldd_msg(){                   # prints final dep check msg FUNCLIST
   
   # get the *.files for this pkg
   FNDFILES="`find $HOME/.packages/ -iname "${PKGNAME}.files" 2>/dev/null`"
+  [ ! -f "$FNDFILES" ] && FNDFILES="`find $HOME/.packages/ -iname "${PKGNAME}_*.files" 2>/dev/null`"
+  [ ! -f "$FNDFILES" ] && FNDFILES="`find $HOME/.packages/ -iname "${PKGNAME}-*.files" 2>/dev/null`"
+  [ ! -f "$FNDFILES" ] && FNDFILES="`find $HOME/.packages/ -iname "${PKGNAME}*.files"  2>/dev/null`"
   [ ! -f "$FNDFILES" ] && exit 1
   
   # get list of ldd-able file
@@ -5454,7 +5457,7 @@ $MISSING" >> $TMPDIR/pkg-$PKGNAME-MISSING.txt
     echo -e "${yellow}WARNING:${endcolour} The following files are missing the listed dependencies: "
     echo -e "`cat $TMPDIR/pkg-$PKGNAME-MISSING.txt | sort | uniq`\n"
   else
-    echo -e "${green}OK:${endcolour} $PKGNAME has with no missing dependencies."
+    echo -e "${green}OK:${endcolour} $PKGNAME has no missing dependencies."
   fi
   rm -f ${TMPDIR}ldd_file_list 2>/dev/null
 }
@@ -6331,6 +6334,7 @@ first_run
 }
 #=====================  final checks  =======================#
 
+
 {
 #====================  main interface  ======================#
 
@@ -6449,7 +6453,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
     --deps-download|-ed|deps-download|ed) [ ! "$2" ] && get_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && NO_INSTALL=true get_deps "$x"; done ;;
       --has-deps|-he|has-deps|he)         [ ! "$2" ] && has_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && has_deps  "$x";                done ;;
       --deps-all|-ea|deps-all|ea)         [ ! "$2" ] && get_deps;  [ "$2" != "-" ] && NO_INSTALL=false get_all_deps "$2" ;;
-      --deps-check|-ec|depscheck|ec)      [ ! "$2" ] && print_usage deps-check || pkg_ldd_msg "$2" ;;
+      --deps-check|-ec|deps-check|ec|ldd) [ ! "$2" ] && print_usage deps-check || pkg_ldd_msg "$2" ;;
       -LE|LE)                             [ ! "$2" ] && HIDE_BUILTINS=false list_deps || for x in $opt; do [ "$x" -a "$x" != "-" ] && HIDE_BUILTINS=false list_deps "$x"; done ;;  # list a pkg deps, including builtins
        
       # repo
