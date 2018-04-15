@@ -6506,9 +6506,9 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --txz2pet|txz2pet) [ ! "$2" ] && txz2pet || for x in $opt; do txz2pet "$x"; done ;;
        
       # other
-      --func-list)    [ -f $TMPDIR/func_list ] && cat $TMPDIR/func_list || func_list; exit 0;;
-      --workdir)      [ "$2" != "-" ] && set_workdir "$2"; exit $?;;
-      --autoclean)    [ "$2" = "yes" -o "$2" = "no" ] && set_autoclean "$2" || { echo "$AUTOCLEAN"; exit 1; } ;;
+      --func-list|func-list)  [ -f $TMPDIR/func_list ] && cat $TMPDIR/func_list || func_list; exit 0;;
+      --workdir|workdir)      [ "$2" != "-" ] && set_workdir "$2"; exit $?;;
+      --autoclean|autoclean)  [ "$2" = "yes" -o "$2" = "no" ] && set_autoclean "$2" || { echo "$AUTOCLEAN"; exit 1; } ;;
       
       # usage, help funcs, version info, etc
       --welcome|welcome)          touch $HOME/.pkg/firstrun; first_run; exit 0;;
