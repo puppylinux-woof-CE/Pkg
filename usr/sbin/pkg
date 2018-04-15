@@ -5710,7 +5710,7 @@ dir2pet(){                       # dir to PET, $1 must be valid dir FUNCLIST
       echo -e "\nAdd dependencies in this format:  ${bold}+libglib,+ffmpeg${endcolour}\n"
       read -p 'Enter dependencies (if any), then hit ENTER: ' DEPS_ENTRY </dev/tty; 
 
-      echo "${DIR}|$(get_pkg_name_only "$DIR")|$(get_pkg_version "$DIR")||${CAT_ENTRY:-Utility}|$(du -h "$CURDIR/build_pkg/${DIR}/" | tail -1 | cut -f1)||${DIR}.pet|${DEPS_ENTRY}|${DESC_ENTRY:-No description}|$COMPAT|$DISTRO_COMPAT_VERSION||" > $CURDIR/build_pkg/${DIR}/pet.specs
+      echo "${DIR}|$(get_pkg_name_only "$DIR")|$(get_pkg_version "$DIR")||${CAT_ENTRY:-Utility}|$(du -h "$CURDIR/build_pkg/${DIR}/" | tail -1 | cut -f1)||${DIR}.pet|${DEPS_ENTRY}|${DESC_ENTRY:-No description}|$COMPAT|$V||" > $CURDIR/build_pkg/${DIR}/pet.specs
     fi
 
     # build .pet.specs
