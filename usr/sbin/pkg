@@ -5642,7 +5642,7 @@ dir2pet(){                       # dir to PET, $1 must be valid dir FUNCLIST
   DIR="$(basename "${DIR}")" 
   [ "$SUFFIX" != "" ] && cp -R "$DIR" "${DIR}${SUFFIX}" && DIR="${DIR}${SUFFIX}" 
   
-  echo "Converting directory '$DIR' to a .pet package."
+  echo -e "Converting directory ${lightblue}$DIR${endcolour} to .pet package."
   
   # we must have a dir with same name as a valid pkg 
   if [ -d "$DIR" ];then 
@@ -5650,7 +5650,18 @@ dir2pet(){                       # dir to PET, $1 must be valid dir FUNCLIST
     mkdir -p "$CURDIR/build_pkg/"
     [ ! -e "$CURDIR/build_pkg/$DIR" ] && cp -R "$DIR" "$CURDIR/build_pkg/"
 
-    #...borrowed from dir2pet script
+    ARCHINDEPENDENT='yes'
+    for ONEEXEC in `find $CURDIR/build_pkg/${DIR}/ -maxdepth 6 -type f -perm -o+x`
+    do
+      [ -f $ONEEXEC ] && [ "`file $ONEEXEC | grep ' ELF '`" != "" ] && ARCHINDEPENDENT='no'
+    done
+    
+    # if it's a _DEV pkg.. it can't be ARCHINDEPENDENT
+    case "${BASEPKG}" in *"_DEV"*) ARCHINDEPENDENT='no' ;; esac
+    [ "`find $CURDIR/build_pkg/${DIR}/ -maxdepth 6 -type f -name '*.a' -o -type f -name 'lib*.so*' -o -type f -name '*.la'`" != "" ] && ARCHINDEPENDENT='no'
+    [ "$ARCHINDEPENDENT" = "no" ] && COMPAT=$DISTRO_BINARY_COMPAT V=$DISTRO_COMPAT_VERSION
+    
+        #...borrowed from dir2pet script
     #w482 directory may already have a pet.specs, reuse it...
     NAMEONLY=""
     PUPMENUDESCR=""
@@ -5686,6 +5697,20 @@ dir2pet(){                       # dir to PET, $1 must be valid dir FUNCLIST
        DB_repo="$F13"
        DEFREPO="$DB_repo"
       done 3< $CURDIR/build_pkg/${DIR}/pet.specs
+    else
+      echo -e "\nCategories: 
+  BuildingBlock, Desktop, System, Setup, Utility, 
+  Filesystem, Graphic, Document, Business, Personal, 
+  Network, Internet, Multimedia, Fun\n"
+      read -p 'Type one of the categories above, then hit ENTER: ' CAT_ENTRY </dev/tty; 
+
+      echo
+      read -p "Add a short description, then hit ENTER: " DESC_ENTRY </dev/tty; 
+
+      echo -e "\nAdd dependencies in this format:  ${bold}+libglib,+ffmpeg${endcolour}\n"
+      read -p 'Enter dependencies (if any), then hit ENTER: ' DEPS_ENTRY </dev/tty; 
+
+      echo "${DIR}|$(get_pkg_name_only "$DIR")|$(get_pkg_version "$DIR")||${CAT_ENTRY:-Utility}|$(du -h "$CURDIR/build_pkg/${DIR}/" | tail -1 | cut -f1)||${DIR}.pet|${DEPS_ENTRY}|${DESC_ENTRY:-No description}|$COMPAT|$DISTRO_COMPAT_VERSION||" > $CURDIR/build_pkg/${DIR}/pet.specs
     fi
 
     # build .pet.specs
@@ -5707,22 +5732,12 @@ dir2pet(){                       # dir to PET, $1 must be valid dir FUNCLIST
     PUPMENUDESCR="$DB_description"
     [ -z "${PUPMENUDESCR}" ] && PUPMENUDESCR="No description provided"
     
-    xPATTERN="s%${NAMEONLY}%%"
-    VERSION="`echo -n "$BASEPKG" | sed -e "$xPATTERN" -e 's%^\\-%%'`"
+    VERSION="`get_pkg_version "$BASEPKG"`"
     
-    ARCHINDEPENDENT='yes'
-    for ONEEXEC in `find $CURDIR/build_pkg/${DIR}/ -maxdepth 6 -type f -perm -o+x`
-    do
-      [ -f $ONEEXEC ] && [ "`file $ONEEXEC | grep ' ELF '`" != "" ] && ARCHINDEPENDENT='no'
-    done
-    
-    # if it's a _DEV pkg.. it can't be ARCHINDEPENDENT
-    case "${BASEPKG}" in *"_DEV"*) ARCHINDEPENDENT='no' ;; esac
-    [ "`find $CURDIR/build_pkg/${DIR}/ -maxdepth 6 -type f -name '*.a' -o -type f -name 'lib*.so*' -o -type f -name '*.la'`" != "" ] && ARCHINDEPENDENT='no'
-    [ "$ARCHINDEPENDENT" = "no" ] && COMPAT=$DISTRO_BINARY_COMPAT V=$DISTRO_COMPAT_VERSION
-
     # build pet spec
-    echo "$BASEPKG|${NAMEONLY}|$VERSION|$DB_pkgrelease|$TOPCAT|$DB_size|$REPO_SUBDIR|${BASEPKG}.pet|$PUPOFFICIALDEPS|$PUPMENUDESCR|$COMPAT|$V||" > $CURDIR/build_pkg/${DIR}/pet.specs
+    if [ ! -f $CURDIR/build_pkg/${DIR}/pet.specs ];then
+      echo "$BASEPKG|${NAMEONLY}|$VERSION|$DB_pkgrelease|$TOPCAT|$DB_size|$REPO_SUBDIR|${BASEPKG}.pet|$PUPOFFICIALDEPS|$PUPMENUDESCR|$COMPAT|$V||" > $CURDIR/build_pkg/${DIR}/pet.specs
+    fi
     
     # delete the slackware package management files
     #if [ -d "$CURDIR/build_pkg/install" ];then 
@@ -5745,7 +5760,7 @@ dir2pet(){                       # dir to PET, $1 must be valid dir FUNCLIST
     fi
 
     # if in a pre-woof puppy then we dont use xz
-    if [ ! -f ${HOME}/.packages/woof-installed-packages -o ! -f ${HOME}/.packages/woof-installed-packages ];then
+    if [ ! -f ${HOME}/.packages/woof-installed-packages -o ! -f /etc/DISTRO_SPECS ];then
       # pre woof format
       echo "PETMENUDESCR='${DIR}'" >  $CURDIR/build_pkg/${DIR}/${DIR}.pet.specs
       echo "PETOFFICIALDEPS=''"    >> $CURDIR/build_pkg/${DIR}/${DIR}.pet.specs
