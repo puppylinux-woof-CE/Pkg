@@ -221,26 +221,27 @@ print_usage(){                    # print usage text. Requires $1, a valid Pkg c
     echo -e "add-source     get-only         repo-convert
 all            help             repo-dep-scope
 all-pkgs       help-all         repo-file-list
-ask            install          repo-info
-autoclean      install-all      repo-list
-bleeding-edge  list-deps        repo-pkg-scope
-clean          list-downloaded  repo-update
-contents       list-installed   search
-deb2pet        names            search-all
-delete         names-all        sfs2pet
-delete-all     names-exact      sfs-combine
-deps           names-exact-all  show-config
-deps-all       pet2sfs          tgz2pet
-deps-check     pet2tgz          txz2pet
-deps-download  pet2txz          uninstall
-dir2pet        build            uninstall-all
-dir2sfs        build-list       unpack
-dir2tgz        pkg-combine      update-sources
-download       installed        version
-examples       repack           which
-extract        status           which-repo
-force          update           recursive-dep-check
-func-list      workdir          what-needs
+add            remove           repo-info
+ask            install          repo-list
+autoclean      install-all      repo-pkg-scope
+bleeding-edge  list-deps        repo-update
+clean          list-downloaded  search
+contents       list-installed   search-all
+deb2pet        names            sfs2pet
+delete         names-all        sfs-combine
+delete-all     names-exact      show-config
+deps           names-exact-all  tgz2pet
+deps-all       pet2sfs          txz2pet
+deps-check     pet2tgz          uninstall
+deps-download  pet2txz          uninstall-all
+dir2pet        build            unpack
+dir2sfs        build-list       update-sources
+dir2tgz        pkg-combine      version
+download       installed        which
+examples       repack           which-repo
+extract        status           recursive-dep-check
+force          update           what-needs
+func-list      workdir          
 Usage: ${bold}$SELF --usage CMD${endcolour}"
     #cd /usr/lib/pkg/docs/usage/; echo `ls` | fold -w 70 -s
   fi
@@ -4080,7 +4081,7 @@ pkg_uninstall(){                 # remove an installed package FUNCLIST
 pkg_remove(){                    # remove pkg and its leftover deps FUNC_LIST
  
   # quit if no valid options
-  [ ! "$1" -o "$1" = "-" ] && print_usage uninstall && exit 1
+  [ ! "$1" -o "$1" = "-" ] && print_usage remove && exit 1
 
   local PKGNAME
   local PKGNAME_ONLY
