@@ -5429,37 +5429,43 @@ pkg_ldd_msg(){                   # prints final dep check msg FUNCLIST
   
   [ "`is_installed_pkg "$PKGNAME"`" = false ] && print_usage deps-check && exit 1 
   
-  # get the *.files for this pkg
-  FNDFILES="`find $HOME/.packages/ -iname "${PKGNAME}.files" 2>/dev/null`"
-  [ ! -f "$FNDFILES" ] && FNDFILES="`find $HOME/.packages/ -iname "${PKGNAME}_*.files" 2>/dev/null`"
-  [ ! -f "$FNDFILES" ] && FNDFILES="`find $HOME/.packages/ -iname "${PKGNAME}-*.files" 2>/dev/null`"
-  [ ! -f "$FNDFILES" ] && FNDFILES="`find $HOME/.packages/ -iname "${PKGNAME}*.files"  2>/dev/null`"
-  [ ! -f "$FNDFILES" ] && exit 1
-  
-  # get list of ldd-able file
-  cat "$FNDFILES" | grep -E '/lib/|/bin/' | sort -u > ${TMPDIR}ldd_file_list
-  [ -z ${TMPDIR}ldd_file_list ] && exit 0
-  
   echo "Searching for missing dependencies.. Please wait."
-  
-  #loop through list
-  for line in `cat ${TMPDIR}ldd_file_list`
-  do
-    [ ! -x "$line" ] && continue 
-    RES="`ldd $line 2>/dev/null`"
-    MISSING="`echo "$RES" | grep found`"
-    [ "$MISSING" != "" -a "$MISSING" != " " ] && echo "  $line:
-$MISSING" >> $TMPDIR/pkg-$PKGNAME-MISSING.txt
-  done
+    
+  local list="$PKGNAME `list_deps $PKGNAME`"
 
-  #print message
-  if [ -f $TMPDIR/pkg-$PKGNAME-MISSING.txt ];then
-    echo -e "${yellow}WARNING:${endcolour} The following files are missing the listed dependencies: "
-    echo -e "`cat $TMPDIR/pkg-$PKGNAME-MISSING.txt | sort | uniq`\n"
-  else
-    echo -e "${green}OK:${endcolour} $PKGNAME has no missing dependencies."
-  fi
-  rm -f ${TMPDIR}ldd_file_list 2>/dev/null
+  for pkg_name in $list
+  do
+    local pkg_name_only=`get_pkg_name_only "$pkg_name"`
+    # get the *.files for this pkg
+    FNDFILES="`find $HOME/.packages/ -iname "${pkg_name}.files" 2>/dev/null`"
+    [ ! -f "$FNDFILES" ] && FNDFILES="`find $HOME/.packages/ -iname "${pkg_name}_*.files" 2>/dev/null`"
+    [ ! -f "$FNDFILES" ] && FNDFILES="`find $HOME/.packages/ -iname "${pkg_name}-*.files" 2>/dev/null`"
+    [ ! -f "$FNDFILES" ] && FNDFILES="`find $HOME/.packages/ -iname "${pkg_name}*.files"  2>/dev/null`"
+    [ ! -f "$FNDFILES" ] && continue
+    
+    # get list of ldd-able file
+    cat "$FNDFILES" | grep -E '/lib/|/lib64/|/bin/|/games/|/sbin/' > ${TMPDIR}ldd_file_list_${pkg_name}
+    [ -z ${TMPDIR}ldd_file_list_${pkg_name} ] && continue
+    
+    #loop through list
+    for file in `cat ${TMPDIR}ldd_file_list_${pkg_name}`
+    do
+      [ ! -x "$file" ] && continue 
+      RES="`ldd $file 2>/dev/null`"
+      MISSING="`echo "$RES" | grep found`"
+      [ "$MISSING" != "" -a "$MISSING" != " " ] && echo "  $file:
+  $MISSING" >> $TMPDIR/${pkg_name}-MISSINGLIBS.txt
+    done
+
+    #print message
+    if [ -f $TMPDIR/${pkg_name}-MISSINGLIBS.txt ];then
+      echo -e "${yellow}WARNING${endcolour}: ${magenta}${pkg_name_only}${endcolour} has missing dependencies: "
+      echo -e "`cat $TMPDIR/${pkg_name}-MISSINGLIBS.txt`"
+    else
+      echo -e "${green}OK:${endcolour} ${pkg_name} has no missing dependencies."
+    fi
+    rm -f ${TMPDIR}ldd_file_list* $TMPDIR/${pkg_name}-MISSINGLIBS.txt 2>/dev/null
+  done
 }
 
 
