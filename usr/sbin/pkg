@@ -6293,26 +6293,23 @@ while [ $# != 0 ]; do # get all options ($# means all options)
     # only keep params up to the next option
     opt="${opt// -*/}"
 
-    ##accept stdin
-    
     # accept from stdin, (using dash (-) as final option)
     for x in $1 $2 $3 $4 $5 $6 $7 $8
     do
       case $x in 
         -)
-          if [ "$(($x + 1))" = "" ];then
-            while true; do
-              read ALINE
-              [ "$ALINE" ] || break
-              [ "$(echo $ALINE| cut -b1)" = '#' ] && continue # skip comment
-              [ "$ALINE" = ':' ] && continue  # skip colon
-              if [ "$ALINE" = "- " -o "$ALINE" = " -" -o "$ALINE" != "-" ];then
-                OPTS="${@%-}" #get all opts, without last dash
-                OPTS="${OPTS% }" #get all opts, strip last space
-                $SELF $OPTS "$ALINE"
-              fi
-            done
-          fi
+          while true; do
+            read ALINE
+            [ "$ALINE" ] || break
+            [ "$(echo $ALINE| cut -b1)" = '#' ] && continue # skip comment
+            [ "$ALINE" = ':' ] && continue  # skip colon
+            if [ "$ALINE" = "- " -o "$ALINE" = " -" -o "$ALINE" != "-" ];then
+              OPTS="${@%-}" #get all opts, without last dash
+              OPTS="${OPTS% }" #get all opts, strip last space
+              $SELF $OPTS "$ALINE"
+            fi
+          done
+          break
         ;; 
         --ask|-a)         export ASK=true ; export QTAG="?  (y/N)";;
         --quiet|-q)       export QUIET=true ;;
