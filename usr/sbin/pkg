@@ -4098,6 +4098,11 @@ pkg_remove(){                    # remove pkg and its leftover deps FUNC_LIST
   # get pkg name only .. without versions or suffix
   PKGNAME_ONLY="`get_pkg_name_only "$PKGNAME"`"
   
+  if [ "`is_installed_pkg "$PKGNAME"`" = false ];then
+    echo "Package '$1' not installed."
+    return 1
+  fi
+
   pkg_uninstall "$PKGNAME"
 
   # now we will remove any left over dependencies
