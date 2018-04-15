@@ -1496,7 +1496,7 @@ print_repo_info(){                # get repo settings, return current repo name 
 }
 
 
-#pkg funcs
+# pkg funcs
 
 hide_blacklisted_pkgs_from_search_results(){ # hide BUILTIN and installed pkgs from searches NOLIST
 
@@ -6399,17 +6399,17 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 
       # package search
       --all-pkgs|--all|all)             [ ! "$2" ] && cat ${HOME}/.packages/${REPOFILE} || cat ${HOME}/.packages/${REPOFILE} | grep "$2"; exit 0;; 
-      --search|-s|search|s)             [ ! "$2" ] && search_pkgs          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_pkgs "$x";         done; exit 0 ;; 
-      -ss)                              [ ! "$2" ] && search_fast          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_fast "$x";         done; exit 0 ;; 
-      --search-all|-sa|search-all|sa)   [ ! "$2" ] && search_all_pkgs      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_pkgs "$x";     done; exit 0 ;; 
-      -ssa)                             [ ! "$2" ] && search_all_fast      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_fast "$x";     done; exit 0 ;; 
+      --search|-s|search|s)             [ ! "$2" ] && search_pkgs          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_pkgs "$x";          done; exit 0 ;; 
+      -ss)                              [ ! "$2" ] && search_fast          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_fast "$x";          done; exit 0 ;; 
+      --search-all|-sa|search-all|sa)   [ ! "$2" ] && search_all_pkgs      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_pkgs "$x";      done; exit 0 ;; 
+      -ssa)                             [ ! "$2" ] && search_all_fast      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_fast "$x";      done; exit 0 ;; 
       --names|-n|names|n)               [ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x";         done; exit 0 ;; 
       --names-exact|-ne|names-exact|ne) [ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x\$";       done; exit 0 ;; 
       --names-all|-na|names-all|na)     [ ! "$2" ] && list_all_pkg_names   || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x";     done; exit 0 ;; 
     --list-installed|-li|li)            [ ! "$2" ] && list_installed_pkgs  || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_installed_pkgs "$x";    done; exit 0 ;; 
    --list-downloaded|-ld|ld)            [ ! "$2" ] && list_downloaded_pkgs || list_downloaded_pkgs "$2"; exit 0 ;;
       -LI|LI)                           [ ! "$2" ] && HIDE_BUILTINS=false list_installed_pkgs || for x in $opt; do HIDE_BUILTINS=false list_installed_pkgs "$x"; done ;; # list all installed pkgs inc builtins
-  --names-exact-all|-nea|names-all-exact|nea) [ ! "$2" ] && list_all_pkg_names || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x\$"; done; exit 0 ;;
+  --names-exact-all|-nea|names-exact-all|nea) [ ! "$2" ] && list_all_pkg_names || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x\$"; done; exit 0 ;;
        
       # get, download, install, remove, pkgs
       --download|-d|download|d)         [ ! "$2" ] && pkg_download || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_download "$x";  done;; 
@@ -6443,11 +6443,11 @@ while [ $# != 0 ]; do # get all options ($# means all options)
    --pkg-build-list|-pbl|build-list|pbl)  [ ! "$2" ] && list_build_scripts || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_build_scripts "$x"; done;;
       
       # dependencies
-      --what-needs|-wn|what-needs|wn)     [ ! "$2" ] && list_dependents; for x in $opt; do [ "$x" -a "$x" != "-" ] && list_dependents "$x"; done ;; # list pkgs depending on $x, not including builtins by default
-      --list-deps|-le|list-deps|le)       [ ! "$2" ] && list_deps; for x in $opt; do [ "$x" -a "$x" != "-" ] && list_deps "$x"; done ;; # list pkg deps, not including builtins
-      --deps|-e|deps|e)                   [ ! "$2" ] && get_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && get_deps  "$x"; done ;;
+      --what-needs|-wn|what-needs|wn)     [ ! "$2" ] && list_dependents; for x in $opt; do [ "$x" -a "$x" != "-" ] && list_dependents "$x";    done ;; # list pkgs depending on $x, not including builtins by default
+      --list-deps|-le|list-deps|le)       [ ! "$2" ] && list_deps; for x in $opt; do [ "$x" -a "$x" != "-" ] && list_deps "$x";                done ;; # list pkg deps, not including builtins
+      --deps|-e|deps|e)                   [ ! "$2" ] && get_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && get_deps  "$x";                done ;;
     --deps-download|-ed|deps-download|ed) [ ! "$2" ] && get_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && NO_INSTALL=true get_deps "$x"; done ;;
-      --has-deps|-he|has-deps|he)         [ ! "$2" ] && has_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && has_deps  "$x"; done ;;
+      --has-deps|-he|has-deps|he)         [ ! "$2" ] && has_deps;  for x in $opt; do [ "$x" -a "$x" != "-" ] && has_deps  "$x";                done ;;
       --deps-all|-ea|deps-all|ea)         [ ! "$2" ] && get_deps;  [ "$2" != "-" ] && NO_INSTALL=false get_all_deps "$2" ;;
       --deps-check|-ec|depscheck|ec)      [ ! "$2" ] && print_usage deps-check || pkg_ldd_msg "$2" ;;
       -LE|LE)                             [ ! "$2" ] && HIDE_BUILTINS=false list_deps || for x in $opt; do [ "$x" -a "$x" != "-" ] && HIDE_BUILTINS=false list_deps "$x"; done ;;  # list a pkg deps, including builtins
