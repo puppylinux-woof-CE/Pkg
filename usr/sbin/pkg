@@ -307,6 +307,49 @@ get_pkg_ext(){                    # return file extension of given pkg FUNCLIST
 }
 
 
+get_pkg_version(){                # returns version of given package ($1) FUNCLIST
+
+  # exit if no pkg given
+  [ ! "$1" ] && exit 1
+
+  local pkg_ext=`get_pkg_ext "$1"`
+  local PKGNAME=`get_pkg_name "$1"`
+  
+  # get $REPONAME and $EX 
+  . ${PKGRC}
+
+  [ "$pkg_ext" = '' ] && pkg_ext=$EX
+
+  case $pkg_ext in
+    deb)
+     DB_version="`echo "$PKGNAME" | cut -f 2 -d '_'`"
+     xDB_version="$DB_version"
+    ;;
+    pet)
+     DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\-%%'`"
+     xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
+    ;;
+    tgz|txz)
+     DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\\-%%'`"
+     xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
+    ;;
+    tar.gz)
+     #arch ex: xproto-7.0.14-1-i686.pkg.tar.gz  trapproto-3.4.3-1.pkg.tar.gz
+     DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\\-%%'`"
+     xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
+    ;;
+    rpm)
+     #exs: hunspell-fr-3.4-1.1.el6.noarch.rpm
+     DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\-%%'`"
+     xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
+    ;;
+  esac
+
+  echo $xDB_version
+  return 0
+}
+
+
 get_pkg_name_only_from_ext(){     # for ubuntu/debian/etc pkg naming
 
   # get valid usage or exit
@@ -332,7 +375,6 @@ get_pkg_name_only_from_ext(){     # for ubuntu/debian/etc pkg naming
      DB_pkgrelease="`echo -n "$pkg_name" | rev | cut -f 2 -d '_' | cut -f 1 -d '-' | rev`"
      prPATTERN="s%\\-${DB_pkgrelease}.*%%"
      PKGNAME="`echo -n "$pkg_name" | sed -e "$prPATTERN"`"
-     DB_version="`echo "$PKGNAME" | cut -f 2 -d '_'`"
     ;;
     pet)
      PKGNAME="$pkg_name"
@@ -340,7 +382,6 @@ get_pkg_name_only_from_ext(){     # for ubuntu/debian/etc pkg naming
      xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
      xPATTERN="s%${xDB_version}%%"
      PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\\-$%%'`"
-     DB_pkgrelease=""
     ;;
     tgz|txz)
      #slack ex: xvidtune-1.0.1-i486-1.tgz  printproto-1.0.4-noarch-1.tgz
@@ -349,7 +390,6 @@ get_pkg_name_only_from_ext(){     # for ubuntu/debian/etc pkg naming
      xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
      xPATTERN="s%${xDB_version}%%"
      PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\-$%%'`"
-     DB_pkgrelease="`echo -n "$pkg_name" | sed -e 's%.*\\-i[3456]86%%' -e 's%.*\\-noarch%%' -e 's%^\\-%%'`"
     ;;
     tar.gz)
      #arch ex: xproto-7.0.14-1-i686.pkg.tar.gz  trapproto-3.4.3-1.pkg.tar.gz
@@ -358,7 +398,6 @@ get_pkg_name_only_from_ext(){     # for ubuntu/debian/etc pkg naming
      xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
      xPATTERN="s%${xDB_version}%%"
      PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\\-$%%'`"
-     DB_pkgrelease="`echo -n "$pkg_name" | sed -e 's%\\-i[3456]86.*%%' -e 's%\\.pkg$%%' | rev | cut -f 1 -d '-' | rev`"
     ;;
     rpm) #110523
      #exs: hunspell-fr-3.4-1.1.el6.noarch.rpm
@@ -367,7 +406,6 @@ get_pkg_name_only_from_ext(){     # for ubuntu/debian/etc pkg naming
      xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
      xPATTERN="s%${xDB_version}%%"
      PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\\-$%%'`"
-     DB_pkgrelease=""
     ;;
   esac
   [ "$PKGNAME_ONLY" != '' ] && echo $PKGNAME_ONLY || echo "$1"
@@ -4727,30 +4765,36 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
 pkg_update(){                    # update installed pets, if updates exist in repo FUNCLIST
   
   # exit if no valid options
-  [ ! "$1" -o "$1" = "-" ] && print_usage pkg-update && exit 1
+  #[ ! "$1" -o "$1" = "-" ] && print_usage pkg-update && exit 1
   
   # get rc file settings
   . ${PKGRC}
   
   local PKGNAME=''
   local PKGLIST=''
+  local pkg_ext=''
   local BUILTINS=''
   
-  PKGNAME=$(basename "$1")
+  if [ "$1" != '' ];then
+    PKGNAME=$(basename "$1")
   
-  PKGNAME=`get_pkg_name "$1"`
-  PKGNAME_ONLY=`get_pkg_name_only "$1"`
-  
-  # get installed packages
-  PKGLIST="`list_installed_pkgs "$PKGNAME_ONLY"`"
+    PKGNAME=`get_pkg_name "$1"`
+    PKGNAME_ONLY=`get_pkg_name_only "$1"`
 
-  is_builtin=`is_builtin_pkg "$PKGNAME"`
+    # get installed packages
+    PKGLIST="`list_installed_pkgs "$PKGNAME_ONLY"`"
+
+    is_builtin=`is_builtin_pkg "$PKGNAME"`
   
-  # dont update builtins unless -F was given 
-  if [ "$is_builtin" = true -a "$HIDE_BUILTINS" = true ];then
-    echo -e "Package ${magenta}${PKGNAME}${endcolour} is built in, not updating."
-    #echo -e "Use `$SELF -F --pkg-update $PKGNAME` to update it anyway."
-    exit 0
+    # dont update builtins unless -F was given 
+    if [ "$is_builtin" = true -a "$HIDE_BUILTINS" = true ];then
+      echo -e "Package ${magenta}${PKGNAME}${endcolour} is built in, not updating."
+      #echo -e "Use `$SELF -F --pkg-update $PKGNAME` to update it anyway."
+      exit 0
+    fi
+  else
+    # get installed packages
+    PKGLIST="`list_installed_pkgs`"
   fi
   
   # iterate over the list
@@ -4765,26 +4809,30 @@ pkg_update(){                    # update installed pets, if updates exist in re
     # get pkg name (without version) and version of current PKG
     
     PNAME=`get_pkg_name_only "$LINE"`
-    PKGVER="`LANG=C echo "$LINE" | sed -e 's/^[^0-9]*-//g' | cut -f1 -d'_' | cut -f1 -d'-'`"
-    
-    # get latest versions
+    pkg_ext=`get_pkg_ext "$PKGNAME"`
+    installed_version=`get_pkg_version "$LINE"`
+
+
     LATEST_PKG="`list_all_pkg_names "${PNAME}" | grep -m1 "^${PNAME}"`"
-    LATEST_PKGVER="`LANG=C echo "$LATEST_PKG" | sed -e 's/^[^0-9]*-//g' | cut -f1 -d'_' | cut -f1 -d'-'`"
+    latest_version=`get_pkg_version "$LATEST_PKG"`
+
+    # get latest versions
     
     # check pkg version against installed version
-    if [ "$LATEST_PKGVER" != "" -a "$PKGVER" != "" ];then
-      vercmp $LATEST_PKGVER gt $PKGVER 2>/dev/null
+    if [ "$latest_version" != "" -a "$installed_version" != "" ];then
+      vercmp $latest_version gt $installed_version 2>/dev/null
       RESULT=$?
+
       if [ "$RESULT" = 0 ];then #newer version available
         
         if [ "$ASK" = true ];then
-          echo "Do you want to update to ${PNAME}-${LATEST_PKGVER}? [y/N]   "
+          echo "Do you want to update to ${PNAME}-${latest_version}? [y/N]   "
           read -n 1 ASKREPLY </dev/tty
           [ "$ASK" = true ] && echo -ne "\b\b\n"
         fi
         
         if [ "$ASK" = false -o "$ASKREPLY" = "y" ];then
-          echo "Updating $PNAME to $LATEST_PKGVER"
+          echo "Updating $PNAME to $latest_version"
           #150813 dont involve deps, support --ask and --force
           ASK=$ASK FORCE=$FORCE pkg_download "$LATEST_PKG"
           # get the full name of the file we downloaded
@@ -4794,12 +4842,12 @@ pkg_update(){                    # update installed pets, if updates exist in re
         fi 
       
       else #280613 inform user if no update found
-        echo "$PNAME-$PKGVER (installed) is the latest available."
+        echo "$PNAME-$installed_version (installed) is the latest available."
       fi #end if vercmp XX gt YY = 0
     
     else #280613
       error "Package versions could not be compared: 
-${LATEST_PKGVER:-unknown latest}, ${PKGVER:-unknown installed version}"
+${latest_version:-unknown latest}, ${installed_version:-unknown installed version}"
       exit 1
     fi #end if PKGVER != ""
   done
