@@ -78,7 +78,7 @@ These commands can be used with the options above, but not each other:
  repo-pkg-scope one|all     search pkgs in current repo (one), or all (all)
  repo-dep-scope one|all     search deps in current repo (one), or all (all)
  bleeding-edge no|yes       if yes, get latest pkg versions, from ANY repo
- recursive-dep-check no|yes get deps recursively (yes), or not (no)
+ rdep-check no|yes          get deps recursively (yes), or not (no)
   
  dir2pet DIR                create a pet package from a directory
  dir2sfs DIR                create an sfs package from a directory
