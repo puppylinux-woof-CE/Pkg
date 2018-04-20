@@ -239,7 +239,7 @@ dir2sfs        build-list       update-sources
 dir2tgz        pkg-combine      version
 download       installed        which
 examples       repack           which-repo
-extract        status           recursive-dep-check
+extract        status           rdep-check
 force          update           what-needs
 func-list      workdir          
 Usage: ${bold}$SELF --usage CMD${endcolour}"
