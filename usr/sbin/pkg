@@ -349,7 +349,7 @@ get_pkg_version(){                # returns version of given package ($1) FUNCLI
 
   version="${xDB_version//+*/}"
   
-  echo $version | sed -e "s/^${PKGNAME_ONLY}-//g" -e "s/^${PKGNAME_ONLY}_//g" -e "s/^DEV-//g" -e "s/^DOC-//g" -e "s/^NLS-//g"
+  echo $version | sed -e "s/^${PKGNAME_ONLY}-//g" -e "s/^${PKGNAME_ONLY}_//g" -e "s/^DEV-//g" -e "s/^DOC-//g" -e "s/^NLS-//g" -e "s@\\\\@@g"
   return 0
 }
 
@@ -4830,6 +4830,10 @@ pkg_update(){                    # update installed pets, if updates exist in re
       ;;
     esac
 
+    # skip if we didn't find the right package
+    [ "`echo $LATEST_REPO_PKG | grep ^$PNAME`" = '' ] && continue
+
+    
     latest_version=`get_pkg_version "$LATEST_REPO_PKG"`
     installed_version=`get_pkg_version "$LINE"`
 
@@ -4851,7 +4855,7 @@ pkg_update(){                    # update installed pets, if updates exist in re
         if [ "$ASK" = false -o "$ASKREPLY" = "y" ];then
           echo -e "${green}UPDATING${endcolour} $PNAME-${yellow}$installed_version${endcolour} to ${yellow}$latest_version${endcolour}"
           cd "$WORKDIR"
-          ASK=$ASK FORCE=$FORCE pkg_get $LATEST_REPO_PKG
+          ASK=$ASK FORCE=$FORCE pkg_get "$LATEST_REPO_PKG"
           cd "$CURDIR"
         fi 
       
