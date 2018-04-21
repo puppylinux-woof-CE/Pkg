@@ -4835,12 +4835,9 @@ pkg_update(){                    # update installed pets, if updates exist in re
     # skip if we didn't find the right package
     [ "`echo $latest_repo_pkg | grep -E "^${PNAME}_|^${PNAME}-"`" = '' ] && continue
 
-    
     latest_version=`get_pkg_version "$latest_repo_pkg"`
     installed_version=`get_pkg_version "$installed_pkg"`
     
-    #xmessage "installed_version=$installed_version latest_version=$latest_version   latest_repo_pkg=$latest_repo_pkg   PNAME=$PNAME"
-
     # get latest versions
     
     # check pkg version against installed version
@@ -4857,14 +4854,14 @@ pkg_update(){                    # update installed pets, if updates exist in re
         fi
         
         if [ "$ASK" = false -o "$ASKREPLY" = "y" ];then
-          echo -e "${green}UPDATING${endcolour} $PNAME-${yellow}$installed_version${endcolour} to ${yellow}$latest_version${endcolour}"
+          echo -e "${yellow}Update${endcolour}: ${magenta}$PNAME${endcolour} from ${bold}$installed_version${endcolour} to ${bold}$latest_version${endcolour}"
           cd "$WORKDIR"
           ASK=$ASK FORCE=$FORCE pkg_get "$latest_repo_pkg"
           cd "$CURDIR"
         fi 
       
       else #280613 inform user if no update found
-        echo "$PNAME-$installed_version (installed) is the latest available."
+        echo -e "${green}Latest${endcolour}: $PNAME-$installed_version"
       fi #end if vercmp XX gt YY = 0
     
     elif [ "$PNAME" = '' ];then
