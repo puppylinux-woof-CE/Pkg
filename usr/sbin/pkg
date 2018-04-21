@@ -4253,7 +4253,7 @@ pkg_get(){                       # find, download and install packages and deps 
 
       # skip getting pkg if its in the devx, unless HIDE_BUILTINS=false
       if [ "$pkg_is_in_devx" = true -a "${HIDE_BUILTINS}" = true ];then
-        echo "Skipping $pkg_name_only (already built-in).."
+        echo "Skipping $pkg_name_only (already in devx).."
         continue
       fi
 
@@ -4805,17 +4805,17 @@ pkg_update(){                    # update installed pets, if updates exist in re
   fi
   
   # iterate over the list
-  echo "$PKGLIST"  | grep -v ^$ | sort -u | while read LINE; do
+  echo "$PKGLIST"  | grep -v ^$ | sort -u | while read installed_pkg; do
 
-    [ ! "$LINE" -o "$LINE" = '' ] && continue
+    [ ! "$installed_pkg" -o "$installed_pkg" = '' ] && continue
     
-    # if this pkg ($LINE) is not from a known repo, we cant compare its version to anything else, skip it
-    #[ "`is_repo_pkg "$LINE"`" = false ] && echo -e "Package ${magenta}$LINE${endcolour} not found in any repos." && continue
+    # if this pkg ($installed_pkg) is not from a known repo, we cant compare its version to anything else, skip it
+    #[ "`is_repo_pkg "$installed_pkg"`" = false ] && echo -e "Package ${magenta}$installed_pkg${endcolour} not found in any repos." && continue
     
     PNAME='' PKGVER='' LATEST_REPO_PKG='' ASKREPLY='y'
     # get pkg name (without version) and version of current PKG
     
-    PNAME=`get_pkg_name_only $LINE`
+    PNAME=`get_pkg_name_only $installed_pkg`
 
     case $DISTRO_BINARY_COMPAT in 
       ubuntu|trisquel|debian|devuan)
@@ -4835,7 +4835,7 @@ pkg_update(){                    # update installed pets, if updates exist in re
 
     
     latest_version=`get_pkg_version "$LATEST_REPO_PKG"`
-    installed_version=`get_pkg_version "$LINE"`
+    installed_version=`get_pkg_version "$installed_pkg"`
 
     # get latest versions
     
@@ -4864,9 +4864,9 @@ pkg_update(){                    # update installed pets, if updates exist in re
       fi #end if vercmp XX gt YY = 0
     
     elif [ "$PNAME" = '' ];then
-      error "${LINE} not found."
+      error "${installed_pkg} not found."
     else #280613
-      error "$LINE package versions could not be compared: ${latest_version:-unknown latest} => ${installed_version:-unknown installed version}"
+      error "$installed_pkg package versions could not be compared: ${latest_version:-unknown latest} => ${installed_version:-unknown installed version}"
       #return 1
     fi #end if PKGVER != ""
   done
