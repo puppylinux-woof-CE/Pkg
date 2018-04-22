@@ -181,8 +181,7 @@ _pkg() {
 			echo `pkg $OPT $2  2>/dev/null` > /tmp/pkg_tab_opts
 
 			# include all installed pkgs
-			echo `pkg -li $2  2>/dev/null` >> /tmp/pkg_tab_opts
-			echo `ls -1 ~/.packages/builtin_files/ 2>/dev/null` >> /tmp/pkg_tab_opts
+			echo `pkg -LI $2  2>/dev/null` >> /tmp/pkg_tab_opts
 			
 			# include the downloaded pkg files
 			echo `pkg -ld $2  2>/dev/null` >> /tmp/pkg_tab_opts
