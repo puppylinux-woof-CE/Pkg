@@ -4581,13 +4581,14 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
     done
 
     # we should now be ready to make our combined pkg
-    cd "$BUILD_DIR/${PKGNAME}-${SUFFIX}"
+    cd "$BUILD_DIR"
     
     PARENTPKG=${PKGNAME}
     
     # for all pkgs in the tmp dir (nto including any 'combined' pkgs)
     TMP_PKGS="`find "$BUILD_DIR/" -maxdepth 1 -type f -name "*" | grep -v $SUFFIX | grep -v ^$ | grep -v ' ' | sort | uniq`"
     
+    local count=1
     for i in $TMP_PKGS
     do
       
@@ -4627,70 +4628,106 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
       case $FILE_EXT in
       pet) 
 
-        # get pet type
-        file -b "${i}" | grep -i -q "^xz" && TAREXT=xz || TAREXT=gz
-        [ "$TAREXT" = 'xz' ] && taropts='-xJf' || taropts='-zxf'
-        TARFILE="${i/.pet/.tar.$TAREXT}"
         # convert and extract
-        pet2tgz "${i}" 1>/dev/null
-        # untar the tar file
-        tar $taropts "$TARFILE" -C "$BUILD_DIR/" 2>/dev/null
+        pkg_unpack "${i}" 1>/dev/null
         sync
-        rm -f "$TARFILE" 2>/dev/null # remove the file created by pet2tgz
+
         # copy extracted contents (only the stuff inside the extracted folders)
-        cp -a --preserve=all -f -r "${i/.pet/}/"* "$BUILD_DIR/${PARENTPKG}-${SUFFIX}/"
-        # now remove the pet
+        cp -a --preserve=all -f -r "${i/.pet/}/"* "${PARENTPKG}-${SUFFIX}/"
+
+        if [ -f "${i/.pet/}/pinstall.sh" ];then
+          mv "${i/.pet/}/pinstall.sh" "${PARENTPKG}-${SUFFIX}/pinstall_${count}.sh" 
+        fi
+        
+        # now remove the pet and extract folder
         rm "${i}"
-        # remove the folder 
-        rm -rf "${i/.$FILE_EXT/}/"
+        rm -rf "${i/.pet/}/"
         sync
         ;;
 
       deb) 
 
         #cp "$i" "$BUILD_DIR/${PARENTPKG}-${SUFFIX}"
-        undeb "$i" 2>$TMPDIR/$SELF-cp-errlog
+        pkg_unpack "$i" 2>$TMPDIR/$SELF-cp-errlog
+        dpkg-deb -e "$i" "$BUILD_DIR/${PARENTPKG}-${SUFFIX}/DEBIAN"
+        
+        # copy extracted contents (only the stuff inside the extracted folders)
+        cp -a --preserve=all -f -r "${i/.deb/}/"* "${PARENTPKG}-${SUFFIX}/"
+        
+        if [ -f "${i/.deb/}/DEBIAN/postinst" ];then
+          mv "${i/.deb/}/DEBIAN/postinst" "${PARENTPKG}-${SUFFIX}/DEBIAN/postinst_${count}" 
+        fi
+
+        # now remove the deb and extract folder
         rm "$i"
+        rm -rf "${i/.deb/}/"
+        sync
         ;;
 
       *tgz|*txz|*tar.gz|*tar.xz|*xz|*gz)
 
-        #cp "$i" "$BUILD_DIR/${PARENTPKG}-${SUFFIX}"
-        file -b "${i}" | grep -i -q "^xz" && TAREXT=xz || TAREXT=gz
-        [ "$TAREXT" = 'xz' ] && taropts='-xJf' || taropts='-zxf'
+        pkg_unpack "$i" 1>/dev/null
         
-        # if pkg contains a dir called $PKGNAME as the root dir (instead of just ./),
-        if [ "`tar -tf "$i" | grep "^$name_only"`" != '' ];then
+        # now copy $BUILD_DIR/$PKGNAME/* into our output (combined pkg) dir
+        cp -a --preserve=all -f -r "${name_only}/"* "${PARENTPKG}-${SUFFIX}/"
           
-          # then extract tar contents to $BUILD_DIR/ ..
-          # ..and we will get $BUILD_DIR/$PKGNAME/
-          tar $taropts "$i" -C "$BUILD_DIR/"  1>/dev/null
-          
-          # now copy $BUILD_DIR/$PKGNAME/* into our output (combined pkg) dir
-          cp -a --preserve=all -f -r "$BUILD_DIR/${name_only}/"* "$BUILD_DIR/${PARENTPKG}-${SUFFIX}"
-          
-          # remove the folder we just extracted
-          rm -rf "${name_only}/${PARENTPKG}-${SUFFIX}"
-        
-        else # pkg contents start with ./
-
-          tar $taropts "$i" 1>/dev/null
-          rm "$i"
-        
+        if [ -f "${PARENTPKG}-${SUFFIX}/install/doinst.sh" ];then
+          mv "${PARENTPKG}-${SUFFIX}/install/doinst.sh" "${PARENTPKG}-${SUFFIX}/install/doinst_${count}.sh" 
         fi
-        
+
+        # remove the package and folder we just extracted
+        rm "$i"
+        rm -rf "${i/.*/}/"
+        sync
         ;;
       
       rpm)
-          echo "RPM packages not yet supported"
-          continue
+        pkg_unpack "$i" 1>/dev/null
+
+        # now copy $BUILD_DIR/$PKGNAME/* into our output (combined pkg) dir
+        cp -a --preserve=all -f -r "${name_only}/"* "${PARENTPKG}-${SUFFIX}/"
+
+        if [ -f "${PARENTPKG}-${SUFFIX}/install/doinst.sh" ];then
+          mv "${PARENTPKG}-${SUFFIX}/install/doinst.sh" "${PARENTPKG}-${SUFFIX}/install/doinst_${count}.sh" 
+        fi
+
+        # remove the package and folder we just extracted
+        rm "$i"
+        rm -rf "${i/.rpm/}/"
         ;;
 
       esac
+      count=$(($count + 1))
     done
     
+    # concat the post install scripts (for puppy, slackware, arch, debian/ubuntu, etc) into 'pinstall.sh'
+    for i in ${PARENTPKG}-${SUFFIX}/pinstall_ ${PARENTPKG}-${SUFFIX}/install/doinst_ ${PARENTPKG}-${SUFFIX}/DEBIAN/postinst_
+    do
+      
+      [ -z ${PARENTPKG}-${SUFFIX}/${i} ] && continue
+
+      cd ${PARENTPKG}-${SUFFIX}/ 2>/dev/null
+
+      file=`find . -type f -iname "$(basename $i)*"`
+      
+      if [ -f "$file" ];then
+        echo "Appending ${file} to pinstall.sh"
+        # append this pinstall/postinst/doinst script to a new pinstall.sh
+        echo '#!/bin/sh' > pinstall.sh
+        cat ${file} | grep -v '^#!' >> pinstall.sh
+        echo '' >> pinstall.sh
+      fi
+
+      rm -f ${PARENTPKG}-${SUFFIX}/${i}
+    done
+    
+    chmod +x $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall.sh 2>/dev/null
+    
+    rm -rf $BUILD_DIR/${PARENTPKG}-${SUFFIX}/install
+    rm -rf $BUILD_DIR/${PARENTPKG}-${SUFFIX}/DEBIAN
+
     # now we are ready to build our combined pkg
-    cd "$BUILD_DIR/"
+    [ "`pwd`" != "$BUILD_DIR" ] && cd "$BUILD_DIR/"
     
     # if not building SFS, build a .pet
     if [ "$COMBINE2SFS" = false ];then #240613
