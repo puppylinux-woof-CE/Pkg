@@ -50,7 +50,7 @@ _pkg() {
 	cur="${cur//,/ }"
 	prev="${prev//,/ }"
 	
-	# context sensitive search here
+	# context sensitive file/dir/pkg completion here
 	# ...go through the options the user has typed (so far..), 
 	# and present these completions first
 	case "${prev//,/ }" in
@@ -164,12 +164,12 @@ _pkg() {
 
 		--*) 
 			
-			opts="--ask --force --all-pkgs --all --search --search-all --names --names-all --names-exact --names-exact-all --get --get-only --download --install --install-all --uninstall --uninstall-all --delete --delete-all --extract --unpack --clean --autoclean --deps --deps-all --deps-download --deps-check --pkg-update --pkg-build --pkg-build-list --pkg-repack --contents --list-installed --list-downloaded --list-deps --pkg-status --pkg-combine --sfs-combine --pkg-installed --which --which-repo --recursive-dep-check --repo --repo-info --repo-update --repo-convert --repo-list --repo-file-list --repo-pkg-scope --repo-dep-scope --bleeding-edge --add-source --update-sources --deb2pet --dir2pet --dir2sfs --dir2tgz --pet2sfs --pet2tgz --pet2txz --sfs2pet --tgz2pet --txz2pet --workdir  --welcome --what-needs --show-config --help --examples --func-list --help-all --version all-pkgs add remove rm search search-all names names-all names-exact names-exact-all get get-only download install install-all uninstall uninstall-all delete delete-all extract unpack clean autoclean deps deps-all deps-download deps-check pkg-update update pkg-build build pkg-build-list pkg-repack repack contents list-installed list-downloaded list-deps pkg-status status pkg-combine combine sfs-combine pkg-installed which which-repo rdep-check repo repo-info repo-update repo-convert repo-list repo-file-list repo-pkg-scope repo-dep-scope bleeding-edge add-source update-sources deb2pet dir2pet dir2sfs dir2tgz pet2sfs pet2tgz pet2txz sfs2pet tgz2pet txz2pet workdir welcome what-needs show-config help examples func-list help-all version"
+			opts="--ask --force --quiet --no-colour --no-color --all-pkgs --all --search --search-all --names --names-all --names-exact --names-exact-all --get --get-only --download --install --install-all --uninstall --uninstall-all --delete --delete-all --extract --unpack --clean --autoclean --deps --deps-all --deps-download --deps-check --pkg-update --pkg-build --pkg-build-list --pkg-repack --contents --list-installed --list-downloaded --list-deps --pkg-status --pkg-combine --sfs-combine --pkg-installed --which --which-repo --recursive-dep-check --repo --repo-info --repo-update --repo-convert --repo-list --repo-file-list --repo-pkg-scope --repo-dep-scope --bleeding-edge --add-source --update-sources --deb2pet --dir2pet --dir2sfs --dir2tgz --pet2sfs --pet2tgz --pet2txz --sfs2pet --tgz2pet --txz2pet --workdir  --welcome --what-needs --show-config --help --examples --func-list --help-all --version all-pkgs add remove rm search search-all names names-all names-exact names-exact-all get get-only download install install-all uninstall uninstall-all delete delete-all extract unpack clean autoclean deps deps-all deps-download deps-check pkg-update update pkg-build build pkg-build-list pkg-repack repack contents list-installed list-downloaded list-deps pkg-status status pkg-combine combine sfs-combine pkg-installed which which-repo rdep-check repo repo-info repo-update repo-convert repo-list repo-file-list repo-pkg-scope repo-dep-scope bleeding-edge add-source update-sources deb2pet dir2pet dir2sfs dir2tgz pet2sfs pet2tgz pet2txz sfs2pet tgz2pet txz2pet workdir welcome what-needs show-config help examples func-list help-all version"
 			;;
 
 		-?*) 
 			
-			opts="-a -f -s -ss -sa -ssa -n -na -ne -nea -g -go -d -i -ia -u -ua -l -la -e -ea -ed -ec -pu -pb -pbl -pr -c -li -LI -ld -le -LE -ps -PS -pc -sc -pi -w -wr -wn -r -ri -ru -rc -rl -rfl -h -ex -H -v"
+			opts="-a -f -q -nc -s -ss -sa -ssa -n -na -ne -nea -g -go -d -i -ia -u -ua -l -la -e -ea -ed -ec -pu -pb -pbl -pr -c -li -LI -ld -le -LE -ps -PS -pc -sc -pi -w -wr -wn -r -ri -ru -rc -rl -rfl -h -ex -H -v"
 			;;
 
 		?*) # any other (not Pkg options), print pkg names, build script names, etc
@@ -199,7 +199,7 @@ _pkg() {
 			
       echo 'all-pkgs add remove rm search search-all names names-all names-exact names-exact-all get get-only download install install-all uninstall uninstall-all delete delete-all extract unpack clean autoclean deps deps-all deps-download deps-check pkg-update update pkg-build build pkg-build-list build-list pkg-repack repack contents list-installed list-downloaded list-deps pkg-status status pkg-combine combine sfs-combine pkg-installed which which-repo rdep-check repo repo-info repo-update repo-convert repo-list repo-file-list repo-pkg-scope repo-dep-scope bleeding-edge add-source update-sources deb2pet dir2pet dir2sfs dir2tgz pet2sfs pet2tgz pet2txz sfs2pet tgz2pet txz2pet workdir welcome what-needs show-config help examples func-list help-all version' >> /tmp/pkg_tab_opts
 			
-			cat /tmp/pkg_tab_opts | sort | uniq > /tmp/pkg_tab_opts1
+			sort -u /tmp/pkg_tab_opts > /tmp/pkg_tab_opts1
 			mv /tmp/pkg_tab_opts1 /tmp/pkg_tab_opts
 			
 			;;
