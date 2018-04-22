@@ -16,11 +16,11 @@ set -a
 
 #set pkg to not use coloured output, messes up pkgdialog output
 npkg () {
-	PKG_NO_COLOURS=true pkg "$@"
+	PKG_NO_COLOURS=true pkg --quiet "$@"
 }
 
 getpkg () {
-	PKG_NO_COLOURS=true pkg -g "$@" && echo "Finished."
+	PKG_NO_COLOURS=true pkg --quiet -g "$@" && echo "Finished."
 }
 
 installpkg () {
@@ -450,7 +450,7 @@ install_pkgs () {
 	$DIALOG $BACKTITLE --title "$APPTITLE" --no-shadow --no-collapse --cancel-label "Back" --yesno "
 Do you want to install '$PKG2INSTALL'?
 	
-`npkg --pkg-status $PKG2INSTALL | sed -s 's/Status:	/Status:/'`
+`npkg --pkg-status $PKG2INSTALL | sed -s 's/Status:	/Status:/' | fold -w 80 -s`
 	
 	" 0 0
 	# quit if 'Cancel' button used
@@ -533,8 +533,8 @@ $SUBTITLE" 22 74 22 \
 	# quit if 'Cancel' button used
 	RETVAL=$?; [ "$RETVAL" = 1 ] && { rm $TMPFILE 2>/dev/null; $RETURN; }
 
-	# get pkg to install
-	PKG2INSTALL="`cat $TMPFILE 2>/dev/null | sed -e 's/\"//g' | tr ' ' '\n'`"
+	# get pkg to install .. remove quotes and / chars, put pkgs on newlines
+	PKG2INSTALL="`cat $TMPFILE 2>/dev/null | sed -e 's/\"//g' -e 's/\//\n/g'| tr ' ' '\n'`"
 
 	echo "$PKG2INSTALL" | while read LINE
 	do
