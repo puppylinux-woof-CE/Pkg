@@ -164,7 +164,7 @@ _pkg() {
 
 		--*) 
 			
-			opts="--ask --force --all-pkgs --all --search --search-all --names --names-all --names-exact --names-exact-all --get --get-only --download --install --install-all --uninstall --uninstall-all --delete --delete-all --extract --unpack --clean --autoclean --deps --deps-all --deps-download --deps-check --pkg-update --pkg-build --pkg-build-list --pkg-repack --contents --list-installed --list-downloaded --list-deps --pkg-status --pkg-combine --sfs-combine --pkg-installed --which --which-repo --recursive-dep-check --repo --repo-info --repo-update --repo-convert --repo-list --repo-file-list --repo-pkg-scope --repo-dep-scope --bleeding-edge --add-source --update-sources --deb2pet --dir2pet --dir2sfs --dir2tgz --pet2sfs --pet2tgz --pet2txz --sfs2pet --tgz2pet --txz2pet --workdir  --welcome --what-needs --show-config --help --examples --func-list --help-all --version all-pkgs all search search-all names names-all names-exact names-exact-all get get-only download install install-all uninstall uninstall-all delete delete-all extract unpack clean autoclean deps deps-all deps-download deps-check pkg-update pkg-build pkg-build-list pkg-repack contents list-installed list-downloaded list-deps pkg-status pkg-combine sfs-combine pkg-installed which which-repo recursive-dep-check repo repo-info repo-update repo-convert repo-list repo-file-list repo-pkg-scope repo-dep-scope bleeding-edge add-source update-sources deb2pet dir2pet dir2sfs dir2tgz pet2sfs pet2tgz pet2txz sfs2pet tgz2pet txz2pet workdir welcome what-needs show-config help examples func-list help-all version"
+			opts="--ask --force --all-pkgs --all --search --search-all --names --names-all --names-exact --names-exact-all --get --get-only --download --install --install-all --uninstall --uninstall-all --delete --delete-all --extract --unpack --clean --autoclean --deps --deps-all --deps-download --deps-check --pkg-update --pkg-build --pkg-build-list --pkg-repack --contents --list-installed --list-downloaded --list-deps --pkg-status --pkg-combine --sfs-combine --pkg-installed --which --which-repo --recursive-dep-check --repo --repo-info --repo-update --repo-convert --repo-list --repo-file-list --repo-pkg-scope --repo-dep-scope --bleeding-edge --add-source --update-sources --deb2pet --dir2pet --dir2sfs --dir2tgz --pet2sfs --pet2tgz --pet2txz --sfs2pet --tgz2pet --txz2pet --workdir  --welcome --what-needs --show-config --help --examples --func-list --help-all --version all-pkgs add remove rm search search-all names names-all names-exact names-exact-all get get-only download install install-all uninstall uninstall-all delete delete-all extract unpack clean autoclean deps deps-all deps-download deps-check pkg-update update pkg-build build pkg-build-list pkg-repack repack contents list-installed list-downloaded list-deps pkg-status status pkg-combine combine sfs-combine pkg-installed which which-repo rdep-check repo repo-info repo-update repo-convert repo-list repo-file-list repo-pkg-scope repo-dep-scope bleeding-edge add-source update-sources deb2pet dir2pet dir2sfs dir2tgz pet2sfs pet2tgz pet2txz sfs2pet tgz2pet txz2pet workdir welcome what-needs show-config help examples func-list help-all version"
 			;;
 
 		-?*) 
@@ -179,12 +179,14 @@ _pkg() {
 			
 			# show repo pkgs (current repo or all repos)
 			echo `pkg $OPT $2  2>/dev/null` > /tmp/pkg_tab_opts
+
+			# include all installed pkgs
+			echo `pkg -li $2  2>/dev/null` >> /tmp/pkg_tab_opts
+			echo `ls -1 ~/.packages/builtin_files/ 2>/dev/null` >> /tmp/pkg_tab_opts
 			
-			# include the downloaded pkgs
+			# include the downloaded pkg files
 			echo `pkg -ld $2  2>/dev/null` >> /tmp/pkg_tab_opts
-			
-			# include builtin pkgs
-			echo `pkg -LI $2  2>/dev/null` >> /tmp/pkg_tab_opts
+      echo `ls -1 $WORKDIR  2>/dev/null` >> /tmp/pkg_tab_opts
 			
 			# include the build scripts 
 			echo `pkg -pbl $2 2>/dev/null` >> /tmp/pkg_tab_opts
@@ -194,6 +196,8 @@ _pkg() {
 			
 			# include Pkgs internal functions in the list
 			echo $func_list >> /tmp/pkg_tab_opts
+			
+      echo 'all-pkgs add remove rm search search-all names names-all names-exact names-exact-all get get-only download install install-all uninstall uninstall-all delete delete-all extract unpack clean autoclean deps deps-all deps-download deps-check pkg-update update pkg-build build pkg-build-list build-list pkg-repack repack contents list-installed list-downloaded list-deps pkg-status status pkg-combine combine sfs-combine pkg-installed which which-repo rdep-check repo repo-info repo-update repo-convert repo-list repo-file-list repo-pkg-scope repo-dep-scope bleeding-edge add-source update-sources deb2pet dir2pet dir2sfs dir2tgz pet2sfs pet2tgz pet2txz sfs2pet tgz2pet txz2pet workdir welcome what-needs show-config help examples func-list help-all version' >> /tmp/pkg_tab_opts
 			
 			cat /tmp/pkg_tab_opts | sort | uniq > /tmp/pkg_tab_opts1
 			mv /tmp/pkg_tab_opts1 /tmp/pkg_tab_opts
