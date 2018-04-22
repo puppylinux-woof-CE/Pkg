@@ -262,9 +262,10 @@ get_pkg_ext(){                    # return file extension of given pkg FUNCLIST
   # get valid usage or exit
   [ ! "$1" ] && echo 'Usage: get_pkg_ext PKGNAME' && exit 1
   
-  local pkg_installed
-  local pkg_filename
-  local pkg_ext
+  local pkg_installed=''
+  local pkg_filename=''
+  local pkg_ext=''
+  local pkg_name=''
   
   # check given file type, see if it matches our supported pkg types
   case "$1" in 
@@ -298,10 +299,13 @@ get_pkg_ext(){                    # return file extension of given pkg FUNCLIST
       if [ "$pkg_installed" != '' ];then
         pkg_filename=`cut -f8 -d'|' $HOME/.packages/user-installed-packages |grep -m1 ^$1`
         [ "$pkg_filename" = '' ] && pkg_filename=`cut -f8 -d'|' $HOME/.packages/*-installed-packages |grep -m1 ^$1`
-        pkg_ext=`get_pkg_ext "$pkg_filename"`
-        [ "$pkg_ext" != '' ] && echo $pkg_ext
+        [ "$pkg_filename" != '' ] && pkg_ext=`get_pkg_ext "$pkg_filename"`
+      else 
+        # if it's a repo package, get it's extension from $HOME/.packages/*
+        pkg_filename=`grep -m1 "^$1" $HOME/.packages/Packages-* |cut -f8 -d'|'`
+       [ "$pkg_filename" != '' ] &&  pkg_ext=`get_pkg_ext "$pkg_filename"`
       fi
-    
+      [ "$pkg_ext" != '' ] && echo $pkg_ext
       ;;
   esac
 }
@@ -315,41 +319,38 @@ get_pkg_version(){                # returns version of given package ($1) FUNCLI
   local PKGNAME=`get_pkg_name "$1"`
   local PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
   local pkg_ext=`get_pkg_ext "$PKGNAME"`
-  
+  local pkg_version=''
+
+  PKGNAME=$(basename "$PKGNAME" .$pkg_ext)
+
+  pkg_version=`echo $PKGNAME | sed -e "s/^${PKGNAME_ONLY}_//g"`
+  # if $pkg_version is same as $PKGNAME, try cutting again, using '-' instead of '_'
+  [ "$pkg_version" = "$PKGNAME" ] && pkg_version=`echo $PKGNAME | sed -e "s/^${PKGNAME_ONLY}-//g"`
+    
+  # now trim off the other unneeded bits
+  pkg_version=`echo  $pkg_version | sed \
+    -e "s/^-//g" \
+    -e "s/^_//g" \
+    -e "s/^DEV-//g" \
+    -e "s/^DOC-//g" \
+    -e "s/^NLS-//g" \
+    -e "s/^dev-//g" \
+    -e "s/^doc-//g" \
+    -e "s/^nls-//g" \
+    -e "s/+deb.*//g" \
+    -e "s/+ubuntu.*//g" \
+    -e "s/-i[346].*//g" \
+    -e "s/-x[86].*//g" \
+    -e "s/-pup.*//g" \
+    -e "s/-q[0-9].*//g" \
+    -e 's@\\\@@g'`
+
   # get $REPONAME and $EX 
   . ${PKGRC}
 
   [ "$pkg_ext" = '' ] && pkg_ext=$EX
 
-  case $pkg_ext in
-    deb)
-     DB_version="`echo "$PKGNAME" | cut -f 2 -d '_'`"
-     [ "$DB_version" = "$PKGNAME" ] && DB_version="`echo -n "$DB_version" | cut -f 2 -d '-'`"
-     xDB_version="$DB_version"
-    ;;
-    pet)
-     DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\-%%'`"
-     xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
-    ;;
-    tgz|txz)
-     DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\\-%%'`"
-     xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
-    ;;
-    tar.gz)
-     #arch ex: xproto-7.0.14-1-i686.pkg.tar.gz  trapproto-3.4.3-1.pkg.tar.gz
-     DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\\-%%'`"
-     xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
-    ;;
-    rpm)
-     #exs: hunspell-fr-3.4-1.1.el6.noarch.rpm
-     DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\-%%'`"
-     xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
-    ;;
-  esac
-
-  version="${xDB_version//+*/}"
-  
-  echo $version | sed -e "s/^${PKGNAME_ONLY}-//g" -e "s/^${PKGNAME_ONLY}_//g" -e "s/^DEV-//g" -e "s/^DOC-//g" -e "s/^NLS-//g" -e "s@\\\\@@g"
+  echo $pkg_version
   return 0
 }
 
@@ -1012,28 +1013,28 @@ set_autoclean(){                  # yes|no auto delete installed packages from W
 
 
 set_config(){                     # update all options in config file FUNCLIST
-  echo "WORKDIR=$WORKDIR"            > ${PKGRC}
-  echo "REPONAME=$REPONAME"           >> ${PKGRC}
-  echo "EX=$EX"                 >> ${PKGRC}
-  echo "REPOFILE=$REPOFILE"           >> ${PKGRC}
-  echo "REPOURL1=$REPOURL1"           >> ${PKGRC}
-  echo "REPOURL2=$REPOURL2"           >> ${PKGRC}
+  echo "WORKDIR=$WORKDIR"                    > ${PKGRC}
+  echo "REPONAME=$REPONAME"                 >> ${PKGRC}
+  echo "EX=$EX"                             >> ${PKGRC}
+  echo "REPOFILE=$REPOFILE"                 >> ${PKGRC}
+  echo "REPOURL1=$REPOURL1"                 >> ${PKGRC}
+  echo "REPOURL2=$REPOURL2"                 >> ${PKGRC}
   #140213 add all urls
-  echo "REPOURL3=$REPOURL3"           >> ${PKGRC}
-  echo "REPOURL4=$REPOURL4"           >> ${PKGRC}
+  echo "REPOURL3=$REPOURL3"                 >> ${PKGRC}
+  echo "REPOURL4=$REPOURL4"                 >> ${PKGRC}
   # seach settings
-  echo "PKGSEARCH=\"$PKGSEARCH\""       >> ${PKGRC}
+  echo "PKGSEARCH=\"$PKGSEARCH\""           >> ${PKGRC}
   echo "PKGSEARCHEXACT=\"$PKGSEARCHEXACT\"" >> ${PKGRC}
-  echo "DEPSEARCH=\"$DEPSEARCH\""       >> ${PKGRC}
+  echo "DEPSEARCH=\"$DEPSEARCH\""           >> ${PKGRC}
   echo "DEPSEARCHEXACT=\"$DEPSEARCHEXACT\"" >> ${PKGRC}
   # multiple repo settings
   echo "REPOFALLBACKS=\"$REPOFALLBACKS\""   >> ${PKGRC}
-  echo "PKGSCOPE=\"$PKGSCOPE\""         >> ${PKGRC}
-  echo "DEPSCOPE=\"$DEPSCOPE\""         >> ${PKGRC}
-  echo "BLEDGE=\"$BLEDGE\""           >> ${PKGRC}
-  echo "RDCHECK=\"$RDCHECK\""         >> ${PKGRC} #150813
-  echo "AUTOCLEAN=\"$AUTOCLEAN\""         >> ${PKGRC}
-  echo "BUILDTOOL=$BUILDTOOL"         >> ${PKGRC}
+  echo "PKGSCOPE=\"$PKGSCOPE\""             >> ${PKGRC}
+  echo "DEPSCOPE=\"$DEPSCOPE\""             >> ${PKGRC}
+  echo "BLEDGE=\"$BLEDGE\""                 >> ${PKGRC}
+  echo "RDCHECK=\"$RDCHECK\""               >> ${PKGRC} #150813
+  echo "AUTOCLEAN=\"$AUTOCLEAN\""           >> ${PKGRC}
+  echo "BUILDTOOL=$BUILDTOOL"               >> ${PKGRC}
 }
 
 
@@ -4779,14 +4780,15 @@ pkg_update(){                    # update installed pets, if updates exist in re
   
   local PKGNAME=''
   local PKGLIST=''
-  local pkg_ext=''
+  local pkg_ext=$EX
   local BUILTINS=''
+  local separator=''
   
   if [ "$1" != '' ];then
+
     PKGNAME=$(basename "$1")
-  
-    PKGNAME=`get_pkg_name "$1"`
-    PKGNAME_ONLY=`get_pkg_name_only "$1"`
+    PKGNAME=`get_pkg_name "$PKGNAME"`
+    PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
 
     # get installed packages
     PKGLIST="`HIDE_BUILTINS=false list_installed_pkgs "$PKGNAME_ONLY"`"
@@ -4823,17 +4825,17 @@ pkg_update(){                    # update installed pets, if updates exist in re
 
     case $DISTRO_BINARY_COMPAT in 
       ubuntu|trisquel|debian|devuan)
-        [ "$latest_repo_pkg" = '' ] && latest_repo_pkg="`grep -m1 "^${PNAME}_" ${HOME}/.packages/Packages-* |cut -f1 -d'|' | head -1 | cut -f2 -d':'`"
-        [ "$latest_repo_pkg" = '' ] && latest_repo_pkg="`HIDE_BUILTINS=false list_all_pkg_names ${PNAME}_  | grep -m1 "^${PNAME}_"`"
-      ;;
+        separator='_'
+        ;;
       *)
-        [ "$latest_repo_pkg" = '' ] && latest_repo_pkg="`grep -m1 "^${PNAME}-" ${HOME}/.packages/Packages-* |cut -f1 -d'|' | head -1 | cut -f2 -d':'`"
-        [ "$latest_repo_pkg" = '' ] && latest_repo_pkg="`HIDE_BUILTINS=false list_all_pkg_names ${PNAME}-  | grep -m1 "^${PNAME}-"`"
-      ;;
+        separator='-'
+        ;;
     esac
 
+    latest_repo_pkg="`grep -m1 "^${PNAME}${separator}" ${HOME}/.packages/Packages-* |cut -f1 -d'|' | head -1 | cut -f2 -d':'`"
+
     # skip if we didn't find the right package
-    [ "`echo $latest_repo_pkg | grep -E "^${PNAME}_|^${PNAME}-"`" = '' ] && continue
+    [ "`echo "$latest_repo_pkg" | grep -E "^${PNAME}_|^${PNAME}-"`" = '' ] && continue
 
     latest_version=`get_pkg_version "$latest_repo_pkg"`
     installed_version=`get_pkg_version "$installed_pkg"`
