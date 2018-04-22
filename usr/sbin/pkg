@@ -4723,6 +4723,7 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
     
     chmod +x $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall.sh 2>/dev/null
     
+    rm -rf $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall_*
     rm -rf $BUILD_DIR/${PARENTPKG}-${SUFFIX}/install
     rm -rf $BUILD_DIR/${PARENTPKG}-${SUFFIX}/DEBIAN
 
