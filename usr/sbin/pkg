@@ -2869,7 +2869,13 @@ list_installed_pkgs(){           # list user installed packages
   [ "$HIDE_BUILTINS" != true ] && builtins_list=${HOME}/.packages/woof-installed-packages
   
   # search current repo file only .. $1 is the optional pkg filter.. take field1, remove empty lines, remove dashes, remove Pkg from pkg list too
-  cut -f1 -d'|' $user_pkgs_list $devx_pkgs_list $builtins_list | grep "^$1" | grep -v ^\$  | grep -v "\-$" | grep -v ^pkg\- | uniq
+  if [ ! "$1" ];then
+    cut -f1 -d'|' $user_pkgs_list $devx_pkgs_list $builtins_list | grep -vE '^\$|^pkg\-'
+    return 0
+  else
+    cut -f1 -d'|' $user_pkgs_list $devx_pkgs_list $builtins_list | grep "^$1" | grep -vE '^\$|^pkg\-'
+    return 0
+  fi
 }
 
 
@@ -6493,7 +6499,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --names-all|-na|names-all|na)     [ ! "$2" ] && list_all_pkg_names   || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x";     done; exit 0 ;; 
     --list-installed|-li|li)            [ ! "$2" ] && list_installed_pkgs  || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_installed_pkgs "$x";    done; exit 0 ;; 
    --list-downloaded|-ld|ld)            [ ! "$2" ] && list_downloaded_pkgs || list_downloaded_pkgs "$2"; exit 0 ;;
-      -LI|LI)                           [ ! "$2" ] && HIDE_BUILTINS=false list_installed_pkgs || for x in $opt; do HIDE_BUILTINS=false list_installed_pkgs "$x"; done ;; # list all installed pkgs inc builtins
+      -LI|LI)                           [ ! "$2" ] && HIDE_BUILTINS=false list_installed_pkgs || HIDE_BUILTINS=false list_installed_pkgs "$x"; exit 0 ;; # list all installed pkgs inc builtins
   --names-exact-all|-nea|names-exact-all|nea) [ ! "$2" ] && list_all_pkg_names || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x\$"; done; exit 0 ;;
        
       # get, download, install, remove, pkgs
