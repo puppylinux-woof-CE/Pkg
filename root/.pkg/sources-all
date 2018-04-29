@@ -1,17 +1,22 @@
 #name|ext|repo_file|mirror1|mirror2|mirror3|mirror4|fallbacks
 
-noarch|pet|Packages-puppy-noarch-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-noarch/|http://distro.ibiblio.org/puppylinux/pet_packages-noarch/|||common quirky wary53x wary51x lucid dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14
-common|pet|Packages-puppy-common-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-common/|http://distro.ibiblio.org/puppylinux/pet_packages-common/|||noarch quirky wary53x wary51x lucid dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14 saluki 
+noarch|pet|Packages-puppy-noarch-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-noarch/|http://distro.ibiblio.org/puppylinux/pet_packages-noarch/|||common quirky wary5 wary53x wary51x lucid dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14
+common|pet|Packages-puppy-common-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-common/|http://distro.ibiblio.org/puppylinux/pet_packages-common/|||noarch quirky wary5 wary53x wary51x lucid dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14 saluki 
 
-saluki|pet|Packages-puppy-saluki-official|http://www.smokey01.com/saluki/||||carolina noarch common quirky wary53x wary51x lucid upup dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14
-carolina|pet|Packages-puppy-carolina-official|http://www.smokey01.com/carolina/||||saluki noarch common quirky wary53x wary51x lucid upup dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14
-puppy5|pet|Packages-puppy-5-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-5/|http://distro.ibiblio.org/puppylinux/pet_packages-5/|||puppy4 puppy3 puppy2 noarch common wary51x akita quirky wary53x dpup slacko lucid slacko14 
-puppy4|pet|Packages-puppy-4-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-4/|http://distro.ibiblio.org/puppylinux/pet_packages-4/|||puppy3 puppy2 noarch common wary51x akita quirky wary53x dpup slacko lucid slacko14 
-puppy3|pet|Packages-puppy-3-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-3/|http://distro.ibiblio.org/puppylinux/pet_packages-3/|||puppy4 puppy2 noarch common wary51x akita quirky wary53x dpup slacko lucid slacko14 
-puppy2|pet|Packages-puppy-2-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-2/|http://distro.ibiblio.org/puppylinux/pet_packages-2/|||puppy3 puppy4 noarch common wary51x akita quirky wary53x dpup slacko lucid slacko14 
+common32|pet|Packages-puppy-common32-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-common32/|http://distro.ibiblio.org/puppylinux/pet_packages-common32/|||noarch quirky wary5 wary53x wary51x lucid dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14 saluki 
+common64|pet|Packages-puppy-common64-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-common64/|http://distro.ibiblio.org/puppylinux/pet_packages-common64/|||noarch quirky wary5 wary53x wary51x lucid dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14 saluki 
 
-quirky|pet|Packages-puppy-quirky-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-quirky/|http://distro.ibiblio.org/puppylinux/pet_packages-quirky/|||common noarch akita wary53x wary51x lucid dpup puppy4 puppy3 puppy2 slacko slacko14
+saluki|pet|Packages-puppy-saluki-official|http://www.smokey01.com/saluki/||||carolina noarch common quirky wary5 wary53x wary51x lucid upup dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14
+carolina|pet|Packages-puppy-carolina-official|http://www.smokey01.com/carolina/||||saluki noarch common quirky wary5 wary53x wary51x lucid upup dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14
+puppy5|pet|Packages-puppy-5-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-5/|http://distro.ibiblio.org/puppylinux/pet_packages-5/|||puppy4 puppy3 puppy2 noarch common wary5 wary51x akita quirky wary53x dpup slacko lucid slacko14 
+puppy4|pet|Packages-puppy-4-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-4/|http://distro.ibiblio.org/puppylinux/pet_packages-4/|||puppy3 puppy2 noarch common wary5 wary51x akita quirky wary53x dpup slacko lucid slacko14 
+puppy3|pet|Packages-puppy-3-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-3/|http://distro.ibiblio.org/puppylinux/pet_packages-3/|||puppy4 puppy2 noarch common wary5 wary51x akita quirky wary53x dpup slacko lucid slacko14 
+puppy2|pet|Packages-puppy-2-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-2/|http://distro.ibiblio.org/puppylinux/pet_packages-2/|||puppy3 puppy4 noarch common wary5 wary51x akita quirky wary53x dpup slacko lucid slacko14 
+
+quirky|pet|Packages-puppy-quirky-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-quirky/|http://distro.ibiblio.org/puppylinux/pet_packages-quirky/|||common noarch akita wary5 wary53x wary51x lucid dpup puppy4 puppy3 puppy2 slacko slacko14
 akita|pet|livepackages5a.txt|http://akita.scottjarvis.com/||||wary51x noarch common quirky wary53x dpup exprimo upup lucid puppy5 puppy4 slacko lucid-main lucid-universe puppy3 puppy2 slacko14 
+
+wary5|pet|Packages-puppy-wary5-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-wary5/|http://distro.ibiblio.org/puppylinux/pet_packages-wary5/|||common noarch quirky wary51x akita dpup puppy4 lucid puppy3 puppy2 slacko slacko14
 wary53x|pet|Packages-puppy-wary5-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-wary5/|http://distro.ibiblio.org/puppylinux/pet_packages-wary5/|||common noarch quirky wary51x akita dpup puppy4 lucid puppy3 puppy2 slacko slacko14
 wary51x|pet|livepackages5.txt|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-wary5OLD/|http://distro.ibiblio.org/puppylinux/pet_packages-wary5OLD/|||common noarch quirky wary53x akita dpup puppy4 lucid puppy3 puppy2 slacko slacko14
 
@@ -46,30 +51,30 @@ zesty-multiverse|deb|Packages-ubuntu-zesty-multiverse|http://ftp.filearena.net/p
 
 xenial|pet|Packages-puppy-xenial-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-xenial/|http://distro.ibiblio.org/puppylinux/pet_packages-xenial/|||xenial-main xenial-universe xenial-multiverse noarch common wary53x wary51x puppy5 puppy4
 xenial64|pet|Packages-puppy-xenial64-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-xenial64/|http://distro.ibiblio.org/puppylinux/pet_packages-xenial64/|||xenial xenial-main xenial-universe xenial-multiverse noarch common wary53x wary51x puppy5 puppy4
-xenial-main|deb|Packages-ubuntu-xenial-main|http://ftp.filearena.net/pub/ubuntu/ubuntu/||||xenial xenial64 xenial-universe noarch common quirky wary53x wary51x puppy5 puppy4
-xenial-universe|deb|Packages-ubuntu-xenial-universe|http://ftp.filearena.net/pub/ubuntu/ubuntu/||||xenial xenial64 xenial-main xenial-multiverse noarch common quirky wary53x wary51x puppy5 puppy4
-xenial-multiverse|deb|Packages-ubuntu-xenial-multiverse|http://ftp.filearena.net/pub/ubuntu/ubuntu/||||xenial xenial64 xenial-main xenial-universe noarch common quirky wary53x wary51x puppy5 puppy4
+xenial-main|deb|Packages-ubuntu-xenial-main|http://archive.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/|||xenial xenial64 xenial-universe noarch common quirky wary53x wary51x puppy5 puppy4
+xenial-universe|deb|Packages-ubuntu-xenial-universe|http://archive.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/|||xenial xenial64 xenial-main xenial-multiverse noarch common quirky wary53x wary51x puppy5 puppy4
+xenial-multiverse|deb|Packages-ubuntu-xenial-multiverse|http://archive.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/|||xenial xenial64 xenial-main xenial-universe noarch common quirky wary53x wary51x puppy5 puppy4
 
 raring|pet|Packages-puppy-raring-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-xenial64/|http://distro.ibiblio.org/puppylinux/pet_packages-raring/|||noarch common wary53x wary51x quirky puppy5 puppy4
-raring-main|deb|Packages-ubuntu-raring-main|http://ftp.filearena.net/pub/ubuntu/ubuntu/||||raring raring-universe noarch common wary53x wary51x puppy5 puppy4
-raring-universe|deb|Packages-ubuntu-raring-universe|http://ftp.filearena.net/pub/ubuntu/ubuntu/||||raring raring-main raring-multiverse noarch common wary53x wary51x puppy5 puppy4
-raring-multiverse|deb|Packages-ubuntu-raring-multiverse|http://ftp.filearena.net/pub/ubuntu/ubuntu/||||raring raring-main raring-universe noarch common wary53x wary51x puppy5 puppy4
+raring-main|deb|Packages-ubuntu-raring-main|http://archive.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/|||raring raring-universe noarch common wary53x wary51x puppy5 puppy4
+raring-universe|deb|Packages-ubuntu-raring-universe|http://archive.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/|||raring raring-main raring-multiverse noarch common wary53x wary51x puppy5 puppy4
+raring-multiverse|deb|Packages-ubuntu-raring-multiverse|http://archive.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/|||raring raring-main raring-universe noarch common wary53x wary51x puppy5 puppy4
 
 tahr|pet|Packages-puppy-tahr-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-tahr/|http://distro.ibiblio.org/puppylinux/pet_packages-tahr/|||noarch common trusty-main trusty-universe quirky wary53x wary51x akita puppy5 puppy4
 tahr64|pet|Packages-puppy-tahr64-official|http://distro.ibiblio.org/puppylinux/pet_packages-tahr64/||||noarch common tahr trusty-main trusty-universe quirky wary53x wary51x akita puppy5 puppy4
-trusty-main|deb|Packages-ubuntu-trusty-main|http://ftp.filearena.net/pub/ubuntu/ubuntu/|http://old-releases.ubuntu.com/ubuntu/|||tahr tahr64 tahr trusty-universe trusty-multiverse noarch common quirky wary53x wary51x akita puppy5 puppy4
-trusty-universe|deb|Packages-ubuntu-trusty-universe|http://ftp.filearena.net/pub/ubuntu/ubuntu/|http://old-releases.ubuntu.com/ubuntu/|||tahr tahr64 trusty-main trusty-multiverse noarch common quirky wary53x wary51x akita puppy5 puppy4
-trusty-multiverse|deb|Packages-ubuntu-trusty-multiverse|http://ftp.filearena.net/pub/ubuntu/ubuntu/|http://old-releases.ubuntu.com/ubuntu/|||tahr tahr64 trusty-main trusty-universe noarch common quirky wary53x wary51x akita puppy5 puppy4
+trusty-main|deb|Packages-ubuntu-trusty-main|http://archive.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/|http://old-releases.ubuntu.com/ubuntu/||tahr tahr64 tahr trusty-universe trusty-multiverse noarch common quirky wary53x wary51x akita puppy5 puppy4
+trusty-universe|deb|Packages-ubuntu-trusty-universe|http://archive.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/|http://old-releases.ubuntu.com/ubuntu/||tahr tahr64 trusty-main trusty-multiverse noarch common quirky wary53x wary51x akita puppy5 puppy4
+trusty-multiverse|deb|Packages-ubuntu-trusty-multiverse|http://archive.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/|http://old-releases.ubuntu.com/ubuntu/||tahr tahr64 trusty-main trusty-universe noarch common quirky wary53x wary51x akita puppy5 puppy4
 
 precise|pet|Packages-puppy-precise-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-precise/|http://distro.ibiblio.org/puppylinux/pet_packages-precise/|||precise-main precise-universe precise-multiverse noarch common quirky wary53x wary51x puppy5 puppy4
-precise-main|deb|Packages-ubuntu-precise-main|http://old-releases.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/|||precise precise-universe noarch common quirky wary53x wary51x puppy5 puppy4
-precise-universe|deb|Packages-ubuntu-precise-universe|http://old-releases.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/|||precise precise-main precise-multiverse noarch common quirky wary53x wary51x puppy5 puppy4
-precise-multiverse|deb|Packages-ubuntu-precise-multiverse|http://old-releases.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/|||precise precise-main precise-universe noarch common quirky wary53x wary51x puppy5 puppy4
+precise-main|deb|Packages-ubuntu-precise-main|http://archive.ubuntu.com/ubuntu/|http://old-releases.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/||precise precise-universe noarch common quirky wary53x wary51x puppy5 puppy4
+precise-universe|deb|Packages-ubuntu-precise-universe|http://archive.ubuntu.com/ubuntu/|http://old-releases.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/||precise precise-main precise-multiverse noarch common quirky wary53x wary51x puppy5 puppy4
+precise-multiverse|deb|Packages-ubuntu-precise-multiverse|http://archive.ubuntu.com/ubuntu/|http://old-releases.ubuntu.com/ubuntu/|http://ftp.filearena.net/pub/ubuntu/ubuntu/||precise precise-main precise-universe noarch common quirky wary53x wary51x puppy5 puppy4
 
 lucid|pet|Packages-puppy-lucid-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/|http://distro.ibiblio.org/puppylinux/|||lucid-main lucid-universe lucid-multiverse noarch common dpup quirky wary53x wary51x akita puppy5 puppy4 puppy3 puppy2
-lucid-main|deb|Packages-ubuntu-lucid-main|http://old-releases.ubuntu.com/ubuntu/|http://mirror.anl.gov/pub/ubuntu/|http://mirrors.kernel.org/ubuntu/|http://archive.ubuntu.com/ubuntu/|noarch common lucid upup lucid-multiverse lucid-universe lucid dpup wary53x quirky wary51x akita puppy5 puppy4 puppy3 puppy2
-lucid-multiverse|deb|Packages-ubuntu-lucid-multiverse|http://old-releases.ubuntu.com/ubuntu/|http://mirror.anl.gov/pub/ubuntu/|http://mirrors.kernel.org/ubuntu/|http://archive.ubuntu.com/ubuntu/|noarch common upup lucid lucid-main lucid-universe lucid dpup quirky wary53x wary51x akita puppy5 puppy4 puppy3 puppy2
-lucid-universe|deb|Packages-ubuntu-lucid-universe|http://old-releases.ubuntu.com/ubuntu/|http://mirror.anl.gov/pub/ubuntu/|http://mirrors.kernel.org/ubuntu/|http://archive.ubuntu.com/ubuntu/|noarch common upup lucid lucid-main lucid-multiverse lucid dpup quirky wary53x wary51x akita puppy5 puppy4 puppy3 puppy2
+lucid-main|deb|Packages-ubuntu-lucid-main|http://archive.ubuntu.com/ubuntu/|http://old-releases.ubuntu.com/ubuntu/|http://mirror.anl.gov/pub/ubuntu/|http://mirrors.kernel.org/ubuntu/|noarch common lucid upup lucid-multiverse lucid-universe lucid dpup wary53x quirky wary51x akita puppy5 puppy4 puppy3 puppy2
+lucid-multiverse|deb|Packages-ubuntu-lucid-multiverse|http://archive.ubuntu.com/ubuntu/|http://old-releases.ubuntu.com/ubuntu/|http://mirror.anl.gov/pub/ubuntu/|http://mirrors.kernel.org/ubuntu/|noarch common upup lucid lucid-main lucid-universe lucid dpup quirky wary53x wary51x akita puppy5 puppy4 puppy3 puppy2
+lucid-universe|deb|Packages-ubuntu-lucid-universe|http://archive.ubuntu.com/ubuntu/|http://old-releases.ubuntu.com/ubuntu/|http://mirror.anl.gov/pub/ubuntu/|http://mirrors.kernel.org/ubuntu/|noarch common upup lucid lucid-main lucid-multiverse lucid dpup quirky wary53x wary51x akita puppy5 puppy4 puppy3 puppy2
 
 upup|pet|Packages-puppy-upup-official|http://www.smokey01.com/pemasu/pet_packages-upup/||||noarch common lucid-multiverse lucid-universe lucid exprimo dpup squeeze-main squeeze-contrib squeeze-mmd_main squeeze-mmd_contrib squeeze-non-free squeeze-backports lucid-main wary53x quirky wary51x akita slacko slacko14 puppy4 puppy3 puppy2
 
@@ -98,3 +103,17 @@ squeeze-non-free|deb|Packages-debian-squeeze-non-free|url1||||noarch common sque
 
 dpup|pet|Packages-puppy-dpup-official|http://www.smokey01.com/pemasu/pet_packages-dpup/||||noarch common exprimo squeeze-main squeeze-contrib squeeze-mmd_main squeeze-mmd_contrib squeeze-non-free squeeze-backports upup lucid-main lucid-multiverse lucid-universe lucid wary53x quirky wary51x akita slacko slacko14 puppy4 puppy3 puppy2
 exprimo|pet|Packages-puppy-exprimo-official|http://www.smokey01.com/pemasu/pet_packages-exprimo/||||noarch common dpup squeeze-main squeeze-contrib squeeze-mmd_main squeeze-mmd_contrib squeeze-non-free squeeze-backports upup lucid-main lucid-multiverse lucid-universe lucid wary53x quirky wary51x akita slacko slacko14 puppy4 puppy3 puppy2
+
+artful|pet|Packages-puppy-artful-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-artful/|http://distro.ibiblio.org/puppylinux/pet_packages-artful/|||artful-extra noarch common artful-main artful-universe artful-multiverse xenial tahr precise wary5
+artful-extra|pet|Packages-extra-artfulpup|http://smokey01.com/peebee/artfulpup/extras/||||artful noarch common artful-main artful-universe artful-multiverse xenial tahr precise wary5
+artful-main|deb|Packages-ubuntu-artful-main|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/|||artful artful-extra noarch common artful-universe artful-multiverse xenial tahr precise wary5
+artful-universe|deb|Packages-ubuntu-artful-universe|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/|||artful artful-extra noarch common artful-main artful-multiverse xenial tahr precise wary5
+artful-multiverse|deb|Packages-ubuntu-artful-multiverse|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/|||artful artful-extra noarch common artful-main artful-universe xenial tahr precise wary5
+
+upupbb|pet|Packages-puppy-upupbb-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-upupbb/|http://distro.ibiblio.org/puppylinux/pet_packages-upupbb/|||upupbb-extra noarch common32 bionic-main bionic-universe bionic-multiverse xenial tahr precise wary5
+upupbb-extra|pet|Packages-extra-upupbb|http://smokey01.com/peebee/upupbb/extras/||||upupbb noarch common32 bionic-main bionic-universe bionic-multiverse xenial tahr precise wary5
+bionic-main|deb|Packages-ubuntu-bionic-main|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/|||upupbb upupbb-extra noarch common32 bionic-universe bionic-multiverse xenial tahr precise wary5
+bionic-universe|deb|Packages-ubuntu-bionic-universe|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/|||upupbb upupbb-extra noarch common32 bionic-main bionic-multiverse xenial tahr precise wary5
+bionic-multiverse|deb|Packages-ubuntu-bionic-multiverse|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/|||upupbb upupbb-extra noarch common32 bionic-main bionic-universe xenial tahr precise wary5
+
+
