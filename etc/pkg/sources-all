@@ -106,14 +106,14 @@ exprimo|pet|Packages-puppy-exprimo-official|http://www.smokey01.com/pemasu/pet_p
 
 artful|pet|Packages-puppy-artful-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-artful/|http://distro.ibiblio.org/puppylinux/pet_packages-artful/|||artful-extra noarch common artful-main artful-universe artful-multiverse xenial tahr precise wary5
 artful-extra|pet|Packages-extra-artfulpup|http://smokey01.com/peebee/artfulpup/extras/||||artful noarch common artful-main artful-universe artful-multiverse xenial tahr precise wary5
-artful-main|deb|Packages-ubuntu-artful-main|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/|||artful artful-extra noarch common artful-universe artful-multiverse xenial tahr precise wary5
-artful-universe|deb|Packages-ubuntu-artful-universe|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/|||artful artful-extra noarch common artful-main artful-multiverse xenial tahr precise wary5
-artful-multiverse|deb|Packages-ubuntu-artful-multiverse|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/|||artful artful-extra noarch common artful-main artful-universe xenial tahr precise wary5
+artful-main|deb|Packages-ubuntu-artful-main|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/||artful artful-extra noarch common artful-universe artful-multiverse xenial tahr precise wary5
+artful-universe|deb|Packages-ubuntu-artful-universe|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/||artful artful-extra noarch common artful-main artful-multiverse xenial tahr precise wary5
+artful-multiverse|deb|Packages-ubuntu-artful-multiverse|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/||artful artful-extra noarch common artful-main artful-universe xenial tahr precise wary5
 
 upupbb|pet|Packages-puppy-upupbb-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-upupbb/|http://distro.ibiblio.org/puppylinux/pet_packages-upupbb/|||upupbb-extra noarch common32 bionic-main bionic-universe bionic-multiverse xenial tahr precise wary5
 upupbb-extra|pet|Packages-extra-upupbb|http://smokey01.com/peebee/upupbb/extras/||||upupbb noarch common32 bionic-main bionic-universe bionic-multiverse xenial tahr precise wary5
-bionic-main|deb|Packages-ubuntu-bionic-main|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/|||upupbb upupbb-extra noarch common32 bionic-universe bionic-multiverse xenial tahr precise wary5
-bionic-universe|deb|Packages-ubuntu-bionic-universe|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/|||upupbb upupbb-extra noarch common32 bionic-main bionic-multiverse xenial tahr precise wary5
-bionic-multiverse|deb|Packages-ubuntu-bionic-multiverse|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/|||upupbb upupbb-extra noarch common32 bionic-main bionic-universe xenial tahr precise wary5
+bionic-main|deb|Packages-ubuntu-bionic-main|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/||upupbb upupbb-extra noarch common32 bionic-universe bionic-multiverse xenial tahr precise wary5
+bionic-universe|deb|Packages-ubuntu-bionic-universe|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/||upupbb upupbb-extra noarch common32 bionic-main bionic-multiverse xenial tahr precise wary5
+bionic-multiverse|deb|Packages-ubuntu-bionic-multiverse|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/||upupbb upupbb-extra noarch common32 bionic-main bionic-universe xenial tahr precise wary5
 
 
