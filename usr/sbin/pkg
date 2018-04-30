@@ -3034,7 +3034,8 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
               #echo "Checking '$curr_repo' repo mirrors..."
               for URL in $curr_repo_url_list
               do
-                LANG=C ping -W2 -c1 -q `echo  ${URL} | awk -F/ '{print $3}'` &>/dev/null
+                [ -z "$URL" ] && continue
+                LANG=C ping -W2 -c1 -q `echo  "${URL}" | awk -F/ '{print $3}'` &>/dev/null
                 REPLY=$?
                 if [ "$REPLY" = 0 ];then
                   # set the current URL
@@ -3068,7 +3069,7 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
             [ "$sub_dir" != '' ] && DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e "s@//${sub_dir}@/${sub_dir}@g" -e "s@${sub_dir}//@${sub_dir}/@g"`"
             
             # exit if URL is not found (if we get a 404 back)
-            if [ "`wget -S --spider $DOWNLOAD_URL 2>&1 | grep 'HTTP/1.1 404 Not Found'`" != '' ]; then
+            if [ -z "$DOWNLOAD_URL" -o "`wget -S --spider "$DOWNLOAD_URL" 2>&1 | grep -m1 'HTTP/1.1 404 Not Found'`" != '' ]; then
               error "Package URL not found"
               return 8
             fi
@@ -3077,7 +3078,7 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
             #  remember the new one
             if [ "$OLDURL" != "$DOWNLOAD_URL" ];then
               export OLDURL="$DOWNLOAD_URL";
-              #echo -e "URL: ${lightblue}${DOWNLOAD_URL}${endcolour}"; 
+              echo -e "URL: ${lightblue}${DOWNLOAD_URL}${endcolour}"; 
             fi
             
             # if --force, remove the package if it already exists
