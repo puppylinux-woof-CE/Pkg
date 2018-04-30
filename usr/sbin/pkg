@@ -3053,7 +3053,8 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
               error "Package URL not found"
               return 8
             fi
-                        # lets build our DOWNLOAD_URL: set it to the working repo mirror we found above
+            
+            # lets build our DOWNLOAD_URL: set it to the working repo mirror we found above
             DOWNLOAD_URL="${curr_repo_url}"
             
             # now add the subdir to DOWNLOAD_URL .. sub_dir may be empty, but we add a trailing '/' anyway
