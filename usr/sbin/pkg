@@ -6461,8 +6461,8 @@ while [ $# != 0 ]; do # get all options ($# means all options)
         --force|-f)       export FORCE=true ;;
         --no-color)       green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
         --no-colour|-nc)  green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
-        '--configure='*)  export PKG_CONFIGURE="$(echo "$x" | sed -e 's/^--configure=//')" ;;
-        '--cflags='*)     export PKG_CFLAGS="$(echo "$x" | sed -e 's/^--cflags=//')"       ;;
+        '--configure='*)  PKG_CONFIGURE="$(echo "$x" | sed -e 's/^--configure=//')" ;;
+        '--cflags='*)     PKG_CFLAGS="$(echo "$x" | sed -e 's/^--cflags=//')"       ;;
       esac
     done
 
@@ -6498,8 +6498,8 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --force|-f)       export FORCE=true ;;
       --no-color)       green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
       --no-colour|-nc)  green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
-      '--configure='*)  export PKG_CONFIGURE="$(echo "$1" | sed -e 's/^--configure=//')" ;;
-      '--cflags='*)     export PKG_CFLAGS="$(echo "$1" | sed -e 's/^--cflags=//')"       ;;
+      '--configure='*)  PKG_CONFIGURE="$(echo "$1" | sed -e 's/^--configure=//')" ;;
+      '--cflags='*)     PKG_CFLAGS="$(echo "$1" | sed -e 's/^--cflags=//')"       ;;
 
       # package search
       --all-pkgs|--all)                 [ ! "$2" ] && cat ${HOME}/.packages/${REPOFILE} || cat ${HOME}/.packages/${REPOFILE} | grep "$2"; exit 0;; 
