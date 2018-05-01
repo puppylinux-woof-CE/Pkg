@@ -54,6 +54,8 @@ green="\e[32m"; red="\e[91m"; magenta="\e[95m"; lightblue="\e[36m"; yellow="\e[9
 [ -z "$NO_ALIASES"     ] && export NO_ALIASES=false     # if true, skip searching pkg alias names for pkg alternatives
 [ -z "$NO_INSTALL"     ] && export NO_INSTALL=false     # if true, skip installing of pkgs
 [ -z "$PKG_NO_COLOURS" ] && export PKG_NO_COLOURS=false # if true, disable coloured output or not
+[ -z "$PKG_CONFIGURE"  ] && export PKG_CONFIGURE=''     # reset
+[ -z "$PKG_CFLAGS"     ] && export PKG_CFLAGS=''        # reset
 
 # but disable colours if called as gpkg, or the ENV variable PKG_NO_COLOURS is true
 if [ "`basename $0`" != "pkg" -o "$PKG_NO_COLOURS" = true ];then
@@ -2180,7 +2182,7 @@ pkg_build(){                     # builds packages from source (see BUILDTOOL in
       [ ! -f "$BUILDSCRIPT" ] && echo "Build script for '$PKGNAME' not found in /usr/share/buildpet/" && exit 1
 
       # now compile the package
-      buildpet $BUILDSCRIPT
+      PKG_CONFIGURE="$PKG_CONFIGURE" PKG_CFLAGS="$PKG_CFLAGS" buildpet $BUILDSCRIPT
 
     ;;
   
@@ -6436,18 +6438,10 @@ while [ $# != 0 ]; do # get all options ($# means all options)
    I=1
    while [ ! -z $# -a $I -le `echo $# | wc -c` ]; do
     
-    # enable passing multiple pkgs separated by comma, space, 
-    # works with or without double quotes around pkgs
-    opt="`shift; echo "$@"`"
-    opt="${opt//,/ }"
-    opt="${opt//|/ }"
-    # only keep params up to the next option
-    opt="${opt// -*/}"
-
     # accept from stdin, (using dash (-) as final option)
-    for x in $1 $2 $3 $4 $5 $6 $7 $8
+    for x in "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9"
     do
-      case $x in 
+      case "$x" in 
         -)
           while true; do
             read ALINE
@@ -6467,8 +6461,18 @@ while [ $# != 0 ]; do # get all options ($# means all options)
         --force|-f)       export FORCE=true ;;
         --no-color)       green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
         --no-colour|-nc)  green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
+        '--configure='*)  export PKG_CONFIGURE="$(echo "$x" | sed -e 's/^--configure=//')" ;;
+        '--cflags='*)     export PKG_CFLAGS="$(echo "$x" | sed -e 's/^--cflags=//')"       ;;
       esac
     done
+
+    # enable passing multiple pkgs separated by comma, space, 
+    # works with or without double quotes around pkgs
+    opt="`shift; echo "$@"`"
+    opt="${opt//,/ }"
+    opt="${opt//|/ }"
+    # only keep params up to the next option
+    opt="${opt// -*/}"
 
     ## main options   
     case $1 in
@@ -6494,6 +6498,8 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --force|-f)       export FORCE=true ;;
       --no-color)       green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
       --no-colour|-nc)  green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
+      '--configure='*)  export PKG_CONFIGURE="$(echo "$1" | sed -e 's/^--configure=//')" ;;
+      '--cflags='*)     export PKG_CFLAGS="$(echo "$1" | sed -e 's/^--cflags=//')"       ;;
 
       # package search
       --all-pkgs|--all)                 [ ! "$2" ] && cat ${HOME}/.packages/${REPOFILE} || cat ${HOME}/.packages/${REPOFILE} | grep "$2"; exit 0;; 
@@ -6537,7 +6543,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       -PS|PS)                             [ ! "$2" ] && pkg_status  || for x in $opt; do [ "$x" -a "$x" != "-" ] && HIDE_USER_PKGS=false FULL_PKG_STATUS=true pkg_status "$x"; done;; # full pkg status, with sorted deps
 
       # pkg compiling
-      --pkg-build|-pb|build|pb)           [ ! "$2" ] && pkg_build || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_build "$x"; done;;
+      --pkg-build|-pb|build|pb)           [ ! "$2" ] && pkg_build || for x in $opt; do [ "$x" -a "$x" != "-" ] && PKG_CONFIGURE="$PKG_CONFIGURE" PKG_CFLAGS="$PKG_CFLAGS" pkg_build "$x"; done;;
    --pkg-build-list|-pbl|build-list|pbl)  [ ! "$2" ] && list_build_scripts || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_build_scripts "$x"; done;;
       
       # dependencies

@@ -20,7 +20,7 @@ case $(uname -m) in
 		;;
 esac
 
-export CFLAGS="$CFLAGS1 -Os -fomit-frame-pointer -pipe"
+export CFLAGS="$CFLAGS1 -Os -fomit-frame-pointer -pipe $PKG_CFLAGS"
 export CXXFLAGS="$CFLAGS"
 export LDFLAGS="-Wl,-L/lib,-L/usr/lib,-L/usr/X11R7/lib"
 export PKG_CONFIG_PATH="/usr/lib/pkgconfig:/usr/X11R7/lib/pkgconfig"
@@ -28,19 +28,24 @@ export PKG_CONFIG_PATH="/usr/lib/pkgconfig:/usr/X11R7/lib/pkgconfig"
 # the number of threads
 BUILD_THREADS="$(cat /proc/cpuinfo | grep processor | wc -l)"
 
-# the base install prefix for packages
-BASE_INSTALL_PREFIX="/usr"
-
 # the package target
 BUILD_TARGET="$PKG_ARCH-puppy-linux-gnu"
 
-# the base flags for ./configure or ./autogen.sh
+# the base install prefix for packages
+BASE_INSTALL_PREFIX="/usr"
+
+# if PKG_CONFIGURE sets new PREFIX dir, apply it to BASE_INSTALL_PREFIX
+[ "`echo "$PKG_CONFIGURE" | grep -m1 'prefix='`" != '' ] && \
+  BASE_INSTALL_PREFIX="`echo "$PKG_CONFIGURE" | sed -e 's/.*prefix=//g' -e 's/ .*//'`"
+
+# the base flags for ./configure or ./autogen.sh, with $PKG_CONFIGURE appended
 BASE_CONFIGURE_ARGS="--build=$BUILD_TARGET \
                      --libexecdir=$BASE_INSTALL_PREFIX/lib$LIBDIR_SUFFIX/$PKG_NAME \
                      --sysconfdir=/etc --localstatedir=/var \
                      --mandir=$BASE_INSTALL_PREFIX/share/man \
                      --prefix=$BASE_INSTALL_PREFIX --disable-static --enable-shared \
-                     --disable-debug --without-pic"
+                     --disable-debug --without-pic \
+                     $PKG_CONFIGURE"
 
 #########
 # fonts #
