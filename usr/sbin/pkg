@@ -30,24 +30,24 @@ APPTITLE="$APPNAME $APPVER"
 USER_LANG=$LANG
 USER_LC_ALL=$LC_ALL
 
-export SELF=$(basename $0)        # this script
-export QTAG=''                    # gets set to (y/n) if ASK=-true
-export LANG=C                     # speed up
-export LC_ALL=C                   # speed up
-export EDITOR=${EDITOR:-nano}     # just in case
-export PAGER=${PAGER:-less}       # just in case
-export CURDIR="${PWD}"            # get current dir, before cd to WORKDIR
-export TMPDIR=/tmp/pkg/${whoami}  # set the tmp dir
-export CP_SUFFIX=PLUSDEPS         # appended to combined pkgs (pkg+deps) 
+SELF=$(basename $0)        # this script
+QTAG=''                    # gets set to (y/n) if ASK=-true
+LANG=C                     # speed up
+LC_ALL=C                   # speed up
+EDITOR=${EDITOR:-vi}       # just in case
+PAGER=${PAGER:-less}       # just in case
+CURDIR="${PWD}"            # get current dir, before cd to WORKDIR
+TMPDIR=/tmp/pkg/${whoami}  # set the tmp dir
+CP_SUFFIX=PLUSDEPS         # appended to combined pkgs (pkg+deps) 
 
 # set colours true by default
 green="\e[32m"; red="\e[91m"; magenta="\e[95m"; lightblue="\e[36m"; yellow="\e[93m"; bold="\e[1m"; endcolour="\e[0m"
 
 # ENVIRONMENT VARS, which may overridden later
 [ -z "$PKGRC" ] && export PKGRC=${HOME}/.pkg/pkgrc      # config file for this script
-[ -z "$ASK"   ] && export ASK=false                     # if true, ask user before doing stuff. Overridden by --ask
-[ -z "$QUIET" ] && export QUIET=false                   # if true, hide output that doesnt log well in Xdialog, Gtkdialog, etc
-[ -z "$FORCE" ] && export FORCE=false                   # if true, force (re)install/remove pkgs. Overridden by --force
+[ -z "$ASK"   ] && ASK=false                            # if true, ask user before doing stuff. Overridden by --ask
+[ -z "$QUIET" ] && QUIET=false                          # if true, hide output that doesnt log well in Xdialog, Gtkdialog, etc
+[ -z "$FORCE" ] && FORCE=false                          # if true, force (re)install/remove pkgs. Overridden by --force
 [ -z "$HIDE_INSTALLED" ] && export HIDE_INSTALLED=false # if true, hide installed pkgs from pkg searches (-n, -na, -ss, -ssa)
 [ -z "$HIDE_BUILTINS"  ] && export HIDE_BUILTINS=true   # if true, remove builtins pkgs from dep lists, dont download/install them
 [ -z "$HIDE_USER_PKGS" ] && export HIDE_USER_PKGS=true  # if true, hide user installed pkgs from dep lists, dont download/install them
@@ -121,9 +121,9 @@ fi
 
 # set correct arch for repo URLs
 case "$DISTRO_TARGETARCH" in
-  x86)    export DBIN_ARCH=i486                       ;;
-  x86_64) export DBIN_ARCH=x86_64 ; export DSUFFIX=64 ;;
-  *)      export DBIN_ARCH=i486                       ;;
+  x86)    DBIN_ARCH=i486                ;;
+  x86_64) DBIN_ARCH=x86_64 ; DSUFFIX=64 ;;
+  *)      DBIN_ARCH=i486                ;;
 esac
 
 # needed for some debian based repos
@@ -159,14 +159,15 @@ if [ ! -d "$WORKDIR" ];then
   error "Can't create $WORKDIR. Please create it."
   exit 3
 fi
-export WORKDIR=~/pkg 
+WORKDIR=~/pkg 
 
 # add to tab completion settings to bashrc and print hint
-if [ "`grep -m1 '/etc/bash_completion.d/pkg' ~/.bashrc 2>/dev/null`" = "" ];then
+if [ -z "$PKG_TAB_COMPLETION" ];then
   # add to bash rc
-  echo "
-# enable $APPNAME $APPVER TAB completion
-. /etc/bash_completion.d/pkg 2>/dev/null" >> ~/.bashrc
+  echo "" >> ~/.bashrc
+  echo "# enable $APPNAME $APPVER TAB completion" >> ~/.bashrc
+  echo "export PKG_TAB_COMPLETION=true" >> ~/.bashrc
+  echo ". /etc/bash_completion.d/pkg 2>/dev/null" >> ~/.bashrc
   # print msg
   echo -e "Run ${bold}source /etc/bash_completion.d/pkg${endcolour} to enable "
   echo "TAB auto-completion of package and repo names."
@@ -182,7 +183,7 @@ fi
 [ ! -d "$TMPDIR" ] && error "Cannot create temp dir ${lightblue}$TMPDIR${endcolour}" && exit 3
 
 # support aliases, create ALIASES tmp file
-export PKG_NAME_ALIASES='mozilla-firefox,firefox gtk+,gtk2 gtk2,gtk+2 dirac,schroedinger hunspell,myspell mp,mped mplayer,mplayer_*,mplayer-*,mplayer2,smplayer,gmplayer mrxvt,rxvt-unicode,xterm,urxvt,urxvt-unicode cxxlibs,glibc*,libc-* glibc-solibs,glibcsolibs alsalib,alsa-lib,alsa-lib2* alsautils,alsa-utils,alsa_utils,alsa-utils2* libungif,libgif,giflib zip,infozip dbus,libdbus*,libdbus-glib* hal,libhal* mesa,mesa_*,libgl1-mesa*,mesa-common* libxcb,libxcb_base sane,sane-backends samba,samba-tng,samba_*,mountcifs SDL_*,libsdl_* SDL,libsdl skype,skype_static util_linux_ng,util-linux-ng,util-linux,util_linux,utillinuxng vlc,vlc-nogui,vlc_nogui,VLC_Plus_Extras xf86-video-ati,xf86-video-ati-*,ati_fglrx xfdiff,xfdiff-cut xorg_base,xorg_base_t2,x11-common,x-dev,xorg,xorg73_base_t2 acl,libacl* xdg_puppy,xdg-utils perl_tiny,perl-base,perl-modules,perlapi* xorg-util-macros,util-macros portaudio,libportaudio jack-audio-connection-kit,libjack libjasper,jasper imlib2,libimlib2 imlib,libimlib'
+PKG_NAME_ALIASES='mozilla-firefox,firefox gtk+,gtk2 gtk2,gtk+2 dirac,schroedinger hunspell,myspell mp,mped mplayer,mplayer_*,mplayer-*,mplayer2,smplayer,gmplayer mrxvt,rxvt-unicode,xterm,urxvt,urxvt-unicode cxxlibs,glibc*,libc-* glibc-solibs,glibcsolibs alsalib,alsa-lib,alsa-lib2* alsautils,alsa-utils,alsa_utils,alsa-utils2* libungif,libgif,giflib zip,infozip dbus,libdbus*,libdbus-glib* hal,libhal* mesa,mesa_*,libgl1-mesa*,mesa-common* libxcb,libxcb_base sane,sane-backends samba,samba-tng,samba_*,mountcifs SDL_*,libsdl_* SDL,libsdl skype,skype_static util_linux_ng,util-linux-ng,util-linux,util_linux,utillinuxng vlc,vlc-nogui,vlc_nogui,VLC_Plus_Extras xf86-video-ati,xf86-video-ati-*,ati_fglrx xfdiff,xfdiff-cut xorg_base,xorg_base_t2,x11-common,x-dev,xorg,xorg73_base_t2 acl,libacl* xdg_puppy,xdg-utils perl_tiny,perl-base,perl-modules,perlapi* xorg-util-macros,util-macros portaudio,libportaudio jack-audio-connection-kit,libjack libjasper,jasper imlib2,libimlib2 imlib,libimlib'
 [ ! -f "$TMPDIR/pkg_aliases" ] && echo "$PKG_NAME_ALIASES" | tr ' ' '\n' > $TMPDIR/pkg_aliases
 
 # remove error code flag if we got here
@@ -884,7 +885,6 @@ set_workdir(){                    # set new WORKDIR in rc file location FUNCLIST
 
   # update the RC file
   WORKDIR="$1"
-  export WORKDIR
   set_config
   echo "Success. Work directory updated."
   exit 0
@@ -1090,19 +1090,19 @@ show_config(){                    # show config settings from ~/.pkg/pkgrc FUNCL
 
 get_repo_info(){                  # return details of given repo name FUNCLIST
   [ ! "$1" -o "$1" = "-" ] && print_usage repo-info && exit 1
-  export REPOLINE="`list_all_sources $1`" #170214 always get latest info, not info from rcfile
+  REPOLINE="`list_all_sources $1`" #170214 always get latest info, not info from rcfile
 
   # on first run, this might be needed to se the repo correctly
-  [ "$REPOLINE" = '' ] && export REPOLINE="`list_all_sources noarch`"
+  [ "$REPOLINE" = '' ] && REPOLINE="`list_all_sources noarch`"
 
-  export REPONAME="`echo $REPOLINE | cut -f1 -d'|'`"
-  export       EX="`echo $REPOLINE | cut -f2 -d'|'`"
-  export REPOFILE="`echo $REPOLINE | cut -f3 -d'|'`"
-  export REPOURL1="`echo $REPOLINE | cut -f4 -d'|'`"
-  export REPOURL2="`echo $REPOLINE | cut -f5 -d'|'`"
-  export REPOURL3="`echo $REPOLINE | cut -f6 -d'|'`"
-  export REPOURL4="`echo $REPOLINE | cut -f7 -d'|'`"
-  export REPOFALLBACKS="`echo "$REPOLINE"| cut -f8 -d'|'`"
+  REPONAME="`echo $REPOLINE | cut -f1 -d'|'`"
+        EX="`echo $REPOLINE | cut -f2 -d'|'`"
+  REPOFILE="`echo $REPOLINE | cut -f3 -d'|'`"
+  REPOURL1="`echo $REPOLINE | cut -f4 -d'|'`"
+  REPOURL2="`echo $REPOLINE | cut -f5 -d'|'`"
+  REPOURL3="`echo $REPOLINE | cut -f6 -d'|'`"
+  REPOURL4="`echo $REPOLINE | cut -f7 -d'|'`"
+  REPOFALLBACKS="`echo "$REPOLINE"| cut -f8 -d'|'`"
 }
 
 
@@ -3004,7 +3004,7 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
           if [ "$CONFIRM" = "y" ];then #25073
 
             # only ask once
-            export ASK=false
+            ASK=false
 
             echo # start a new line
 
@@ -3085,7 +3085,7 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
             # we may be using multiple URLs, so each time we change URL,
             #  remember the new one
             if [ "$OLDURL" != "$DOWNLOAD_URL" ];then
-              export OLDURL="$DOWNLOAD_URL";
+              OLDURL="$DOWNLOAD_URL";
               echo -e "URL: ${lightblue}${DOWNLOAD_URL}${endcolour}"; 
             fi
             
@@ -3273,7 +3273,7 @@ pkg_install(){                   # install a downloaded package FUNCLIST
       [ "$ASK" != true ] && echo
       
       # only ask once
-      export ASK=false
+      ASK=false
 
       #if [ "`pkg_contents "$PKGFILE" 2>/dev/null`" = '' ];then
       # error "$PKGFILE not a valid package."
@@ -4211,7 +4211,7 @@ pkg_get(){                       # find, download and install packages and deps 
   local pkg_builtin=''
 
   # dont ask to download or install pkg or deps, as choose_pkg() already asked
-  export ASK=false
+  ASK=false
 
   # exit if no valid pkg name
   [ ! "$PKGNAME" -o "$PKGNAME" = "" -o "$PKGNAME" = "-" ] && print_usage get && exit 1
@@ -4512,8 +4512,8 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
   # we dont set HIDE_BUILTINS here, we leave that up to user
   # when user gives -F, HIDE_BUILTINS= false, and builtin 
   # pkgs will be included in the package created
-  export FORCE=true
-  export HIDE_USER_PKGS=false
+  FORCE=true
+  HIDE_USER_PKGS=false
   
   # get full pkg filename (inc name-ver.ext).. try repos first
   PKG_FILENAME="`cut -f8 -d'|' ${HOME}/.packages/Packages-* | grep -m1 "^$PKGNAME"`"
@@ -5311,9 +5311,6 @@ find_deps(){                     # make 2 lists: DEPS_INSTALLED and DEPS_MISSING
   # later, get_deps() will use $DEPS_MISSING and $DEPS_INSTALLED
   DEPS_MISSING="$deps_missing"
   DEPS_INSTALLED="$deps_installed"
-  # so export for other funcs to use
-  export DEPS_MISSING
-  export DEPS_INSTALLED
   
   # end appending dots... msg, by printing a new line
   [ "$loading_indicator" != '' ] && echo 
@@ -5386,7 +5383,7 @@ get_deps(){                      # find, get and install the deps of pkg FUNCLIS
     if [ "$DEPCONFIRM" = "y" -o "$FORCE" = true ];then
 
       # only ask once
-      export ASK=false
+      ASK=false
 
       # make a list of the deps, each on a new line for each dep/newline
       WARNLIBS=''; SEP='';
@@ -6456,9 +6453,9 @@ while [ $# != 0 ]; do # get all options ($# means all options)
           done
           break
         ;; 
-        --ask|-a)         export ASK=true ; export QTAG="?  (y/N)";;
-        --quiet|-q)       export QUIET=true ;;
-        --force|-f)       export FORCE=true ;;
+        --ask|-a)         ASK=true ; QTAG="?  (y/N)";;
+        --quiet|-q)       QUIET=true ;;
+        --force|-f)       FORCE=true ;;
         --no-color)       green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
         --no-colour|-nc)  green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
         '--configure='*)  PKG_CONFIGURE="$(echo "$x" | sed -e 's/^--configure=//')" ;;
@@ -6493,9 +6490,9 @@ while [ $# != 0 ]; do # get all options ($# means all options)
         fi
       ;; 
 
-      --ask|-a)         export ASK=true ; export QTAG="?  (y/N)";;
-      --quiet|-q)       export QUIET=true ;;
-      --force|-f)       export FORCE=true ;;
+      --ask|-a)         ASK=true ; QTAG="?  (y/N)";;
+      --quiet|-q)       QUIET=true ;;
+      --force|-f)       FORCE=true ;;
       --no-color)       green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
       --no-colour|-nc)  green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
       '--configure='*)  PKG_CONFIGURE="$(echo "$1" | sed -e 's/^--configure=//')" ;;
