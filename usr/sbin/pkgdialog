@@ -15,20 +15,21 @@ export LC_ALL=C
 set -a
 
 #set pkg to not use coloured output, messes up pkgdialog output
+# also set tab completion true, to suppress warnings
 npkg () {
-	PKG_NO_COLOURS=true pkg --quiet "$@"
+	PKG_TAB_COMPLETION=true PKG_NO_COLOURS=true pkg --quiet "$@"
 }
 
 getpkg () {
-	PKG_NO_COLOURS=true pkg --quiet -g "$@" && echo "Finished."
+	PKG_TAB_COMPLETION=true	PKG_NO_COLOURS=true pkg --quiet -g "$@" && echo "Finished."
 }
 
 installpkg () {
-	PKG_NO_COLOURS=true pkg -i "$@" && echo "Finished."
+	PKG_TAB_COMPLETION=true PKG_NO_COLOURS=true pkg -i "$@" && echo "Finished."
 }
 
 uninstallpkg () {
-	PKG_NO_COLOURS=true pkg -u "$@" && echo "Finished."
+	PKG_TAB_COMPLETION=true PKG_NO_COLOURS=true pkg -u "$@" && echo "Finished."
 }
 
 export npkg

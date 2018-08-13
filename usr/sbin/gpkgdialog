@@ -73,7 +73,7 @@ rm -f $TEMPDIR/gpkgdialog-popup-msg-done 2>/dev/null
 {
 
 pkgr() {
-	pkg --no-color --quiet "$FORCEOPT" "$@" 2>/dev/null
+	PKG_TAB_COMPLETION=true pkg --no-color --quiet "$FORCEOPT" "$@" 2>/dev/null
 }
 
 set_gtkrc () { # set gtk theme for gui 

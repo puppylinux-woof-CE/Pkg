@@ -43,7 +43,7 @@ CP_SUFFIX=PLUSDEPS         # appended to combined pkgs (pkg+deps)
 # set colours true by default
 green="\e[32m"; red="\e[91m"; magenta="\e[95m"; lightblue="\e[36m"; yellow="\e[93m"; bold="\e[1m"; endcolour="\e[0m"
 
-# ENVIRONMENT VARS, which may overridden later
+# ENVIRONMENT VARS, which may be overridden later
 [ -z "$PKGRC" ] && export PKGRC=${HOME}/.pkg/pkgrc      # config file for this script
 [ -z "$ASK"   ] && ASK=false                            # if true, ask user before doing stuff. Overridden by --ask
 [ -z "$QUIET" ] && QUIET=false                          # if true, hide output that doesnt log well in Xdialog, Gtkdialog, etc
@@ -150,7 +150,7 @@ elif [ "$PUPMODE" = "2" ]; then
 fi
 
 # get repo details, workdir, search settings and so on.. you could 
-# also add any ENVIRONMENT VARS above to PKGRC, to override the defaults
+# you can also add any ENVIRONMENT VARS above to PKGRC, to override the defaults
 . ${PKGRC} 
 
 # set and create workdir if no valid dir set
@@ -168,9 +168,6 @@ if [ -z "$PKG_TAB_COMPLETION" ];then
   echo "# enable $APPNAME $APPVER TAB completion" >> ~/.bashrc
   echo "export PKG_TAB_COMPLETION=true" >> ~/.bashrc
   echo ". /etc/bash_completion.d/pkg 2>/dev/null" >> ~/.bashrc
-  # print msg
-  echo -e "Run ${bold}source /etc/bash_completion.d/pkg${endcolour} to enable "
-  echo "TAB auto-completion of package and repo names."
 fi
 
 # make tmp dir writable by everyone if needed
@@ -204,13 +201,13 @@ set -a
 
 print_usage(){                    # print usage text. Requires $1, a valid Pkg cmd FUNCLIST
   
-  local examples_file=/usr/lib/pkg/docs/examples.txt
+  local examples_file=/usr/share/pkg/docs/examples.txt
   
   [ -f $examples_file ] && source $examples_file
   
   # get and print the usage info from its usage file
-  if [ -f /usr/lib/pkg/docs/usage/$1 -a "$1" ];then
-    source /usr/lib/pkg/docs/usage/$1
+  if [ -f /usr/share/pkg/docs/usage/$1 -a "$1" ];then
+    source /usr/share/pkg/docs/usage/$1
     echo -e "\n$USAGE"
     # show examples, taken from $EXAMPLES, if they exist
     if [ "`echo "$EXAMPLES" | grep "$SELF" | grep "\-$1"`" != '' ];then
@@ -246,7 +243,7 @@ extract        status           rdep-check
 force          update           what-needs
 func-list      workdir          
 Usage: ${bold}$SELF --usage CMD${endcolour}"
-    #cd /usr/lib/pkg/docs/usage/; echo `ls` | fold -w 70 -s
+    #cd /usr/share/pkg/docs/usage/; echo `ls` | fold -w 70 -s
   fi
   exit 1
 }
@@ -629,12 +626,7 @@ is_installed_pkg(){               # takes exact match of pkgname, prints true|fa
   [ "$check" = '' ] && check="`HIDE_BUILTINS=false list_installed_pkgs | grep -m1 ^"$PKGNAME"`"
   
   # if any checks above returned a result, $check will not be empty (ash didn't like grep -q, not sure why?)
-  [ "$check" != '' ] && echo true && return 0 # pkg is installed
-  
-  # if we made it here, the given pkg is not installed
-  echo false
-  exit 1
-
+  [ "$check" != '' ] && echo true || echo false
 }
 
 
@@ -6593,20 +6585,22 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --usage|usage)              print_usage "$2"; exit 0;;
       
       --examples|-ex|examples|ex) 
-        . /usr/lib/pkg/docs/examples.txt;
+        . /usr/share/pkg/docs/examples.txt;
         echo -e "$EXAMPLES\n"
         exit 0
         ;;
       --help-all|-H|help-all|H)  
-          . /usr/lib/pkg/docs/help.txt
-          . /usr/lib/pkg/docs/examples.txt
-          . /usr/lib/pkg/docs/help-all.txt
+          . /usr/share/pkg/docs/env_vars.txt
+          . /usr/share/pkg/docs/help.txt
+          . /usr/share/pkg/docs/examples.txt
+          . /usr/share/pkg/docs/help-all.txt
           echo -e "$HELP_ALL\n\n" | less -R
           exit 0
           ;;
           
       --help|-h|help|h) 
-          . /usr/lib/pkg/docs/help.txt
+          . /usr/share/pkg/docs/env_vars.txt
+          . /usr/share/pkg/docs/help.txt
           echo -e "$HELP\n"
           exit 0
           ;;
