@@ -4875,7 +4875,7 @@ pkg_update(){                    # update installed pets, if updates exist in re
     latest_repo_pkg="`grep -m1 "^${PNAME}${separator}" ${HOME}/.packages/Packages-* |cut -f1 -d'|' | head -1 | cut -f2 -d':'`"
 
     # skip if we didn't find the right package
-    [ "`echo "$latest_repo_pkg" | grep -E "^${PNAME}_|^${PNAME}-"`" = '' ] && continue
+    [ "`echo "$latest_repo_pkg" | grep "^${PNAME}${separator}"`" = '' ] && continue
 
     latest_version=`get_pkg_version "$latest_repo_pkg"`
     installed_version=`get_pkg_version "$installed_pkg"`
@@ -4890,7 +4890,7 @@ pkg_update(){                    # update installed pets, if updates exist in re
       if [ "$RESULT" = 0 ];then #newer version available
         
         if [ "$ASK" = true ];then
-          echo "Do you want to update to ${PNAME}-${latest_version}? [y/N]   "
+          echo "Do you want to update to ${PNAME}${separator}${latest_version}? [y/N]   "
           read -n 1 ASKREPLY </dev/tty
           [ "$ASK" = true ] && echo -ne "\b\b\n"
         fi
@@ -4903,7 +4903,7 @@ pkg_update(){                    # update installed pets, if updates exist in re
         fi 
       
       else #280613 inform user if no update found
-        echo -e "${green}Latest${endcolour}: $PNAME-$installed_version"
+        echo -e "${green}Latest${endcolour}: $PNAME${separator}$installed_version"
       fi #end if vercmp XX gt YY = 0
     
     elif [ "$PNAME" = '' ];then
