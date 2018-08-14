@@ -1894,7 +1894,7 @@ pkg_contents(){                  # list package contents FUNCLIST
   
   # check if we need to (and can) get our pkg contents from builtins/PKGNAME
   local  need_to_check_builtins=`echo "$PKG_FLIST" | grep -m1 'packages/builtin_files/'`
-  
+
   # if the pkg is a builtin, we will re-format the output of LIST to match the others (full paths on each line)
   if [ "$need_to_check_builtins" != '' -a "$pkg_is_builtin" = true ];then
   
@@ -1943,52 +1943,47 @@ pkg_contents(){                  # list package contents FUNCLIST
     rm ${TMPDIR}pkg_file_list 2>/dev/null
   fi
   
-  # try finding PKGNAME.files
-  PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "${PKGNAME}.files" 2>/dev/null`"
+  # try PKGNAME_ONLY.files (exact match)
+  PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "${PKGNAME_ONLY}.files" 2>/dev/null`"
   
+  # try finding PKGNAME.files (exact match)
+  [ ! -f "$PKG_FLIST" ] && PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "${PKGNAME}.files" 2>/dev/null`"
+
   # try the builtins files (exact match)
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`find $HOME/.packages/builtin_files/ -maxdepth 1 -type f -name "$PKGNAME_ONLY"`" 
+  [ ! -f "$PKG_FLIST" ] && PKG_FLIST="`find $HOME/.packages/builtin_files/ -maxdepth 1 -type f -name "$PKGNAME_ONLY"`" 
   
   # try PKGNAME (exact match) in user installed pkgs
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`cut -f1 -d'|' $HOME/.packages/user-installed-packages | grep -m1 ^"$PKGNAME\$" 2>/dev/null`"
+  [ ! -f "$PKG_FLIST" ] && PKG_FLIST="$HOME/.packages/`cut -f1 -d'|' $HOME/.packages/user-installed-packages | grep -m1 ^"$PKGNAME\$" 2>/dev/null`.files"
   
   # try PKGNAME (exact match) in all installed pkgs
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`cut -f1 -d'|' $HOME/.packages/*-installed-packages | grep -m1 ^"$PKGNAME\$" 2>/dev/null`"
-  
-  # try PKGNAME_ONLY (exact match) in user installed pkgs
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`cut -f2 -d'|' $HOME/.packages/user-installed-packages | grep -m1 ^"$PKGNAME_ONLY\$" 2>/dev/null`"
+  [ ! -f "$PKG_FLIST" ] && PKG_FLIST="$HOME/.packages/`cut -f1 -d'|' $HOME/.packages/*-installed-packages | grep -m1 ^"$PKGNAME\$" 2>/dev/null`.files"
   
   # try PKGNAME_ONLY (exact match) in all installed pkgs
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`cut -f2 -d'|' $HOME/.packages/*-installed-packages | grep -m1 ^"$PKGNAME_ONLY\$" 2>/dev/null`"
+  [ ! -f "$PKG_FLIST" ] && PKG_FLIST="$HOME/.packages/`cut -f2 -d'|' $HOME/.packages/*-installed-packages | grep -m1 ^"$PKGNAME_ONLY\$" 2>/dev/null`.files"
+  
+
+  # no exact matches found, try fuzzy searches..
+
+  # try PKGNAME*.files
+  [ ! -f "$PKG_FLIST" ] && PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "/${PKGNAME}*.files"  2>/dev/null`"
   
   # try finding *PKGNAME.files
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "*${PKGNAME}.files" 2>/dev/null`"
+  [ ! -f "$PKG_FLIST" ] && PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "*${PKGNAME}.files" 2>/dev/null`"
   
-  # try PKGNAME*.files
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "/${PKGNAME}*.files"  2>/dev/null`"
-  
-  # try $HOME/.packages/*-installed-packages, fuzzy search
-  
-  # try PKGNAME_ONLY-* in user installed pkgs only
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`cut -f1 -d'|' $HOME/.packages/user-installed-packages | grep -m1 ^"${PKGNAME_ONLY}-" 2>/dev/null`"
-  
-  # try PKGNAME_ONLY_* in user installed pkgs only
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`cut -f1 -d'|' $HOME/.packages/user-installed-packages | grep -m1 ^"${PKGNAME_ONLY}_" 2>/dev/null`"
+  # try ^PKGNAME_ONLY[_-] in user installed pkgs
+  [ ! -f "$PKG_FLIST" ] && PKG_FLIST="$HOME/.packages/`cut -f1 -d'|' $HOME/.packages/user-installed-packages | grep -Em1 "^$PKGNAME_ONLY[_-]" 2>/dev/null`.files"
   
   # try PKGNAME_ONLY* in user installed pkgs only
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`cut -f1 -d'|' $HOME/.packages/user-installed-packages | grep -m1 ^"$PKGNAME_ONLY" 2>/dev/null`"
+  [ ! -f "$PKG_FLIST" ] && PKG_FLIST="$HOME/.packages/`cut -f1 -d'|' $HOME/.packages/user-installed-packages | grep -m1 ^"$PKGNAME_ONLY" 2>/dev/null`.files"
   
   # try PKGNAME_ONLY-* (any installed pkgs)
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`cut -f1 -d'|' $HOME/.packages/*-installed-packages | grep -m1 ^"${PKGNAME_ONLY}-" 2>/dev/null`"
-  
-  # try PKGNAME_ONLY_* (any installed pkgs)
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`cut -f1 -d'|' $HOME/.packages/*-installed-packages | grep -m1 ^"${PKGNAME_ONLY}_" 2>/dev/null`"
+  [ ! -f "$PKG_FLIST" ] && PKG_FLIST="$HOME/.packages/`cut -f1 -d'|' $HOME/.packages/*-installed-packages | grep -Em1 ^"${PKGNAME_ONLY}[_-]" 2>/dev/null`.files"
   
   # try PKGNAME_ONLY* (any installed pkgs)
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`cut -f1 -d'|' $HOME/.packages/*-installed-packages | grep -m1 ^"$PKGNAME_ONLY" 2>/dev/null`"
+  [ ! -f "$PKG_FLIST" ] && PKG_FLIST="$HOME/.packages/`cut -f1 -d'|' $HOME/.packages/*-installed-packages | grep -m1 ^"$PKGNAME_ONLY" 2>/dev/null`.files"
   
   # try PKGNAME_ONLY*.files
-  [ "$PKG_FLIST" = "" ] && PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "/${PKGNAME_ONLY}*.files"  2>/dev/null`"
+  [ ! -f "$PKG_FLIST" ] && PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "/${PKGNAME_ONLY}*.files"  2>/dev/null`"
 
 
   
