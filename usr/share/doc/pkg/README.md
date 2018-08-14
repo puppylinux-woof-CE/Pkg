@@ -187,7 +187,8 @@ Description:
 * fallback_list - a list of repos to search if pkg not in current repo
 
 Example:
-```# some Puppy repos
+```
+# some Puppy repos
 noarch|pet|Packages-puppy-noarch-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-noarch/|http://distro.ibiblio.org/puppylinux/pet_packages-noarch/|||common quirky wary53x wary51x lucid dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14
 
 common|pet|Packages-puppy-common-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-common/|http://distro.ibiblio.org/puppylinux/pet_packages-common/|||noarch quirky wary53x wary51x lucid dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14 saluki 
@@ -205,8 +206,6 @@ raring|pet|Packages-puppy-raring-official|http://ftp.nluug.nl/os/Linux/distr/pup
 raring-main|deb|Packages-ubuntu-raring-main|http://ftp.filearena.net/pub/ubuntu/ubuntu/||||raring raring-universe noarch common wary53x wary51x puppy5 puppy4
 
 raring-universe|deb|Packages-ubuntu-raring-universe|http://ftp.filearena.net/pub/ubuntu/ubuntu/||||raring raring-main raring-multiverse noarch common wary53x wary51x puppy5 puppy4
-
-
 ```
 
 The `sources` file is generated from `sources-all` using the command:
@@ -327,11 +326,11 @@ These options cannot be used with any other options:
 
  pkg n SEARCH			# search name only, list all matching pkgs
 
- pkg add blender  # install Blender and it dependencies
+ pkg add blender    # install Blender and it dependencies
 
- pkg rm blender   # remove Blender and any left-over dependencies
+ pkg rm blender     # remove Blender and any left-over dependencies
 
- pkg la			  # ask to delete all downloaded packages
+ pkg la			      # ask to delete all downloaded packages
 
  pkg -a e PKGNAME		# install deps of PKGNAME, ask each time
 
@@ -345,9 +344,9 @@ These options cannot be used with any other options:
 
  pkg l qupzilla-1.3.1		# delete the downloaded qupzilla-1.3.1
 
- pkg build jwm		# compile, build & install the 'jwm' package
+ pkg build jwm	    	# compile, build & install the 'jwm' package
 
- pkg la			# delete all downloaded packages without asking
+ pkg la		        	# delete all downloaded packages without asking
 
  pkg li vim | pkg status -	# Get info on all installed Vim pkgs
 
