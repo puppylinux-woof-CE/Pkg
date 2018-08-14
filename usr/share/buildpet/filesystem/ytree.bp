@@ -32,30 +32,30 @@ build() {
 package() {	
 	# install the package
 	mkdir -p $INSTALL_DIR
-	mkdir -p $INSTALL_DIR/usr
-	mkdir -p $INSTALL_DIR/usr/bin
-	mkdir -p $INSTALL_DIR/usr/share
-	mkdir -p $INSTALL_DIR/usr/share/applications
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/bin
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	make DESTDIR=$INSTALL_DIR install
 	[ $? -ne 0 ] && return 1
 
 	#move the bin
-	mv $INSTALL_DIR/bin $INSTALL_DIR/usr/bin/ytree
-	[ $? -ne 0 ] && echo "Couldn't move ytree binary to /usr/bin/ in $INSTALL_DIR" && return 1
+	mv $INSTALL_DIR/bin $INSTALL_DIR${BASE_PATH_PREFIX}/bin/ytree
+	[ $? -ne 0 ] && echo "Couldn't move ytree binary to ${BASE_PATH_PREFIX}/bin/ in $INSTALL_DIR" && return 1
 	
 	# create the menu entry
-	echo '[Desktop Entry]
+	echo "[Desktop Entry]
 Encoding=UTF-8
 Name=Ytree file manager
-Icon=/usr/local/lib/X11/mini-icons/mini-filemgr.xpm
+Icon=${BASE_PATH_PREFIX}/local/lib/X11/mini-icons/mini-filemgr.xpm
 Comment=Ytree file manager
 Exec=rxvt -e ytree
 Terminal=false
 Type=Application
 Categories=Filesystem;Utility;
-GenericName=Ytree file manager' > $INSTALL_DIR/usr/share/applications/ytree.desktop
+GenericName=Ytree file manager" > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/ytree.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/ytree.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/ytree.desktop
 	[ $? -ne 0 ] && return 1
 	
 	return 0

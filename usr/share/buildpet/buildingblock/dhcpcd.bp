@@ -42,15 +42,15 @@ package() {
 	# create a symlink for compatibility
 	mkdir $INSTALL_DIR/sbin
 	[ $? -ne 0 ] && return 1
-	ln -s ../usr/sbin/dhcpcd $INSTALL_DIR/sbin/dhcpcd
+	ln -s ..${BASE_PATH_PREFIX}/sbin/dhcpcd $INSTALL_DIR/sbin/dhcpcd
 	[ $? -ne 0 ] && return 1
 	
 	# install the license
-	mkdir -p $INSTALL_DIR/usr/share/doc/legal/$PKG_NAME
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/$PKG_NAME
 	[ $? -ne 0 ] && return 1
-	cat arp.c | head -n 25 | tail -n 24 | sed s/'^ \* '//g > $INSTALL_DIR/usr/share/doc/legal/$PKG_NAME/LICENSE
+	cat arp.c | head -n 25 | tail -n 24 | sed s/'^ \* '//g > $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/$PKG_NAME/LICENSE
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/doc/legal/$PKG_NAME/LICENSE
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/$PKG_NAME/LICENSE
 	[ $? -ne 0 ] && return 1
 	
 	# disable ipv4all

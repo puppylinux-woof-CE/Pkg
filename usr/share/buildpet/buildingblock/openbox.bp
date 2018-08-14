@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-startup-notification \
 	            --enable-imlib2 \
 	            --disable-session-management
@@ -45,12 +45,12 @@ package() {
 	# remove unneded executables
 	for i in gdm-control gnome-panel-control openbox-gnome-session openbox-kde-session openbox-session
 	do
-		rm -f $INSTALL_DIR/usr/bin/$i
+		rm -f $INSTALL_DIR${BASE_PATH_PREFIX}/bin/$i
 		[ $? -ne 0 ] && return 1
 	done
 
 	# remove all themes
-	for i in $INSTALL_DIR/usr/share/themes/*
+	for i in $INSTALL_DIR${BASE_PATH_PREFIX}/share/themes/*
 	do
 		case "$i" in
 			*/Clearlooks)
@@ -63,15 +63,15 @@ package() {
 	done
 	
 	# remove an unneeded script
-	rm -f $INSTALL_DIR/usr/lib$LIBDIR_SUFFIX/openbox/openbox-xdg-autostart
+	rm -f $INSTALL_DIR${BASE_PATH_PREFIX}/lib$LIBDIR_SUFFIX/openbox/openbox-xdg-autostart
 	[ $? -ne 0 ] && return 1
 	
 	# replace the autostart script
 	echo '#!/bin/sh
 	
-. /etc/xdg/openbox/autostart' > $INSTALL_DIR/usr/lib$LIBDIR_SUFFIX/openbox/openbox-autostart
+. /etc/xdg/openbox/autostart' > $INSTALL_DIR${BASE_PATH_PREFIX}/lib$LIBDIR_SUFFIX/openbox/openbox-autostart
 	[ $? -ne 0 ] && return 1
-	chmod 755 $INSTALL_DIR/usr/lib$LIBDIR_SUFFIX/openbox/openbox-autostart
+	chmod 755 $INSTALL_DIR${BASE_PATH_PREFIX}/lib$LIBDIR_SUFFIX/openbox/openbox-autostart
 	[ $? -ne 0 ] && return 1
 
 	# add the post-install script
@@ -82,13 +82,13 @@ echo "[ \`which openbox\` ] && ob-xdgmenu" >> usr/sbin/fixmenus' > $INSTALL_DIR/
 	chmod 755 $INSTALL_DIR/pinstall.sh
 
 	# add a menu generator
-cat <<SCRIPT_END > $INSTALL_DIR/usr/bin/ob-xdgmenu
+cat <<SCRIPT_END > $INSTALL_DIR${BASE_PATH_PREFIX}/bin/ob-xdgmenu
 #!/bin/sh
 
 generate_menu() {
 cat <<END
 <?xml version="1.0" encoding="UTF-8"?>
-<openbox_menu xmlns="http://openbox.org/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://openbox.org/ file:///usr/X11R6/share/openbox/menu.xsd">
+<openbox_menu xmlns="http://openbox.org/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://openbox.org/ file://${BASE_PATH_PREFIX}/X11R6/share/openbox/menu.xsd">
 	<menu id="root-menu" label="openbox3">
 		<separator label="Applications"/>
 END
@@ -116,10 +116,10 @@ generate_menu > /etc/xdg/openbox/menu.xml
 openbox --reconfigure > /dev/null 2>&1
 exit
 
-#!/usr/bin/perl
+#!${BASE_PATH_PREFIX}/bin/perl
 
 # the directory containing the .desktop files
-\$DESKTOP_DIR = "/usr/share/applications";
+\$DESKTOP_DIR = "${BASE_PATH_PREFIX}/share/applications";
 
 # the separator between a field and its value in a .desktop file
 \$SEPARATOR = "=";
@@ -256,7 +256,7 @@ foreach my \$menu_category (@CATEGORIES) {
 print "\t\t".join("\n\t\t", split("\n", join("\n", @menu_categories_text)))."\n";
 SCRIPT_END
 	[ $? -ne 0 ] && return 1
-	chmod 755 $INSTALL_DIR/usr/bin/ob-xdgmenu
+	chmod 755 $INSTALL_DIR${BASE_PATH_PREFIX}/bin/ob-xdgmenu
 	[ $? -ne 0 ] && return 1
 	
 	return 0

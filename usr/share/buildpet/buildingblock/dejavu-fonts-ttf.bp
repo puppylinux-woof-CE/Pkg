@@ -49,7 +49,7 @@ package() {
 	done
 	
 	# install the license
-	install -m644 -D LICENSE $INSTALL_DIR/usr/share/doc/legal/dejavu-fonts-ttf/LICENSE
+	install -m644 -D LICENSE $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/dejavu-fonts-ttf/LICENSE
 	[ $? -ne 0 ] && return 1
 	
 	return 0

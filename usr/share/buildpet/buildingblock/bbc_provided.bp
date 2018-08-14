@@ -37,7 +37,7 @@ package() {
 	# install the package
 	for i in and dotquad or
 	do
-		install -m755 -D $i $INSTALL_DIR/usr/bin/$i
+		install -m755 -D $i $INSTALL_DIR${BASE_PATH_PREFIX}/bin/$i
 		[ $? -ne 0 ] && return 1
 	done
 	

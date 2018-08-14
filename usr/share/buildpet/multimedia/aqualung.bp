@@ -21,7 +21,7 @@ build() {
 	./autogen.sh
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr
+	            --prefix=${BASE_PATH_PREFIX}
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -37,11 +37,11 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# keep only one icon
-	mkdir -p $INSTALL_DIR/usr/share/pixmaps
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
-	mkdir -p $INSTALL_DIR/usr/share/applications
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	[ $? -ne 0 ] && return 1
-	mv -f $INSTALL_DIR/usr/share/aqualung/icon_24.png $INSTALL_DIR/usr/share/pixmaps/aqualung.png
+	mv -f $INSTALL_DIR${BASE_PATH_PREFIX}/share/aqualung/icon_24.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/aqualung.png
 	[ $? -ne 0 ] && return 1
 	
 	# replace the menu entry
@@ -55,9 +55,9 @@ Terminal=false
 Type=Application
 MimeType=application/ogg;audio/x-vorbis+ogg;application/x-ogg;audio/mp3;audio/prs.sid;audio/x-flac;audio/mpeg;audio/x-mpeg;audio/x-mod;audio/x-it;audio/x-s3m;audio/x-xm;
 Categories=AudioVideo;Player;
-GenericName=Aqualung audio player' > $INSTALL_DIR/usr/share/applications/aqualung.desktop
+GenericName=Aqualung audio player' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/aqualung.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/aqualung.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/aqualung.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script
@@ -66,9 +66,9 @@ GenericName=Aqualung audio player' > $INSTALL_DIR/usr/share/applications/aqualun
 echo "Setting Aqualung as the default audio player"
 
 echo "#!/bin/sh
-exec aqualung \"\$@\"" > ./usr/local/bin/defaultaudioplayer
+exec aqualung \"\$@\"" > .${BASE_PATH_PREFIX}/local/bin/defaultaudioplayer
 
-chmod 755 ./usr/local/bin/defaultaudioplayer' > $INSTALL_DIR/pinstall.sh
+chmod 755 .${BASE_PATH_PREFIX}/local/bin/defaultaudioplayer' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1

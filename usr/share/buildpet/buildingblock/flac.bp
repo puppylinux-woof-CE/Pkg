@@ -28,7 +28,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-thorough-tests \
 	            --disable-xmms-plugin
 	[ $? -ne 0 ] && return 1
@@ -50,11 +50,11 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# install the license
-	mkdir -p $INSTALL_DIR/usr/share/doc/legal/flac
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/flac
 	[ $? -ne 0 ] && return 1
-	cat README | head -16 | sed -e s/'^...'//g -e s/\*//g > $INSTALL_DIR/usr/share/doc/legal/flac/COPYING
+	cat README | head -16 | sed -e s/'^...'//g -e s/\*//g > $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/flac/COPYING
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/doc/legal/flac/COPYING
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/flac/COPYING
 	[ $? -ne 0 ] && return 1
 
 	return 0

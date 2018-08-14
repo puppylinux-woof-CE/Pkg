@@ -26,7 +26,7 @@ build() {
 	cd $PKG_NAME-$PKG_VER
 
 	# configure the package
-	./configure $BASE_CONFIGURE_ARGS --prefix=/usr --disable-debug
+	./configure $BASE_CONFIGURE_ARGS --prefix=${BASE_PATH_PREFIX} --disable-debug
 	[ $? -ne 0 ] && return 1
 	
 	# build the package

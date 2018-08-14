@@ -42,11 +42,11 @@ package() {
 	[ $? -ne 0 ] && return 1
 	
 	# install the license
-	install -m644 -D LICENSE $INSTALL_DIR/usr/share/doc/legal/zathura/LICENSE
+	install -m644 -D LICENSE $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/zathura/LICENSE
 	[ $? -ne 0 ] && return 1
 	
 	# add a menu entry
-	mkdir -p $INSTALL_DIR/usr/share/applications
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	echo '[Desktop Entry]
 Encoding=UTF-8
 Name=Zathura PDF viewer
@@ -57,9 +57,9 @@ Terminal=false
 Type=Application
 MimeType=application/pdf;
 Categories=Viewer;Presentation;Office;
-GenericName=Zathura PDF viewer' > $INSTALL_DIR/usr/share/applications/zathura.desktop
+GenericName=Zathura PDF viewer' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/zathura.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/zathura.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/zathura.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script

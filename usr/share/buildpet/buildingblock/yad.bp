@@ -24,9 +24,9 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-icon-browser \
-	            --with-rgb=$(find /usr -name rgb.txt | head -n 1)
+	            --with-rgb=$(find ${BASE_PATH_PREFIX} -name rgb.txt | head -n 1)
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -46,11 +46,11 @@ package() {
 	[ $? -ne 0 ] && return 1
 	
 	# keep only one icon
-	mkdir $INSTALL_DIR/usr/share/pixmaps
+	mkdir $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1	
-	mv $INSTALL_DIR/usr/share/icons/hicolor/48x48/apps/yad.png $INSTALL_DIR/usr/share/pixmaps
+	mv $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/48x48/apps/yad.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
-	rm -rf $INSTALL_DIR/usr/share/icons
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons
 	[ $? -ne 0 ] && return 1
 	
 	return 0

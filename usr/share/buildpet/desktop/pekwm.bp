@@ -48,11 +48,11 @@ package() {
 	# create proper menus
 	echo "#!/bin/ash
 # variables
-dtfiles=\"/usr/share/applications/*.desktop\"
+dtfiles=\"${BASE_PATH_PREFIX}/share/applications/*.desktop\"
 
-if [ `ls /usr/local/share/applications/*.desktop 2>/dev/null` ]
+if [ `ls ${BASE_PATH_PREFIX}/local/share/applications/*.desktop 2>/dev/null` ]
 then
-	dtfiles=\"\${dtfiles} /usr/local/share/applications/*.desktop\"
+	dtfiles=\"\${dtfiles} ${BASE_PATH_PREFIX}/local/share/applications/*.desktop\"
 fi
 
 {	#localization block
@@ -62,7 +62,7 @@ fi
 
 # Create the menu
 {	#parse .desktop files and sort generated menu entries into subcategories
-#for DESKTOP_FILE in /usr/share/applications/*.desktop ; do
+#for DESKTOP_FILE in ${BASE_PATH_PREFIX}/share/applications/*.desktop ; do
 for DESKTOP_FILE in \${dtfiles} ; do
 	CATS=\"\" NAME=\"\" EXEC=\"\" LINE=\"\" #prevent carryover from previous file
 	while read LINE || [ \"\$LINE\" ]; do
@@ -237,8 +237,8 @@ WindowMenu = \\\"Window Menu\\\" {
 }\" >> /root/.pekwm/menu
 
 }
-exit 0" > $INSTALL_DIR/usr/local/bin/spm2pwm
-	chmod +x $INSTALL_DIR/usr/local/bin/spm2pwm
+exit 0" > $INSTALL_DIR${BASE_PATH_PREFIX}/local/bin/spm2pwm
+	chmod +x $INSTALL_DIR${BASE_PATH_PREFIX}/local/bin/spm2pwm
 	[ $? -ne 0 ] && return 1	
 	
 	#create pinstall file

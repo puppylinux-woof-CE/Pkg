@@ -28,11 +28,11 @@ build() {
 	# configure the package
 	./configure --help > $INFO_DIR/$PKG_NAME-DOTconfig_options.txt
 	./configure $BASE_CONFIGURE_ARGS \
-			--prefix=/usr \
+			--prefix=${BASE_PATH_PREFIX} \
 			--enable-shared \
 			--disable-static \
 			--with-xinclude \
-			--with-python=/usr/bin \
+			--with-python=${BASE_PATH_PREFIX}/bin \
 			--with-html \
 			--with-ftp \
 			--without-debug

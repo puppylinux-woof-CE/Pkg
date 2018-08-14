@@ -24,9 +24,9 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-libxml2 \
-	            --with-default-fonts=/usr/share/fonts/default
+	            --with-default-fonts=${BASE_PATH_PREFIX}/share/fonts/default
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -42,7 +42,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# install the license
-	install -m644 -D COPYING $INSTALL_DIR/usr/share/doc/legal/fontconfig/COPYING
+	install -m644 -D COPYING $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/fontconfig/COPYING
 	[ $? -ne 0 ] && return 1
 
 	# add default configuration

@@ -22,7 +22,7 @@ build() {
 	# configure the package
 	mkdir libvpx-build &&
 	cd libvpx-build &&
-	../libvpx-v1.1.0/configure --prefix=/usr \
+	../libvpx-v1.1.0/configure --prefix=${BASE_PATH_PREFIX} \
 	--enable-shared \
 	--disable-static &&
 	[ $? -ne 0 ] && return 1

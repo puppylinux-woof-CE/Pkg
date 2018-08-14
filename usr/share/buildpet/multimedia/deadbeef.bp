@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-nullout \
 	            --disable-oss \
 	            --disable-pulse \
@@ -68,11 +68,11 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# keep only one icon
-	mkdir -p $INSTALL_DIR/usr/share/pixmaps
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
-	mv -f $INSTALL_DIR/usr/share/icons/hicolor/48x48/apps/deadbeef.png $INSTALL_DIR/usr/share/pixmaps
+	mv -f $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/48x48/apps/deadbeef.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
-	rm -rf $INSTALL_DIR/usr/share/icons
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons
 	[ $? -ne 0 ] && return 1
 	
 	# replace the menu entry
@@ -86,9 +86,9 @@ Terminal=false
 Type=Application
 MimeType=application/ogg;audio/x-vorbis+ogg;application/x-ogg;audio/mp3;audio/prs.sid;audio/x-flac;audio/mpeg;audio/x-mpeg;audio/x-mod;audio/x-it;audio/x-s3m;audio/x-xm;
 Categories=AudioVideo;Player;
-GenericName=DeaDBeeF audio player' > $INSTALL_DIR/usr/share/applications/deadbeef.desktop
+GenericName=DeaDBeeF audio player' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/deadbeef.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/deadbeef.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/deadbeef.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script
@@ -97,9 +97,9 @@ GenericName=DeaDBeeF audio player' > $INSTALL_DIR/usr/share/applications/deadbee
 echo "Setting DeaDBeeF as the default audio player"
 
 echo "#!/bin/sh
-exec deadbeef \"\$@\"" > ./usr/local/bin/defaultaudioplayer
+exec deadbeef \"\$@\"" > .${BASE_PATH_PREFIX}/local/bin/defaultaudioplayer
 
-chmod 755 ./usr/local/bin/defaultaudioplayer' > $INSTALL_DIR/pinstall.sh
+chmod 755 .${BASE_PATH_PREFIX}/local/bin/defaultaudioplayer' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1

@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-doc \
 	            --disable-scrollkeeper
 	[ $? -ne 0 ] && return 1
@@ -42,10 +42,10 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# remove unneeded icons
-	mkdir $INSTALL_DIR/usr/share/pixmaps
+	mkdir $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
-	mv $INSTALL_DIR/usr/share/icons/hicolor/48x48/apps/gparted.png $INSTALL_DIR/usr/share/pixmaps
-	rm -rf $INSTALL_DIR/usr/share/icons
+	mv $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/48x48/apps/gparted.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons
 	[ $? -ne 0 ] && return 1
 
 	# replace the menu entry
@@ -58,9 +58,9 @@ Exec=gparted
 Terminal=false
 Type=Application
 Categories=System;Filesystem;
-GenericName=GParted partition editor' > $INSTALL_DIR/usr/share/applications/gparted.desktop
+GenericName=GParted partition editor' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/gparted.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/gparted.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/gparted.desktop
 	[ $? -ne 0 ] && return 1
 
 	return 0

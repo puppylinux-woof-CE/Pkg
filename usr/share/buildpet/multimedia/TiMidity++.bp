@@ -24,8 +24,8 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
-	            --mandir=/usr/share/man \
+	            --prefix=${BASE_PATH_PREFIX} \
+	            --mandir=${BASE_PATH_PREFIX}/share/man \
 	            --with-default-path=/etc/timidity++ \
 	            --enable-audio=alsa \
 	            --enable-server \

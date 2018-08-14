@@ -23,10 +23,10 @@ build() {
 	cd $PKG_NAME-$PKG_VER
 
 	# configure the package
-	sed -e s~'/usr/local'~"$INSTALL_DIR/usr"~ \
+	sed -e s~'${BASE_PATH_PREFIX}/local'~"$INSTALL_DIR${BASE_PATH_PREFIX}"~ \
 	    -e s~'/man/'~'/share/man/'~g \
 	    -e s~'-O '~"& $CFLAGS"~ \
-	    -e s~'/usr/ucb/install'~'/usr/bin/install'~ \
+	    -e s~'${BASE_PATH_PREFIX}/ucb/install'~'${BASE_PATH_PREFIX}/bin/install'~ \
 	    -i makefile
 	[ $? -ne 0 ] && return 1
 
@@ -39,7 +39,7 @@ build() {
 
 package() {
 	# install the package
-	mkdir -p $INSTALL_DIR/usr/bin $INSTALL_DIR/usr/share/man/man1
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/bin $INSTALL_DIR${BASE_PATH_PREFIX}/share/man/man1
 	[ $? -ne 0 ] && return 1
 	make install
 	[ $? -ne 0 ] && return 1

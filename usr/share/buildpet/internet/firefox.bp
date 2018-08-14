@@ -30,42 +30,42 @@ build() {
 }
 
 package() {	
-	# move the Firefox directory to /usr/local/apps
-	mkdir -p $INSTALL_DIR/usr/local/apps
+	# move the Firefox directory to ${BASE_PATH_PREFIX}/local/apps
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/local/apps
 	[ $? -ne 0 ] && return 1
-	mv ./firefox $INSTALL_DIR/usr/local/apps
+	mv ./firefox $INSTALL_DIR${BASE_PATH_PREFIX}/local/apps
 	[ $? -ne 0 ] && return 1
 	
-	# create a symlink to the Firefox executable in /usr/bin
-	mkdir $INSTALL_DIR/usr/bin
+	# create a symlink to the Firefox executable in ${BASE_PATH_PREFIX}/bin
+	mkdir $INSTALL_DIR${BASE_PATH_PREFIX}/bin
 	[ $? -ne 0 ] && return 1
-	ln -s ../local/apps/firefox/firefox $INSTALL_DIR/usr/bin
+	ln -s ../local/apps/firefox/firefox $INSTALL_DIR${BASE_PATH_PREFIX}/bin
 	[ $? -ne 0 ] && return 1
 	
 	# create backwards-compatibility symlinks
 	for i in gtkmoz mozilla
 	do
-		ln -s firefox $INSTALL_DIR/usr/bin/$i
+		ln -s firefox $INSTALL_DIR${BASE_PATH_PREFIX}/bin/$i
 		[ $? -ne 0 ] && return 1
 	done
 	
 	# create symlinks to the libraries
-	mkdir -p $INSTALL_DIR/usr/lib$LIBDIR_SUFFIX
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/lib$LIBDIR_SUFFIX
 	[ $? -ne 0 ] && return 1
-	for library in $INSTALL_DIR/usr/local/apps/firefox/*.so
+	for library in $INSTALL_DIR${BASE_PATH_PREFIX}/local/apps/firefox/*.so
 	do
-		ln -s ../local/apps/firefox/$(basename $library) $INSTALL_DIR/usr/lib$LIBDIR_SUFFIX
+		ln -s ../local/apps/firefox/$(basename $library) $INSTALL_DIR${BASE_PATH_PREFIX}/lib$LIBDIR_SUFFIX
 		[ $? -ne 0 ] && return 1
 	done
 	
 	# create a symlink to the logo
-	mkdir -p $INSTALL_DIR/usr/share/pixmaps
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
-	ln -s ../../local/apps/firefox/chrome/icons/default/default48.png $INSTALL_DIR/usr/share/pixmaps/firefox.png
+	ln -s ../../local/apps/firefox/chrome/icons/default/default48.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/firefox.png
 	[ $? -ne 0 ] && return 1
 	
 	# create menu entries
-	mkdir -p $INSTALL_DIR/usr/share/applications
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	[ $? -ne 0 ] && return 1
 	echo '[Desktop Entry]
 Encoding=UTF-8
@@ -77,9 +77,9 @@ Terminal=false
 Type=Application
 MimeType=text/html;text/xml;application/xhtml+xml;application/vnd.mozilla.xul+xml;text/mml;x-scheme-handler/http;x-scheme-handler/https;
 Categories=Network;WebBrowser;
-GenericName=Firefox web browser' > $INSTALL_DIR/usr/share/applications/firefox.desktop
+GenericName=Firefox web browser' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/firefox.desktop
 	[ $? -ne 0 ] && return 1 
-	chmod 644 $INSTALL_DIR/usr/share/applications/firefox.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/firefox.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script
@@ -88,9 +88,9 @@ GenericName=Firefox web browser' > $INSTALL_DIR/usr/share/applications/firefox.d
 echo "Setting Firefox as the default web browser and HTML viewer"
 
 echo "#!/bin/sh
-exec firefox \"\$@\"" > ./usr/local/bin/defaultbrowser
-chmod 755 ./usr/local/bin/defaultbrowser
-cp -f ./usr/local/bin/defaultbrowser ./usr/local/bin/defaulthtmlviewer' > $INSTALL_DIR/pinstall.sh
+exec firefox \"\$@\"" > .${BASE_PATH_PREFIX}/local/bin/defaultbrowser
+chmod 755 .${BASE_PATH_PREFIX}/local/bin/defaultbrowser
+cp -f .${BASE_PATH_PREFIX}/local/bin/defaultbrowser .${BASE_PATH_PREFIX}/local/bin/defaulthtmlviewer' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1

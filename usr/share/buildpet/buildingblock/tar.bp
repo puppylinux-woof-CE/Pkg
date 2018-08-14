@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	FORCE_UNSAFE_CONFIGURE=1 ./configure $BASE_CONFIGURE_ARGS \
-	                                    --prefix=/usr \
+	                                    --prefix=${BASE_PATH_PREFIX} \
 	                                    --bindir=/bin \
 	                                    --without-included-regex
 	[ $? -ne 0 ] && return 1

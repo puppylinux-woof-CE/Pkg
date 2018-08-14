@@ -58,7 +58,7 @@ diff -rup optipng-0.6.5-orig//src/optipng.h optipng-0.6.5/src/optipng.h
 	[ $? -ne 0 ] && return 1
 
 	# configure the package
-	./configure --prefix=/usr
+	./configure --prefix=${BASE_PATH_PREFIX}
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -74,11 +74,11 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# install the license
-	install -m644 -D LICENSE.txt $INSTALL_DIR/usr/share/doc/legal/$PKG_NAME/LICENSE.txt
+	install -m644 -D LICENSE.txt $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/$PKG_NAME/LICENSE.txt
 	[ $? -ne 0 ] && return 1
 
 	# move the man pages to the right location
-	mv $INSTALL_DIR/usr/man $INSTALL_DIR/usr/share
+	mv $INSTALL_DIR${BASE_PATH_PREFIX}/man $INSTALL_DIR${BASE_PATH_PREFIX}/share
 	[ $? -ne 0 ] && return 1
 
 	return 0

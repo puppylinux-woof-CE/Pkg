@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr
+	            --prefix=${BASE_PATH_PREFIX}
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -40,11 +40,11 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# create a symlink to the pixmap
-	ln -s ./gcolor2/icon.png $INSTALL_DIR/usr/share/pixmaps/gcolor2.png
+	ln -s ./gcolor2/icon.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/gcolor2.png
 	[ $? -ne 0 ] && return 1
 	
 	# add menu entry
-	mkdir $INSTALL_DIR/usr/share/applications
+	mkdir $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	[ $? -ne 0 ] && return 1
 	echo '[Desktop Entry]
 Encoding=UTF-8
@@ -55,9 +55,9 @@ Exec=gcolor2
 Terminal=false
 Type=Application
 Categories=Graphics;
-GenericName=Gcolor2 color selector' > $INSTALL_DIR/usr/share/applications/gcolor2.desktop
+GenericName=Gcolor2 color selector' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/gcolor2.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/gcolor2.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/gcolor2.desktop
 	[ $? -ne 0 ] && return 1	
 	
 	return 0

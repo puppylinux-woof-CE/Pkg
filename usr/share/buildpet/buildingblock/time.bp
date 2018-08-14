@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=$INSTALL_DIR/usr
+	            --prefix=$INSTALL_DIR${BASE_PATH_PREFIX}
 	[ $? -ne 0 ] && return 1
 
 	# build the package

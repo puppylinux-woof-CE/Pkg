@@ -41,7 +41,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --without-ui \
 	            --without-readline
 	[ $? -ne 0 ] && return 1
@@ -59,29 +59,29 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# create the dictionaries directory
-	mkdir $INSTALL_DIR/usr/share/hunspell
+	mkdir $INSTALL_DIR${BASE_PATH_PREFIX}/share/hunspell
 	[ $? -ne 0 ] && return 1
 	
 	# install the dictionary
 	for i in dic aff
 	do
-		mv ../en_US.$i $INSTALL_DIR/usr/share/hunspell
+		mv ../en_US.$i $INSTALL_DIR${BASE_PATH_PREFIX}/share/hunspell
 		[ $? -ne 0 ] && return 1
-		chmod 644 $INSTALL_DIR/usr/share/hunspell/en_US.$i
+		chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/hunspell/en_US.$i
 		[ $? -ne 0 ] && return 1
 	done
 	
 	# install the dictionary license
-	install -m644 -D README_en_US.txt $INSTALL_DIR/usr/share/doc/legal/hunspell/README_en_US.txt
+	install -m644 -D README_en_US.txt $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/hunspell/README_en_US.txt
 	[ $? -ne 0 ] && return 1
 	
 	# create backwards-compatility symlinks
-	mkdir -p $INSTALL_DIR/usr/share/myspell/dicts
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/myspell/dicts
 	[ $? -ne 0 ] && return 1
 	
-	for i in $INSTALL_DIR/usr/share/hunspell/*
+	for i in $INSTALL_DIR${BASE_PATH_PREFIX}/share/hunspell/*
 	do
-		ln -s ../../hunspell/$(basename $i) $INSTALL_DIR/usr/share/myspell/dicts
+		ln -s ../../hunspell/$(basename $i) $INSTALL_DIR${BASE_PATH_PREFIX}/share/myspell/dicts
 		[ $? -ne 0 ] && return 1
 	done
 				

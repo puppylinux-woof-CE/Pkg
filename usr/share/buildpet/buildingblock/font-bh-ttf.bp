@@ -33,7 +33,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 	
 	# install the license
-	install -m644 -D COPYRIGHT.BH $INSTALL_DIR/usr/share/doc/legal/font-bh-ttf/COPYRIGHT.BH 
+	install -m644 -D COPYRIGHT.BH $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/font-bh-ttf/COPYRIGHT.BH 
 	[ $? -ne 0 ] && return 1
 	
 	# install the fontconfig configuration

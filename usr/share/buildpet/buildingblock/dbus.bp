@@ -24,8 +24,8 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
-	            --libexecdir=/usr/lib$LIBDIR_SUFFIX/dbus-1.0 \
+	            --prefix=${BASE_PATH_PREFIX} \
+	            --libexecdir=${BASE_PATH_PREFIX}/lib$LIBDIR_SUFFIX/dbus-1.0 \
 	            --with-system-pid-file=/var/run/dbus/pid \
 	            --disable-asserts \
 	            --disable-checks \
@@ -55,7 +55,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# install the license
-	install -m644 -D COPYING $INSTALL_DIR/usr/share/doc/legal/dbus/COPYING
+	install -m644 -D COPYING $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/dbus/COPYING
 	[ $? -ne 0 ] && return 1
 
 	# add an init script

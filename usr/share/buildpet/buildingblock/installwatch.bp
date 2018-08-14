@@ -23,7 +23,7 @@ build() {
 	cd $PKG_NAME-$PKG_VER
 
 	# set the CFLAGS
-	sed -e s~'/usr/local'~"$INSTALL_DIR/usr"~ \
+	sed -e s~'${BASE_PATH_PREFIX}/local'~"$INSTALL_DIR${BASE_PATH_PREFIX}"~ \
 	    -e s~'gcc'~"gcc $CFLAGS"~g \
 	    -e s~'/lib'~"/lib$LIBDIR_SUFFIX"~ \
 	    -i Makefile
@@ -38,7 +38,7 @@ build() {
 
 package() {
 	# install the package
-	mkdir -p $INSTALL_DIR/usr/lib$LIBDIR_SUFFIX $INSTALL_DIR/usr/bin
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/lib$LIBDIR_SUFFIX $INSTALL_DIR${BASE_PATH_PREFIX}/bin
 	make install
 	[ $? -ne 0 ] && return 1
 

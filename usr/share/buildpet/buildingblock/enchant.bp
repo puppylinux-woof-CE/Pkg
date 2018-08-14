@@ -24,8 +24,8 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
-	            --with-myspell-dir=/usr/share/myspell
+	            --prefix=${BASE_PATH_PREFIX} \
+	            --with-myspell-dir=${BASE_PATH_PREFIX}/share/myspell
 	[ $? -ne 0 ] && return 1
 
 	# build the package

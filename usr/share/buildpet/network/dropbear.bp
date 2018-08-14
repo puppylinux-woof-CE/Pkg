@@ -27,7 +27,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-pam \
 	            --disable-syslog \
 	            --disable-lastlog \
@@ -38,7 +38,7 @@ build() {
 	[ $? -ne 0 ] && return 1
 	
 	# set the xauth path
-	sed -i s~'/usr/bin/X11/xauth'~'/usr/bin/xauth'~ options.h
+	sed -i s~"${BASE_PATH_PREFIX}/bin/X11/xauth"~"${BASE_PATH_PREFIX}/bin/xauth"~ options.h
 	[ $? -ne 0 ] && return 1
 	
 	# build the package
@@ -50,21 +50,21 @@ build() {
 
 package() {	
 	# install the package
-	install -m755 -D dropbearmulti $INSTALL_DIR/usr/bin/dropbear
+	install -m755 -D dropbearmulti $INSTALL_DIR${BASE_PATH_PREFIX}/bin/dropbear
 	[ $? -ne 0 ] && return 1
 
 	# install the license
-	install -m644 -D LICENSE $INSTALL_DIR/usr/share/doc/legal/dropbear/LICENSE
+	install -m644 -D LICENSE $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/dropbear/LICENSE
 	[ $? -ne 0 ] && return 1
 
 	# install the man page
-	install -m644 -D dbclient.1 $INSTALL_DIR/usr/share/man/man1/dhclient.1
+	install -m644 -D dbclient.1 $INSTALL_DIR${BASE_PATH_PREFIX}/share/man/man1/dhclient.1
 	[ $? -ne 0 ] && return 1
 	
 	# create symlinks
 	for i in $PROGRAMS ssh
 	do
-		ln -s dropbear $INSTALL_DIR/usr/bin/$i
+		ln -s dropbear $INSTALL_DIR${BASE_PATH_PREFIX}/bin/$i
 		[ $? -ne 0 ] && return 1
 	done
 	

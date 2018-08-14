@@ -35,7 +35,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# install the license
-	install -m644 -D ./COPYING $INSTALL_DIR/usr/share/doc/legal/feh/COPYING
+	install -m644 -D ./COPYING $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/feh/COPYING
 	[ $? -ne 0 ] && return 1
 
 	# add a wrapper
@@ -43,13 +43,13 @@ package() {
 	
 choice="$(yad --title Choose\ a\ file --width 500 --height 300 --file)"             
 [ $? -eq 1 ] && exit 0                                                                 
-exec feh "$choice"' > $INSTALL_DIR/usr/bin/feh_shell
+exec feh "$choice"' > $INSTALL_DIR${BASE_PATH_PREFIX}/bin/feh_shell
 	[ $? -ne 0 ] && return 1
-	chmod 755 $INSTALL_DIR/usr/bin/feh_shell
+	chmod 755 $INSTALL_DIR${BASE_PATH_PREFIX}/bin/feh_shell
 	[ $? -ne 0 ] && return 1
 	
 	# add a menu entry
-	mkdir -p $INSTALL_DIR/usr/share/applications
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	[ $? -ne 0 ] && return 1
 	echo '[Desktop Entry]
 Encoding=UTF-8
@@ -60,9 +60,9 @@ Exec=feh_shell
 Terminal=false
 Type=Application
 Categories=Graphics;2DGraphics;RasterGraphics;
-GenericName=Feh image viewer' > $INSTALL_DIR/usr/share/applications/feh.desktop
+GenericName=Feh image viewer' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/feh.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/feh.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/feh.desktop
 	[ $? -ne 0 ] && return 1
 
 	# add the post-install script
@@ -71,9 +71,9 @@ GenericName=Feh image viewer' > $INSTALL_DIR/usr/share/applications/feh.desktop
 echo "Setting Feh as the default image viewer"
 
 echo "#!/bin/sh
-exec feh \"\$@\"" > ./usr/local/bin/defaultimageviewer
+exec feh \"\$@\"" > .${BASE_PATH_PREFIX}/local/bin/defaultimageviewer
 
-chmod 755 ./usr/local/bin/defaultimageviewer' > $INSTALL_DIR/pinstall.sh
+chmod 755 .${BASE_PATH_PREFIX}/local/bin/defaultimageviewer' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1

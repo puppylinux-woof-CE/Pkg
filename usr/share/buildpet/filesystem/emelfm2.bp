@@ -30,7 +30,7 @@ build() {
 171c171
 < 			"use-icon-dir", "/YOURHOME/."BINNAME, E2_OPTION_FLAG_BUILDICONS |
 ---
-> 			"use-icon-dir", "/usr/share/pixmaps/emelfm2", E2_OPTION_FLAG_BUILDICONS |' | patch src/config/e2_option__default.c
+> 			"use-icon-dir", "${BASE_PATH_PREFIX}/share/pixmaps/emelfm2", E2_OPTION_FLAG_BUILDICONS |' | patch src/config/e2_option__default.c
 	[ $? -ne 0 ] && return 1
 
 	# set sane default file type handlers
@@ -152,7 +152,7 @@ build() {
 	[ $? -ne 0 ] && return 1
 
 	# build the package
-	make -j $BUILD_THREADS PREFIX=/usr/share/emelfm2 DOCS_VERION=0 USE_LATEST=1 USE_FAM=0 USE_GAMIN=0 USE_INOTIFY=1 USE_DNOTIFY=0 FILES_UTF8ONLY=1 WITH_THUMBS=0 WITH_TRACKER=0 WITH_ACL=0 WITH_POLKIT=0 WITH_VFS=0 WITH_GVFS=0 DEBUG=0
+	make -j $BUILD_THREADS PREFIX=${BASE_PATH_PREFIX}/share/emelfm2 DOCS_VERION=0 USE_LATEST=1 USE_FAM=0 USE_GAMIN=0 USE_INOTIFY=1 USE_DNOTIFY=0 FILES_UTF8ONLY=1 WITH_THUMBS=0 WITH_TRACKER=0 WITH_ACL=0 WITH_POLKIT=0 WITH_VFS=0 WITH_GVFS=0 DEBUG=0
 	[ $? -ne 0 ] && return 1
 
 	return 0
@@ -160,17 +160,17 @@ build() {
 
 package() {	
 	# install the package
-	make PREFIX=$INSTALL_DIR/usr install
+	make PREFIX=$INSTALL_DIR${BASE_PATH_PREFIX} install
 	[ $? -ne 0 ] && return 1
-	make PREFIX=$INSTALL_DIR/usr install_i18n
+	make PREFIX=$INSTALL_DIR${BASE_PATH_PREFIX} install_i18n
 	[ $? -ne 0 ] && return 1
 	
 	# remove unneeded files
-	rm -rf $INSTALL_DIR/usr/share/application-registry
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/application-registry
 	[ $? -ne 0 ] && return 1
 		
 	# add a symlink to the pixmap
-	ln -s ./emelfm2/emelfm2_48.png $INSTALL_DIR/usr/share/pixmaps/emelfm2.png
+	ln -s ./emelfm2/emelfm2_48.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/emelfm2.png
 	[ $? -ne 0 ] && return 1
 	
 	# fix the menu entry
@@ -183,9 +183,9 @@ Exec=emelfm2
 Terminal=false
 Type=Application
 Categories=Utility;FileManager;
-GenericName=emelFM2 file manager' > $INSTALL_DIR/usr/share/applications/emelfm2.desktop
+GenericName=emelFM2 file manager' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/emelfm2.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/emelfm2.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/emelfm2.desktop
 	[ $? -ne 0 ] && return 1
 	
 	return 0

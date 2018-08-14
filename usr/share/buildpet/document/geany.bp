@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-plugins \
 	            --enable-socket \
 	            --disable-vte
@@ -43,17 +43,17 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# remove an unneeded icon
-	rm -f $INSTALL_DIR/usr/share/icons/hicolor/16x16/apps/geany.png
+	rm -f $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/16x16/apps/geany.png
 	[ $? -ne 0 ] && return 1
 	
 	# move the 48x48 icon
-	mkdir $INSTALL_DIR/usr/share/pixmaps
+	mkdir $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
-	mv $INSTALL_DIR/usr/share/icons/hicolor/48x48/apps/geany.png $INSTALL_DIR/usr/share/pixmaps
+	mv $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/48x48/apps/geany.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
 	
 	# remove the scalable icon and the empty directory
-	rm -rf $INSTALL_DIR/usr/share/icons/hicolor/48x48 $INSTALL_DIR/usr/share/icons/hicolor/scalable
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/48x48 $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/scalable
 	[ $? -ne 0 ] && return 1
 	
 	# replace the menu entry
@@ -67,9 +67,9 @@ Terminal=false
 Type=Application
 MimeType=text/plain;text/x-chdr;text/x-csrc;text/x-c++hdr;text/x-c++src;text/x-java;text/x-dsrc;text/x-pascal;text/x-perl;text/x-python;application/x-php;application/x-httpd-php3;application/x-httpd-php4;application/x-httpd-php5;application/xml;text/html;text/css;text/x-sql;text/x-diff;
 Categories=Utility;TextEditor;Development;IDE;
-GenericName=Geany text editor' > $INSTALL_DIR/usr/share/applications/geany.desktop
+GenericName=Geany text editor' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/geany.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/geany.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/geany.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script
@@ -78,8 +78,8 @@ GenericName=Geany text editor' > $INSTALL_DIR/usr/share/applications/geany.deskt
 echo "Setting Geany as the default text editor"
 
 echo "#!/bin/sh
-exec geany \"\$@\"" > ./usr/local/bin/defaulttexteditor
-chmod 755 ./usr/local/bin/defaulttexteditor' > $INSTALL_DIR/pinstall.sh
+exec geany \"\$@\"" > .${BASE_PATH_PREFIX}/local/bin/defaulttexteditor
+chmod 755 .${BASE_PATH_PREFIX}/local/bin/defaulttexteditor' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1

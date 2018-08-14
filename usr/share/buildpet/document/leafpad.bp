@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-print \
 	            --disable-emacs
 	[ $? -ne 0 ] && return 1
@@ -46,7 +46,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# remove unneeded icons
-	rm -rf $INSTALL_DIR/usr/share/icons $INSTALL_DIR/usr/share/pixmaps/leafpad.xpm
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/leafpad.xpm
 	[ $? -ne 0 ] && return 1
 		
 	# replace the menu entry
@@ -60,9 +60,9 @@ Terminal=false
 Type=Application
 MimeType=text/plain
 Categories=Utility;TextEditor;
-GenericName=Leafpad text editor' > $INSTALL_DIR/usr/share/applications/leafpad.desktop
+GenericName=Leafpad text editor' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/leafpad.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/leafpad.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/leafpad.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script
@@ -71,8 +71,8 @@ GenericName=Leafpad text editor' > $INSTALL_DIR/usr/share/applications/leafpad.d
 echo "Setting Leafpad as the default text viewer"
 
 echo "#!/bin/sh
-exec leafpad \"\$@\"" > ./usr/local/bin/defaulttextviewer
-chmod 755 ./usr/local/bin/defaulttextviewer' > $INSTALL_DIR/pinstall.sh
+exec leafpad \"\$@\"" > .${BASE_PATH_PREFIX}/local/bin/defaulttextviewer
+chmod 755 .${BASE_PATH_PREFIX}/local/bin/defaulttextviewer' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1

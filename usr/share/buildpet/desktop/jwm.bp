@@ -50,9 +50,9 @@ package() {
 		JWMPATH="`which jwm`"
 		JWMPATH="`dirname $JWMPATH`"
 		mkdir -p $INSTALL_DIR/$JWMPATH
-		mv $INSTALL_DIR/usr/local/bin/jwm $INSTALL_DIR/$JWMPATH
-		rmdir $INSTALL_DIR/usr/local/bin
-		rmdir $INSTALL_DIR/usr/local
+		mv $INSTALL_DIR${BASE_PATH_PREFIX}/local/bin/jwm $INSTALL_DIR/$JWMPATH
+		rmdir $INSTALL_DIR${BASE_PATH_PREFIX}/local/bin
+		rmdir $INSTALL_DIR${BASE_PATH_PREFIX}/local
 	fi
 	
 	#create pinstall file

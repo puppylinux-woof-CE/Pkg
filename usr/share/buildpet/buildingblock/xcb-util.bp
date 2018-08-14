@@ -23,7 +23,7 @@ build() {
 	cd $PKG_NAME-$PKG_VER
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr
+	            --prefix=${BASE_PATH_PREFIX}
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -39,7 +39,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# install the license
-	install -m644 -D COPYING $INSTALL_DIR/usr/share/doc/legal/xz/COPYING
+	install -m644 -D COPYING $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/xz/COPYING
 	[ $? -ne 0 ] && return 1
 
 	return 0

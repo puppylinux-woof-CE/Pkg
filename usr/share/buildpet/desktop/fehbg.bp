@@ -14,7 +14,7 @@ download() {
 [ "$(id -u)" -ne 0 ] && exec sudo -A $0 $@
 
 # the directory containing the wallpapers
-WP_DIR="/usr/share/backgrounds"
+WP_DIR="${BASE_PATH_PREFIX}/share/backgrounds"
 
 # list all available wallpapers
 for wp in $WP_DIR/*
@@ -71,11 +71,11 @@ build() {
 
 package() {
 	# add the wallpaper chooser
-	install -m755 -D fehbg $INSTALL_DIR/usr/bin/fehbg
+	install -m755 -D fehbg $INSTALL_DIR${BASE_PATH_PREFIX}/bin/fehbg
 	[ $? -ne 0 ] && return 1
 	
 	# add a menu entry
-	mkdir -p $INSTALL_DIR/usr/share/applications
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	[ $? -ne 0 ] && return 1
 	echo '[Desktop Entry]
 Encoding=UTF-8
@@ -86,9 +86,9 @@ Exec=fehbg
 Terminal=false
 Type=Application
 Categories=Settings;DesktopSettings;
-GenericName=Fehbg wallpaper chooser' > $INSTALL_DIR/usr/share/applications/fehbg.desktop
+GenericName=Fehbg wallpaper chooser' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/fehbg.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/fehbg.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/fehbg.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# make it set the wallpaper on startup
@@ -96,7 +96,7 @@ GenericName=Fehbg wallpaper chooser' > $INSTALL_DIR/usr/share/applications/fehbg
 	[ $? -ne 0 ] && return 1
 	echo '#!/bin/sh
 
-exec feh --bg-scale /usr/share/backgrounds/default.*' > $INSTALL_DIR/root/Startup/fehbg.sh
+exec feh --bg-scale ${BASE_PATH_PREFIX}/share/backgrounds/default.*' > $INSTALL_DIR/root/Startup/fehbg.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/root/Startup/fehbg.sh
 	[ $? -ne 0 ] && return 1

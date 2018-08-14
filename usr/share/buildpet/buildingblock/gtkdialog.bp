@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr
+	            --prefix=${BASE_PATH_PREFIX}
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -40,11 +40,11 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# create backwards-compatibility symlinks
-	mkdir $INSTALL_DIR/usr/sbin
+	mkdir $INSTALL_DIR${BASE_PATH_PREFIX}/sbin
 	[ $? -ne 0 ] && return 1	
 	for i in 3 4
 	do
-		ln -s ../bin/gtkdialog $INSTALL_DIR/usr/sbin/gtkdialog$i
+		ln -s ../bin/gtkdialog $INSTALL_DIR${BASE_PATH_PREFIX}/sbin/gtkdialog$i
 		[ $? -ne 0 ] && return 1
 	done
 		

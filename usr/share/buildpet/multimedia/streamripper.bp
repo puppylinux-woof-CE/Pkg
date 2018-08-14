@@ -36,8 +36,8 @@ build() {
 package() {	
 	# install the package
 	mkdir -p $INSTALL_DIR
-	mkdir -p $INSTALL_DIR/usr/bin
-	cp streamripper $INSTALL_DIR/usr/bin
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/bin
+	cp streamripper $INSTALL_DIR${BASE_PATH_PREFIX}/bin
 	[ $? -ne 0 ] && return 1
 
 	return 0

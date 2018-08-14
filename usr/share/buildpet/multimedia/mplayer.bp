@@ -35,7 +35,7 @@ build() {
 	cd $PKG_NAME-$PKG_VER
 
 	# configure the package and download the ffmpeg sources
-	./configure --prefix=/usr \
+	./configure --prefix=${BASE_PATH_PREFIX} \
 	            --confdir=/etc/mplayer \
 	            --disable-gui \
 	            --disable-mencoder \
@@ -73,13 +73,13 @@ package() {
 
 choice="$(yad --title Choose\ a\ file --width 500 --height 300 --file)"
 [ $? -eq 1 ] && exit 0
-exec rxvt --title MPlayer -e mplayer "$choice"' > $INSTALL_DIR/usr/bin/mplayer_shell
+exec rxvt --title MPlayer -e mplayer "$choice"' > $INSTALL_DIR${BASE_PATH_PREFIX}/bin/mplayer_shell
 	[ $? -ne 0 ] && return 1
-	chmod 755 $INSTALL_DIR/usr/bin/mplayer_shell
+	chmod 755 $INSTALL_DIR${BASE_PATH_PREFIX}/bin/mplayer_shell
 	[ $? -ne 0 ] && return 1
 	
 	# add a menu entry
-	mkdir -p $INSTALL_DIR/usr/share/applications
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	[ $? -ne 0 ] && return 1
 	echo '[Desktop Entry]
 Encoding=UTF-8
@@ -90,9 +90,9 @@ Exec=mplayer_shell
 Terminal=false
 Type=Application
 Categories=AudioVideo;Player;
-GenericName=MPlayer media player' > $INSTALL_DIR/usr/share/applications/mplayer.desktop
+GenericName=MPlayer media player' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/mplayer.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/mplayer.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/mplayer.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# add a webcam viewing menu entry
@@ -105,9 +105,9 @@ Exec=mplayer tv:// -tv driver=v4l2:width=768:height=450:device=/dev/video0 -fps 
 Terminal=false
 Type=Application
 Categories=AudioVideo;Photography;
-GenericName=MPlayer webcam view' > $INSTALL_DIR/usr/share/applications/mplayer-webcam.desktop
+GenericName=MPlayer webcam view' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/mplayer-webcam.desktop
 	[ $? -ne 0] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/mplayer-webcam.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/mplayer-webcam.desktop
 	[ $? -ne 0 ] && return 1
 	                                                                                                   	
 	# add the post-install script
@@ -116,9 +116,9 @@ GenericName=MPlayer webcam view' > $INSTALL_DIR/usr/share/applications/mplayer-w
 echo "Setting MPlayer as the default media player"
 
 echo "#!/bin/sh
-exec mplayer_shell \"\$@\"" > ./usr/local/bin/defaultmediaplayer
+exec mplayer_shell \"\$@\"" > .${BASE_PATH_PREFIX}/local/bin/defaultmediaplayer
 
-chmod 755 ./usr/local/bin/defaultmediaplayer' > $INSTALL_DIR/pinstall.sh
+chmod 755 .${BASE_PATH_PREFIX}/local/bin/defaultmediaplayer' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1

@@ -35,7 +35,7 @@ build() {
 
 package() {
 	# install the package
-	mkdir -p $INSTALL_DIR/sbin $INSTALL_DIR/usr/share/man/man8
+	mkdir -p $INSTALL_DIR/sbin $INSTALL_DIR${BASE_PATH_PREFIX}/share/man/man8
 	[ $? -ne 0 ] && return 1
 	make DESTDIR=$INSTALL_DIR install
 	[ $? -ne 0 ] && return 1

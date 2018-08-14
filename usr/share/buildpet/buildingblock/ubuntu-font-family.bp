@@ -35,7 +35,7 @@ package() {
 	# install the legal information
 	for file in TRADEMARKS.txt copyright.txt LICENCE.txt LICENCE-FAQ.txt
 	do
-		install -m644 -D $file $INSTALL_DIR/usr/share/doc/legal/ubuntu-font-family/$file
+		install -m644 -D $file $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/ubuntu-font-family/$file
 		[ $? -ne 0 ] && return 1
 	done
 

@@ -33,7 +33,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 	
 	# install the license
-	install -m644 -D License.txt $INSTALL_DIR/usr/share/doc/legal/liberation-fonts-ttf/License.txt
+	install -m644 -D License.txt $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/liberation-fonts-ttf/License.txt
 	[ $? -ne 0 ] && return 1
 	
 	return 0

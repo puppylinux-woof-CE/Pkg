@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --parallel=$BUILD_THREADS \
 	            --system-curl \
 	            --system-expat \
@@ -47,7 +47,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# install the copyright statement
-	install -m644 -D Copyright.txt $INSTALL_DIR/usr/share/doc/legal/cmake/Copyright.txt
+	install -m644 -D Copyright.txt $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/cmake/Copyright.txt
 	[ $? -ne 0 ] && return 1
 
 	return 0

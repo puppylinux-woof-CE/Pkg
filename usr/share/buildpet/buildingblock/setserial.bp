@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr
+	            --prefix=${BASE_PATH_PREFIX}
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -36,9 +36,9 @@ build() {
 
 package() {
 	# install the package
-	install -m755 -D setserial $INSTALL_DIR/usr/bin/setserial
+	install -m755 -D setserial $INSTALL_DIR${BASE_PATH_PREFIX}/bin/setserial
 	[ $? -ne 0 ] && return 1
-	install -m644 -D setserial.8 $INSTALL_DIR/usr/share/man/man8/setserial.8
+	install -m644 -D setserial.8 $INSTALL_DIR${BASE_PATH_PREFIX}/share/man/man8/setserial.8
 	[ $? -ne 0 ] && return 1
 
 	return 0

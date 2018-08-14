@@ -23,7 +23,7 @@ build() {
 	cd $PKG_NAME-$PKG_VER
 
 	# set the CFLAGS and the installation path
-	sed -e s~'/usr/bin/X11'~'/usr/bin'~ \
+	sed -e s~"${BASE_PATH_PREFIX}/bin/X11"~"${BASE_PATH_PREFIX}/bin"~ \
 	    -e s~'CFLAGS = .*'~"& $CFLAGS"~ \
 	    -i Makefile
 	[ $? -ne 0 ] && return 1
@@ -37,7 +37,7 @@ build() {
 
 package() {
 	# install the package
-	mkdir -p $INSTALL_DIR/usr/bin
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/bin
 	[ $? -ne 0 ] && return 1
 	make DESTDIR=$INSTALL_DIR install
 	[ $? -ne 0 ] && return 1

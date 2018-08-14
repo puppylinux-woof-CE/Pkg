@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr
+	            --prefix=${BASE_PATH_PREFIX}
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -40,13 +40,13 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# remove unneeded files and directories
-	rm -rf $INSTALL_DIR/etc $INSTALL_DIR/usr/share/pixmaps/parcellite.xpm $INSTALL_DIR/usr/share/pixmaps/parcellite.svg $INSTALL_DIR/usr/share/applications
+	rm -rf $INSTALL_DIR/etc $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/parcellite.xpm $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/parcellite.svg $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	[ $? -ne 0 ] && return 1
 	
 	# make it auto-start
 	mkdir -p $INSTALL_DIR/root/Startup
 	[ $? -ne 0 ] && return 1
-	ln -s ../../usr/bin/parcellite $INSTALL_DIR/root/Startup
+	ln -s ../..${BASE_PATH_PREFIX}/bin/parcellite $INSTALL_DIR/root/Startup
 	[ $? -ne 0 ] && return 1
 		
 	return 0

@@ -38,22 +38,22 @@ build() {
 package() {	
 	# install the package
 	mkdir -p $INSTALL_DIR
-	mkdir -p $INSTALL_DIR/usr
-	mkdir -p $INSTALL_DIR/usr/bin
-	mkdir -p $INSTALL_DIR/usr/share
-	mkdir -p $INSTALL_DIR/usr/share/applications
-	mkdir -p $INSTALL_DIR/usr/share/icons
-	mkdir -p $INSTALL_DIR/usr/share/icons/hicolor
-	mkdir -p $INSTALL_DIR/usr/share/icons/hicolor/16x16
-	mkdir -p $INSTALL_DIR/usr/share/icons/hicolor/24x24
-	mkdir -p $INSTALL_DIR/usr/share/icons/hicolor/32x32
-	mkdir -p $INSTALL_DIR/usr/share/icons/hicolor/16x16/apps
-	mkdir -p $INSTALL_DIR/usr/share/icons/hicolor/24x24/apps
-	mkdir -p $INSTALL_DIR/usr/share/icons/hicolor/32x32/apps
-	mv mongoose $INSTALL_DIR/usr/bin
-	mv build/mongoose_16x16.png $INSTALL_DIR/usr/share/icons/hicolor/16x16/apps/mongoose.png
-	mv build/mongoose_22x22.png $INSTALL_DIR/usr/share/icons/hicolor/24x24/apps/mongoose.png
-	mv build/mongoose_32x32.png $INSTALL_DIR/usr/share/icons/hicolor/32x32/apps/mongoose.png
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/bin
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/16x16
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/24x24
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/32x32
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/16x16/apps
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/24x24/apps
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/32x32/apps
+	mv mongoose $INSTALL_DIR${BASE_PATH_PREFIX}/bin
+	mv build/mongoose_16x16.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/16x16/apps/mongoose.png
+	mv build/mongoose_22x22.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/24x24/apps/mongoose.png
+	mv build/mongoose_32x32.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/32x32/apps/mongoose.png
 	echo '#!/bin/bash
 #190613 updates
 STATUS=STOPPED
@@ -75,8 +75,8 @@ Xdialog --title "Webserver" --msgbox "Run this again to start or stop your webse
 #[ "`ps -e | grep mongoos`" != "" ] && killall mongoose && Xdialog --title "Webserver" --msgbox "Webserver stopped.. Run this again to start it." 0 0 && exit 0
 #exec mongoose ~/.mongoose/mongoose.conf &
 #Xdialog --title "Webserver" --msgbox "Webserver started.. Run this again to stop it." 0 0
-exit 0' > $INSTALL_DIR/usr/bin/mongoose.sh
-	chmod +x $INSTALL_DIR/usr/bin/mongoose.sh
+exit 0' > $INSTALL_DIR${BASE_PATH_PREFIX}/bin/mongoose.sh
+	chmod +x $INSTALL_DIR${BASE_PATH_PREFIX}/bin/mongoose.sh
 	#make DESTDIR=$INSTALL_DIR install
 	[ $? -ne 0 ] && return 1
 
@@ -90,7 +90,7 @@ Icon=mongoose.png
 Name=Mongoose - tiny webserver
 Terminal=false
 Type=Application
-" > $INSTALL_DIR/usr/share/applications/mongoose.desktop
+" > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/mongoose.desktop
 
 	return 0
 }

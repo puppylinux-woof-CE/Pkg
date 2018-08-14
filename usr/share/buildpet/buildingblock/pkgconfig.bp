@@ -26,8 +26,8 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-			--prefix=/usr \
-			--docdir=/usr/share/doc/pkg-config-0.27 \
+			--prefix=${BASE_PATH_PREFIX} \
+			--docdir=${BASE_PATH_PREFIX}/share/doc/pkg-config-0.27 \
 			--with-internal-glib
 	[ $? -ne 0 ] && return 1
 

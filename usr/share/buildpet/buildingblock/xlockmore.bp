@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --enable-def-play=aplay \
 	            --disable-allow-root \
 	            --enable-vtlock \
@@ -81,16 +81,16 @@ build() {
 package() {	
 	# install the package
 	make xapploaddir=$INSTALL_DIR/etc/X11/app-defaults \
-	     mandir=$INSTALL_DIR/usr/share/man/man1 \
-	     prefix=$INSTALL_DIR/usr install
+	     mandir=$INSTALL_DIR${BASE_PATH_PREFIX}/share/man/man1 \
+	     prefix=$INSTALL_DIR${BASE_PATH_PREFIX} install
 	[ $? -ne 0 ] && return 1
 
 	# install the license
-	mkdir -p $INSTALL_DIR/usr/share/doc/legal/xlockmore
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/xlockmore
 	[ $? -ne 0 ] && return 1
-	cat xlock.c | head -n 24 | tail -n 16 | sed s/^' \* '//g | sed s/\*//g > $INSTALL_DIR/usr/share/doc/legal/xlockmore/LICENSE	
+	cat xlock.c | head -n 24 | tail -n 16 | sed s/^' \* '//g | sed s/\*//g > $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/xlockmore/LICENSE	
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/doc/legal/xlockmore/LICENSE
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/xlockmore/LICENSE
 	[ $? -ne 0 ] && return 1
 	
 	return 0

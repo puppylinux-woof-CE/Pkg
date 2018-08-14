@@ -25,11 +25,11 @@ build() {
 	# configure the package
 	./configure cflags \
 	            --cpu="$PKG_ARCH" \
-	            --bindir=/usr/bin \
+	            --bindir=${BASE_PATH_PREFIX}/bin \
 	            man \
 	            pod \
-	            --mandir=/usr/share/man/man1 \
-	            --prefix=$INSTALL_DIR/usr	                                                                                                                                           
+	            --mandir=${BASE_PATH_PREFIX}/share/man/man1 \
+	            --prefix=$INSTALL_DIR${BASE_PATH_PREFIX}	                                                                                                                                           
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -45,7 +45,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# add a menu entry
-	mkdir -p $INSTALL_DIR/usr/share/applications
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	[ $? -ne 0 ] && return 1
 	echo '[Desktop Entry]
 Encoding=UTF-8
@@ -56,9 +56,9 @@ Exec=rgbpaint
 Terminal=false
 Type=Application
 Categories=Graphics;2DGraphics;RasterGraphics;
-GenericName=rgbPaint image editor' > $INSTALL_DIR/usr/share/applications/rgbpaint.desktop
+GenericName=rgbPaint image editor' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/rgbpaint.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/rgbpaint.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/rgbpaint.desktop
 	[ $? -ne 0 ] && return 1
 		
 	# add the post-install script
@@ -67,9 +67,9 @@ GenericName=rgbPaint image editor' > $INSTALL_DIR/usr/share/applications/rgbpain
 echo "Setting rgbPaint as the default image editor"
 
 echo "#!/bin/sh
-exec rgbpaint \"\$@\"" > ./usr/local/bin/defaultimageeditor
+exec rgbpaint \"\$@\"" > .${BASE_PATH_PREFIX}/local/bin/defaultimageeditor
 
-chmod 755 ./usr/local/bin/defaultimageeditor' > $INSTALL_DIR/pinstall.sh
+chmod 755 .${BASE_PATH_PREFIX}/local/bin/defaultimageeditor' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1

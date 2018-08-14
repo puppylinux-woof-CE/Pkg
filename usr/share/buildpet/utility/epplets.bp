@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-glx \
 	            --disable-esd \
 	            --without-test-programs
@@ -43,8 +43,8 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# remove test Epplets
-	rm -f $INSTALL_DIR/usr/bin/EppletConfigTest.epplet \
-	      $INSTALL_DIR/usr/bin/EppletTest.epplet
+	rm -f $INSTALL_DIR${BASE_PATH_PREFIX}/bin/EppletConfigTest.epplet \
+	      $INSTALL_DIR${BASE_PATH_PREFIX}/bin/EppletTest.epplet
 	[ $? -ne 0 ] && return 1
 	
 	return 0

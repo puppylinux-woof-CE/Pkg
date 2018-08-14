@@ -26,7 +26,7 @@ build() {
 	sed -i 's#) ytasm.*#)#' Makefile.in &&
 	echo "/configure $BASE_CONFIGURE_ARGS"
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --with-gnu-ld
 	[ $? -ne 0 ] && return 1
 

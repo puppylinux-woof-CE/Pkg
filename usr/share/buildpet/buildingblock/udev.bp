@@ -34,7 +34,7 @@ build() {
 
 	# configure the package
 	./configure --build=$BUILD_TARGET \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --sbindir=/sbin \
 	            --sysconfdir=/etc \
 	            --with-rootlibdir=/lib \

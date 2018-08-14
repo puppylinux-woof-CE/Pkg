@@ -33,7 +33,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr
+	            --prefix=${BASE_PATH_PREFIX}
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -52,7 +52,7 @@ package() {
 	rm -rf $INSTALL_DIR/etc/xdg
 	[ $? -ne 0 ] && return 1
 	
-	for i in $INSTALL_DIR/usr/share/pixmaps/wbar/*
+	for i in $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/wbar/*
 	do
 		case "$i" in
 			*/wbar.png)
@@ -65,17 +65,17 @@ package() {
 	done
 
 	# install the default background from Cairo-Dock
-	install -m644 -D ../bg.png $INSTALL_DIR/usr/share/pixmaps/wbar/bg.png
+	install -m644 -D ../bg.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/wbar/bg.png
 	[ $? -ne 0 ] && return 1
 		
 	# create a symlink to the logo
-	rm -f $INSTALL_DIR/usr/share/pixmaps/wbar.png
+	rm -f $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/wbar.png
 	[ $? -ne 0 ] && return 1
-	ln -s ./wbar/wbar.png $INSTALL_DIR/usr/share/pixmaps/wbar.png
+	ln -s ./wbar/wbar.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/wbar.png
 	[ $? -ne 0 ] && return 1
 
 	# add a menu entry for the configuration tool
-	mkdir $INSTALL_DIR/usr/share/applications
+	mkdir $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	[ $? -ne 0 ] && return 1
 	echo '[Desktop Entry]
 Encoding=UTF-8
@@ -86,37 +86,37 @@ Exec=wbar-config
 Terminal=false
 Type=Application
 Categories=Settings;DesktopSettings;
-GenericName=wbar-config wbar settings' > $INSTALL_DIR/usr/share/applications/wbar-config.desktop
+GenericName=wbar-config wbar settings' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/wbar-config.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/wbar-config.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/wbar-config.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# override the default configuration
-	echo -n "i: /usr/share/pixmaps/wbar/bg.png
+	echo -n "i: ${BASE_PATH_PREFIX}/share/pixmaps/wbar/bg.png
 c: wbar --bpress --pos bottom --isize 48 --idist 5 --nanim 4
 t: /10
 
-i: /usr/share/pixmaps/firefox.png
+i: ${BASE_PATH_PREFIX}/share/pixmaps/firefox.png
 c: firefox
 t: Firefox
 
-i: /usr/share/pixmaps/pidgin.png
+i: ${BASE_PATH_PREFIX}/share/pixmaps/pidgin.png
 c: pidgin
 t: Pidgin
 
-i: /usr/share/pixmaps/transmission.png
+i: ${BASE_PATH_PREFIX}/share/pixmaps/transmission.png
 c: transmission-gtk
 t: Transmission
 
-i: /usr/share/pixmaps/geany.png
+i: ${BASE_PATH_PREFIX}/share/pixmaps/geany.png
 c: geany
 t: Geany
 
-i: /usr/share/pixmaps/emelfm2.png
+i: ${BASE_PATH_PREFIX}/share/pixmaps/emelfm2.png
 c: emelfm2
 t: emelFM2
 
-i: /usr/share/pixmaps/deadbeef.png
+i: ${BASE_PATH_PREFIX}/share/pixmaps/deadbeef.png
 c: deadbeef
 t: deadbeef
 
@@ -128,7 +128,7 @@ t: deadbeef
 	# make it auto-start
 	mkdir -p $INSTALL_DIR/root/Startup
 	[ $? -ne 0 ] && return 1
-	ln -s ../../usr/bin/wbar $INSTALL_DIR/root/Startup
+	ln -s ../..${BASE_PATH_PREFIX}/bin/wbar $INSTALL_DIR/root/Startup
 	[ $? -ne 0 ] && return 1
 	
 	return 0

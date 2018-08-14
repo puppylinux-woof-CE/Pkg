@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --enable-gtk \
 	            --disable-libappindicator \
 	            --enable-lightweight \
@@ -45,21 +45,21 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# remove the GPL copy
-	rm -f $INSTALL_DIR/usr/share/transmission/web/LICENSE
+	rm -f $INSTALL_DIR${BASE_PATH_PREFIX}/share/transmission/web/LICENSE
 	[ $? -ne 0 ] && return 1
-	ln -s ../../doc/legal/gpl-2.0.txt $INSTALL_DIR/usr/share/transmission/web/LICENSE
+	ln -s ../../doc/legal/gpl-2.0.txt $INSTALL_DIR${BASE_PATH_PREFIX}/share/transmission/web/LICENSE
 	[ $? -ne 0 ] && return 1
 		
 	# create a backwards-compatibility symlink
-	ln -s transmission-gtk $INSTALL_DIR/usr/bin/transmission
+	ln -s transmission-gtk $INSTALL_DIR${BASE_PATH_PREFIX}/bin/transmission
 	[ $? -ne 0 ] && return 1
 		
 	# remove unneeded icons
-	rm -rf $INSTALL_DIR/usr/share/icons
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons
 	[ $? -ne 0 ] && return 1
 	
 	# remove one menu entry
-	rm -f $INSTALL_DIR/usr/share/applications/transmission-gtk.desktop
+	rm -f $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/transmission-gtk.desktop
 	[ $? -ne 0 ] && return 1
 		
 	# replace the menu entry
@@ -73,9 +73,9 @@ Terminal=false
 Type=Application
 MimeType=application/x-bittorrent;x-scheme-handler/magnet;
 Categories=Network;FileTransfer;P2P;
-GenericName=Transmission BitTorrent client' > $INSTALL_DIR/usr/share/applications/transmission.desktop
+GenericName=Transmission BitTorrent client' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/transmission.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/transmission.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/transmission.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script

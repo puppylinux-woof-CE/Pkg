@@ -28,11 +28,11 @@ build() {
 
 package() {	
 	# install the samples
-	mkdir -p $INSTALL_DIR/usr/share/timidity/freepats
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/timidity/freepats
 	[ $? -ne 0 ] && return 1
 	for directory in Tone_000 Drum_000
 	do
-		mv $directory $INSTALL_DIR/usr/share/timidity/freepats
+		mv $directory $INSTALL_DIR${BASE_PATH_PREFIX}/share/timidity/freepats
 		[ $? -ne 0 ] && return 1
 	done
 	
@@ -42,7 +42,7 @@ package() {
 	
 	# make freepats the TiMidity default 
 	echo 'echo "
-dir /usr/share/timidity/freepats
+dir ${BASE_PATH_PREFIX}/share/timidity/freepats
 source /etc/timidity++/freepats/freepats.cfg" >> /etc/timidity++/timidity.cfg' >> $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh

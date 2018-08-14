@@ -24,7 +24,7 @@ build() {
 	
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --with-terminfo=/usr/share/terminfo \
 	            --disable-xft \
 	            --disable-font-styles \
@@ -39,7 +39,6 @@ build() {
 	            --disable-next-scroll \
 	            --disable-xterm-scroll \
 	            --disable-perl \
-	            --with-terminfo=/usr/share/terminfo \
 	            --with-x \
               $PKG_CONFIGURE
 

@@ -28,7 +28,7 @@ build() {
 	
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr
+	            --prefix=${BASE_PATH_PREFIX}
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -44,9 +44,9 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# remove a copy of the icon
-	rm -f $INSTALL_DIR/usr/share/pixmaps/gdmap_icon.png
+	rm -f $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/gdmap_icon.png
 	[ $? -ne 0 ] && return 1
-	ln -s ../gdmap/pixmaps/gdmap_icon.png  $INSTALL_DIR/usr/share/pixmaps/gdmap.png
+	ln -s ../gdmap/pixmaps/gdmap_icon.png  $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/gdmap.png
 	[ $? -ne 0 ] && return 1
 	
 	# replace the menu entry
@@ -59,9 +59,9 @@ Exec=gdmap
 Terminal=false
 Type=Application
 Categories=Filesystem;Utility;
-GenericName=GdMap disk usage analyzer' > $INSTALL_DIR/usr/share/applications/gdmap.desktop
+GenericName=GdMap disk usage analyzer' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/gdmap.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/gdmap.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/gdmap.desktop
 	[ $? -ne 0 ] && return 1
 	
 	return 0

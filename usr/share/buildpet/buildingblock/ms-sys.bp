@@ -24,7 +24,7 @@ build() {
 
 	# set the CFLAGS
 	sed -e s/'EXTRA_CFLAGS = .*'/"& $CFLAGS"/ \
-	    -e s~'/usr/local'~'/usr'~ \
+	    -e s~'${BASE_PATH_PREFIX}/local'~'${BASE_PATH_PREFIX}'~ \
 	    -i Makefile
 	[ $? -ne 0 ] && return 1
 	

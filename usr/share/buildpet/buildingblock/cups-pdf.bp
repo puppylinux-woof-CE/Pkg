@@ -31,9 +31,9 @@ build() {
 
 package() {
 	# install the package
-	install -m755 -D cups-pdf $INSTALL_DIR/usr/lib$LIBDIR_SUFFIX/cups/backend/cups-pdf
+	install -m755 -D cups-pdf $INSTALL_DIR${BASE_PATH_PREFIX}/lib$LIBDIR_SUFFIX/cups/backend/cups-pdf
 	[ $? -ne 0 ] && return 1
-	install -m644 -D ../extra/CUPS-PDF.ppd $INSTALL_DIR/usr/share/ppd/cups-included/CUPS-PDF.ppd
+	install -m644 -D ../extra/CUPS-PDF.ppd $INSTALL_DIR${BASE_PATH_PREFIX}/share/ppd/cups-included/CUPS-PDF.ppd
 	[ $? -ne 0 ] && return 1
 	install -m644 -D ../extra/cups-pdf.conf $INSTALL_DIR/etc/cups/cups-pdf.conf
 	[ $? -ne 0 ] && return 1

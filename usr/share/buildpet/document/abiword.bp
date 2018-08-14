@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-menubutton \
 	            --enable-print \
 	            --disable-emacs-keybinding \
@@ -50,9 +50,9 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# create a symlink to the icon
-	mkdir -p $INSTALL_DIR/usr/share/pixmaps
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
-	ln -s ../icons/abiword_48.png $INSTALL_DIR/usr/share/pixmaps/abiword.png
+	ln -s ../icons/abiword_48.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/abiword.png
 	[ $? -ne 0 ] && return 1
 	
 	# replace the menu entry
@@ -66,9 +66,9 @@ Terminal=false
 Type=Application
 MimeType=application/x-abiword;text/x-abiword;text/x-xml-abiword;text/plain;application/msword;application/rtf;application/vnd.plain;application/xhtml+xml;text/html;application/x-crossmark;application/docbook+xml;application/x-t602;application/vnd.oasis.opendocument.text;application/vnd.oasis.opendocument.text-template;application/vnd.oasis.opendocument.text-web;application/vnd.sun.xml.writer;application/vnd.stardivision.writer;text/vnd.wap.wml;application/wordperfect6;application/wordperfect5.1;application/vnd.wordperfect;application/x-abicollab;
 Categories=Office;WordProcessor;
-GenericName=AbiWord word processor' > $INSTALL_DIR/usr/share/applications/abiword.desktop
+GenericName=AbiWord word processor' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/abiword.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/abiword.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/abiword.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script
@@ -77,9 +77,9 @@ GenericName=AbiWord word processor' > $INSTALL_DIR/usr/share/applications/abiwor
 echo "Setting Abiword as the default word processor"
 
 echo "#!/bin/sh
-exec abiword \"\$@\"" > ./usr/local/bin/defaultwordprocessor
+exec abiword \"\$@\"" > .${BASE_PATH_PREFIX}/local/bin/defaultwordprocessor
 
-chmod 755 ./usr/local/bin/defaultwordprocessor' > $INSTALL_DIR/pinstall.sh
+chmod 755 .${BASE_PATH_PREFIX}/local/bin/defaultwordprocessor' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1

@@ -24,11 +24,11 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --bindir=/bin \
 	            --sbindir=/sbin \
 	            --libdir=/lib$LIBDIR_SUFFIX \
-	            --with-xtlibdir=/usr/lib$LIBDIR_SUFFIX/xtables \
+	            --with-xtlibdir=${BASE_PATH_PREFIX}/lib$LIBDIR_SUFFIX/xtables \
 	            --enable-ipv4 \
 	            --enable-ipv6 \
 	            --disable-libipq

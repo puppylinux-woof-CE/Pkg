@@ -31,7 +31,7 @@ build() {
 	mkdir -p /tmp/extra_info
 	./configure --help > /tmp/extra_info/x264_DOTconfig_options.txt
 	./configure $BASE_CONFIGURE_ARGS \
-				--prefix=/usr \
+				--prefix=${BASE_PATH_PREFIX} \
 				--disable-cli \
 				--enable-shared \
 				--enable-pic

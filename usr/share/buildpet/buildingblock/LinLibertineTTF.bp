@@ -26,16 +26,16 @@ build() {
 
 package() {	
 	# install the TTF fonts
-	mkdir -p $INSTALL_DIR/usr/share/fonts/TTF
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/fonts/TTF
 	[ $? -ne 0 ] && return 1
-	install -m644 -D *.ttf $INSTALL_DIR/usr/share/fonts/TTF
+	install -m644 -D *.ttf $INSTALL_DIR${BASE_PATH_PREFIX}/share/fonts/TTF
 	[ $? -ne 0 ] && return 1
 	
 	# install the licenses
-	mkdir -p $INSTALL_DIR/usr/share/doc/legal/$PKG_NAME
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/$PKG_NAME
 	for license in OFL.txt LICENCE.txt
 	do
-		install -m644 $license $INSTALL_DIR/usr/share/doc/legal/LinLibertineTTF/$license
+		install -m644 $license $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/LinLibertineTTF/$license
 		[ $? -ne 0 ] && return 1
 	done
 

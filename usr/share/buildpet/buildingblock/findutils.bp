@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --bindir=/bin \
 	            --localstatedir=/var/lib$LIBDIR_SUFFIX/locate \
 	            --without-included-regex

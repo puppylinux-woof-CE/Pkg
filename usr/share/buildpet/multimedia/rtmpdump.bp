@@ -23,7 +23,7 @@ build() {
 	cd $PKG_NAME-$PKG_VER
 
 	# configure the package, no configure script, edit the makefile
-	sed -i "s@prefix=/usr/local@prefix=/usr@g" ./Makefile
+	sed -i "s@prefix=${BASE_PATH_PREFIX}/local@prefix=${BASE_PATH_PREFIX}@g" ./Makefile
 
 	# build the package
 	make -j $BUILD_THREADS SYS=posix
@@ -37,9 +37,9 @@ package() {
 	mkdir -p $INSTALL_DIR
 	make DESTDIR=$INSTALL_DIR install
 	[ $? -ne 0 ] && return 1
-	mkdir -p $INSTALL_DIR/usr/lib
-	mv $INSTALL_DIR/usr/local/lib/* $INSTALL_DIR/usr/lib
-	rm -f -R $INSTALL_DIR/usr/local/lib/
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/lib
+	mv $INSTALL_DIR${BASE_PATH_PREFIX}/local/lib/* $INSTALL_DIR${BASE_PATH_PREFIX}/lib
+	rm -f -R $INSTALL_DIR${BASE_PATH_PREFIX}/local/lib/
 
 	return 0
 }

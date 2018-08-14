@@ -31,7 +31,7 @@ echo 'diff -rup e16-1.0.9-orig//scripts/e_gen_menu e16-1.0.9/scripts/e_gen_menu
  $AppDirs = MkDirList($Prefixes, "/share/applications:/share/applications/kde:/share/applications/kde4");
  
 -$IconDirs = MkDirList($Prefixes, "/share/pixmaps:/share/icons");
-+$IconDirs = MkDirList($Prefixes, "/share/pixmaps:/share/icons:/usr/local/lib/X11/pixmaps:/usr/local/lib/X11/mini-icons");
++$IconDirs = MkDirList($Prefixes, "/share/pixmaps:/share/icons:${BASE_PATH_PREFIX}/local/lib/X11/pixmaps:${BASE_PATH_PREFIX}/local/lib/X11/mini-icons");
  $IconDirs2 = MkDirList($Prefixes, "/share/icons");
  $Themes = "default.kde:gnome:hicolor";
  $IconCats = "apps:filesystems:actions:devices:categories:places";
@@ -68,7 +68,7 @@ echo 'diff -rup e16-1.0.9-orig//scripts/e_gen_menu e16-1.0.9/scripts/e_gen_menu
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --enable-sound-pulse \
 	            --disable-sound-esound \
 	            --enable-modules \
@@ -88,25 +88,25 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# install the license
-	install -D -m644 ./COPYING $INSTALL_DIR/usr/share/doc/legal/e16/COPYING
+	install -D -m644 ./COPYING $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/e16/COPYING
 	[ $? -ne 0 ] && return 1
 	
 	# remove the Vera fonts, since the fallback is DejaVu Sans
-	rm -f $INSTALL_DIR/usr/share/e16/fonts/*
+	rm -f $INSTALL_DIR${BASE_PATH_PREFIX}/share/e16/fonts/*
 	[ $? -ne 0 ] && return 1
 	
 	# remove unneeded directories
-	rm -rf $INSTALL_DIR/usr/share/xsessions $INSTALL_DIR/usr/share/applications
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/xsessions $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	[ $? -ne 0 ] && return 1
 	
 	# remove the startup scripts
-	rm -rf $INSTALL_DIR/usr/share/e16/misc/*
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/e16/misc/*
 
-	# create symlinks to useful scripts under /usr/bin
-	for i in $INSTALL_DIR/usr/share/e16/scripts/e_*
+	# create symlinks to useful scripts under ${BASE_PATH_PREFIX}/bin
+	for i in $INSTALL_DIR${BASE_PATH_PREFIX}/share/e16/scripts/e_*
 	do
 		script="$(basename $i)"
-		ln -s ../share/e16/scripts/$script $INSTALL_DIR/usr/bin/$script	
+		ln -s ../share/e16/scripts/$script $INSTALL_DIR${BASE_PATH_PREFIX}/bin/$script	
 		[ $? -ne 0 ] && return 1
 	done
 	
@@ -114,7 +114,7 @@ package() {
 	echo '#!/bin/sh
 
 # add the E16 menu generator to fixmenus
-echo "[ \`which e16\` ] && e_gen_menu" >> ./usr/sbin/fixmenus
+echo "[ \`which e16\` ] && e_gen_menu" >> .${BASE_PATH_PREFIX}/sbin/fixmenus
 
 echo "Setting E16 as the default window manager"
 echo e16 > ./etc/windowmanager' > $INSTALL_DIR/pinstall.sh

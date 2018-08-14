@@ -35,11 +35,11 @@ build() {
 
 package() {
 	# install the executable
-	install -m755 -D xdelta3 $INSTALL_DIR/usr/bin/xdelta3
+	install -m755 -D xdelta3 $INSTALL_DIR${BASE_PATH_PREFIX}/bin/xdelta3
 	[ $? -ne 0 ] && return 1
 
 	# install the man page
-	install -m644 -D xdelta3.1 $INSTALL_DIR/usr/share/man/man1/xdelta3.1
+	install -m644 -D xdelta3.1 $INSTALL_DIR${BASE_PATH_PREFIX}/share/man/man1/xdelta3.1
 	[ $? -ne 0 ] && return 1
 
 	return 0

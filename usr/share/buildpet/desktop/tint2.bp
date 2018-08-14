@@ -28,7 +28,7 @@ build() {
 	cd build
 	
 	# configure the package
-	cmake -DCMAKE_INSTALL_PREFIX=/usr ..
+	cmake -DCMAKE_INSTALL_PREFIX=${BASE_PATH_PREFIX} ..
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -44,7 +44,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# remove stuff that require Python
-	rm -rf $INSTALL_DIR/usr/bin/tint2conf $INSTALL_DIR/usr/bin/tintwizard.py $INSTALL_DIR/usr/share/applications $INSTALL_DIR/usr/share/pixmaps
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/bin/tint2conf $INSTALL_DIR${BASE_PATH_PREFIX}/bin/tintwizard.py $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
 	
 	# make it auto-start

@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-ssindex \
 	            --disable-component \
 	            --without-gnome \
@@ -57,17 +57,17 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# remove GNOME stuff
-	rm -rf $INSTALL_DIR/usr/share/gnome $INSTALL_DIR/usr/share/omf
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/gnome $INSTALL_DIR${BASE_PATH_PREFIX}/share/omf
 	[ $? -ne 0 ] && return 1
 	
 	# remove unneeded icons
-	rm -rf $INSTALL_DIR/usr/share/pixmaps/*
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps/*
 	[ $? -ne 0 ] && return 1
 	
 	# keep only the 48x48 icon
-	mv $INSTALL_DIR/usr/share/icons/hicolor/48x48/apps/gnumeric.png $INSTALL_DIR/usr/share/pixmaps
+	mv $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/48x48/apps/gnumeric.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
-	rm -rf $INSTALL_DIR/usr/share/icons
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons
 	[ $? -ne 0 ] && return 1
 	
 	# replace the menu entry
@@ -81,9 +81,9 @@ Terminal=false
 Type=Application
 MimeType=application/x-gnumeric;application/vnd.ms-excel;application/excel;application/msexcel;application/x-excel;application/x-ms-excel;application/x-msexcel;application/x-xls;application/xls;application/x-dos_ms_excel;zz-application/zz-winassoc-xls;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;application/tab-separated-values;text/csv;text/x-csv;text/spreadsheet;text/tab-separated-values;application/vnd.lotus-1-2-3;application/x-123;application/vnd.sun.xml.calc;application/vnd.sun.xml.calc.template;application/x-applix-spreadsheet;application/x-mps;application/x-oleo;application/x-planperfect;application/x-quattropro;application/x-sc;application/x-sylk;application/x-dbase;application/x-dbf;application/x-xbase;
 Categories=Office;Spreadsheet;Science;Math;
-GenericName=Gnumeric spreadsheet' > $INSTALL_DIR/usr/share/applications/gnumeric.desktop
+GenericName=Gnumeric spreadsheet' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/gnumeric.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/gnumeric.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/gnumeric.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script
@@ -92,9 +92,9 @@ GenericName=Gnumeric spreadsheet' > $INSTALL_DIR/usr/share/applications/gnumeric
 echo "Setting Gnumeric as the default spreadsheet editor"
 
 echo "#!/bin/sh
-exec gnumeric \"\$@\"" > ./usr/local/bin/defaultspreadsheet
+exec gnumeric \"\$@\"" > .${BASE_PATH_PREFIX}/local/bin/defaultspreadsheet
 
-chmod 755 ./usr/local/bin/defaultspreadsheet' > $INSTALL_DIR/pinstall.sh
+chmod 755 .${BASE_PATH_PREFIX}/local/bin/defaultspreadsheet' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1

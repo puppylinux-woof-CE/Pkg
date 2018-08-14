@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --enable-debug=no \
 	            --enable-printing=no \
 	            --enable-backup=no \
@@ -45,7 +45,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# remove unneeded icons
-	rm -rf $INSTALL_DIR/usr/share/icons
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons
 	[ $? -ne 0 ] && return 1
 	
 	# replace the menu entry
@@ -58,9 +58,9 @@ Exec=osmo
 Terminal=false
 Type=Application
 Categories=Office;Calendar;ContactManagement;
-GenericName=Osmo personal organizer' > $INSTALL_DIR/usr/share/applications/osmo.desktop
+GenericName=Osmo personal organizer' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/osmo.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/osmo.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/osmo.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script
@@ -69,9 +69,9 @@ GenericName=Osmo personal organizer' > $INSTALL_DIR/usr/share/applications/osmo.
 echo "Setting Osmo as the default contact manager and calendar"
 
 echo "#!/bin/sh
-exec osmo \"\$@\"" > ./usr/local/bin/defaultcontact
-chmod 755 ./usr/local/bin/defaultcontact
-cp -f ./usr/local/bin/defaultcontact ./usr/local/bin/defaultcalendar' > $INSTALL_DIR/pinstall.sh
+exec osmo \"\$@\"" > usr/local/bin/defaultcontact
+chmod 755 usr/local/bin/defaultcontact
+cp -f usr/local/bin/defaultcontact usr/local/bin/defaultcalendar' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1

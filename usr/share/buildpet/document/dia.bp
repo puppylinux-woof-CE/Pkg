@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-gnome \
 	            --disable-libemf \
 	            --disable-db2html \
@@ -46,17 +46,17 @@ package() {
 	[ $? -ne 0 ] && return 1
 	
 	# remove unneeded icons
-	mkdir -p $INSTALL_DIR/usr/share/pixmaps
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
-	mv $INSTALL_DIR/usr/share/icons/hicolor/48x48/apps/dia.png $INSTALL_DIR/usr/share/pixmaps
+	mv $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/hicolor/48x48/apps/dia.png $INSTALL_DIR${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
-	rm -rf $INSTALL_DIR/usr/share/icons
+	rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons
 	[ $? -ne 0 ] && return 1
 		
 	# remove some shapes and sheets
 	for i in AADL Chronogram Civil Cisco Cybernetics Database ER Flowchart FS Gane_and_Sarson GRAFCET Jigsaw Ladder Map Misc MSE Pneumatic RDP SDL sybase
 	do
-		rm -rf $INSTALL_DIR/usr/share/dia/shapes/$i $INSTALL_DIR/usr/share/dia/sheets/$i*
+		rm -rf $INSTALL_DIR${BASE_PATH_PREFIX}/share/dia/shapes/$i $INSTALL_DIR${BASE_PATH_PREFIX}/share/dia/sheets/$i*
 		[ $? -ne 0 ] && return 1
 	done
 	
@@ -71,9 +71,9 @@ Terminal=false
 Type=Application
 MimeType=application/x-dia-diagram;
 Categories=Office;Chart;FlowChart;
-GenericName=Dia diagram editor' > $INSTALL_DIR/usr/share/applications/dia.desktop
+GenericName=Dia diagram editor' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/dia.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/dia.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/dia.desktop
 	[ $? -ne 0 ] && return 1
 				
 	# add the post-install script

@@ -23,7 +23,7 @@ build() {
 	cd $PKG_NAME-$PKG_VER
 
 	# configure the package
-	./configure --prefix=/usr \
+	./configure --prefix=${BASE_PATH_PREFIX} \
 	            --sysconfdir=/etc
 	[ $? -ne 0 ] && return 1
 

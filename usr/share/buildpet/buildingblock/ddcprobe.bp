@@ -35,12 +35,12 @@ build() {
 
 package() {
 	# install the package
-	install -m4755 -D ddcprobe $INSTALL_DIR/usr/sbin/ddcprobe
+	install -m4755 -D ddcprobe $INSTALL_DIR${BASE_PATH_PREFIX}/sbin/ddcprobe
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script
 echo '#!/bin/sh
-chmod 4755 ./usr/sbin/ddcprobe' > $INSTALL_DIR/pinstall.sh
+chmod 4755 .${BASE_PATH_PREFIX}/sbin/ddcprobe' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1

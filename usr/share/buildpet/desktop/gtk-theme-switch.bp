@@ -23,7 +23,7 @@ build() {
 	cd $PKG_NAME-$PKG_VER
 
 	# configure the package
-	sed -i Makefile -e s~'/usr/local'~"$INSTALL_DIR/usr"~g \
+	sed -i Makefile -e s~"${BASE_PATH_PREFIX}/local"~"$INSTALL_DIR${BASE_PATH_PREFIX}"~g \
 	                -e s~'-O2'~"$CFLAGS"~ \
 	                -e s~'/man'~'/man/man1'~g
 	[ $? -ne 0 ] && return 1	
@@ -41,7 +41,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 	
 	# add a menu entry
-	mkdir -p $INSTALL_DIR/usr/share/applications
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications
 	[ $? -ne 0 ] && return 1
 	echo '[Desktop Entry]
 Encoding=UTF-8
@@ -52,9 +52,9 @@ Exec=gtk-theme-switch2
 Terminal=false
 Type=Application
 Categories=Settings;DesktopSettings;
-GenericName=GTK theme switcher' > $INSTALL_DIR/usr/share/applications/gtk-theme-switch.desktop
+GenericName=GTK theme switcher' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/gtk-theme-switch.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/gtk-theme-switch.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/gtk-theme-switch.desktop
 			
 	return 0
 }

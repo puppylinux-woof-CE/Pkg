@@ -24,15 +24,15 @@ build() {
 
 package() {	
 	# install the package
-	mkdir -p $INSTALL_DIR/usr/share/icons
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons
 	[ $? -ne 0 ] && return 1
-	mv Vanilla-DMZ $INSTALL_DIR/usr/share/icons
+	mv Vanilla-DMZ $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons
 	[ $? -ne 0 ] && return 1
 
 	# move the license
-	mkdir -p $INSTALL_DIR/usr/share/doc/legal/$PKG_NAME
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/$PKG_NAME
 	[ $? -ne 0 ] && return 1
-	mv $INSTALL_DIR/usr/share/icons/Vanilla-DMZ/COPYING $INSTALL_DIR/usr/share/doc/legal/$PKG_NAME
+	mv $INSTALL_DIR${BASE_PATH_PREFIX}/share/icons/Vanilla-DMZ/COPYING $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/$PKG_NAME
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script

@@ -24,7 +24,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=/usr \
+	            --prefix=${BASE_PATH_PREFIX} \
 	            --disable-gpgme \
 	            --disable-jpilot \
 	            --disable-ldap \
@@ -57,9 +57,9 @@ Exec=sylpheed
 Terminal=false
 Type=Application
 Categories=Network;Email;News;
-GenericName=Sylpheed e-mail client' > $INSTALL_DIR/usr/share/applications/sylpheed.desktop
+GenericName=Sylpheed e-mail client' > $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/sylpheed.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 $INSTALL_DIR/usr/share/applications/sylpheed.desktop
+	chmod 644 $INSTALL_DIR${BASE_PATH_PREFIX}/share/applications/sylpheed.desktop
 	[ $? -ne 0 ] && return 1
 	
 	# add the post-install script
@@ -68,8 +68,8 @@ GenericName=Sylpheed e-mail client' > $INSTALL_DIR/usr/share/applications/sylphe
 echo "Setting Sylpheed as the default e-mail client"
 
 echo "#!/bin/sh
-exec sylpheed \"\$@\"" > ./usr/local/bin/defaultemail
-chmod 755 ./usr/local/bin/defaultemail' > $INSTALL_DIR/pinstall.sh
+exec sylpheed \"\$@\"" > .${BASE_PATH_PREFIX}/local/bin/defaultemail
+chmod 755 .${BASE_PATH_PREFIX}/local/bin/defaultemail' > $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1
 	chmod 755 $INSTALL_DIR/pinstall.sh
 	[ $? -ne 0 ] && return 1 

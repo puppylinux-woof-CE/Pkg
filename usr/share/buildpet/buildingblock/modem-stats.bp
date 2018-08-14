@@ -23,7 +23,7 @@ build() {
 	cd $PKG_NAME-$PKG_VER
 
 	# set the CFLAGS
-	sed -e s~'/usr'~"$INSTALL_DIR/usr"~ \
+	sed -e s~'${BASE_PATH_PREFIX}'~"$INSTALL_DIR${BASE_PATH_PREFIX}"~ \
 	    -e s/'-O2'/"$CFLAGS "/ \
 	    -e s~'/man'~'/share/man'~ \
 	    -i Makefile
@@ -38,13 +38,13 @@ build() {
 
 package() {
 	# install the package
-	mkdir -p $INSTALL_DIR/usr/bin $INSTALL_DIR/usr/share/man/man1
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/bin $INSTALL_DIR${BASE_PATH_PREFIX}/share/man/man1
 	[ $? -ne 0 ] && return 1
 	make install
 	[ $? -ne 0 ] && return 1
 
 	# install the README
-	install -m644 -D README $INSTALL_DIR/usr/share/doc/legal/modem-stats/README
+	install -m644 -D README $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/modem-stats/README
 	[ $? -ne 0 ] && return 1
 
 	return 0

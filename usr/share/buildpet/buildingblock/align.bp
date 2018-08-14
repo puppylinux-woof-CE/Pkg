@@ -23,7 +23,7 @@ build() {
 	cd $PKG_NAME-$PKG_VER
 
 	# set the installation path
-	sed -i s~'/usr/local/bin'~"$INSTALL_DIR/usr/sbin"~ Makefile
+	sed -i s~"${BASE_PATH_PREFIX}/local/bin"~"$INSTALL_DIR${BASE_PATH_PREFIX}/sbin"~ Makefile
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -35,7 +35,7 @@ build() {
 
 package() {
 	# install the package
-	mkdir -p $INSTALL_DIR/usr/sbin
+	mkdir -p $INSTALL_DIR${BASE_PATH_PREFIX}/sbin
 	[ $? -ne 0 ] && return 1
 	make install
 	[ $? -ne 0 ] && return 1

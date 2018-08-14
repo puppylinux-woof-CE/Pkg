@@ -33,7 +33,7 @@ package() {
 	[ $? -ne 0 ] && return 1
 	
 	# install the license
-	install -m644 -D COPYRIGHT.TXT $INSTALL_DIR/usr/share/doc/legal/ttf-bitstream-vera/COPYRIGHT.TXT
+	install -m644 -D COPYRIGHT.TXT $INSTALL_DIR${BASE_PATH_PREFIX}/share/doc/legal/ttf-bitstream-vera/COPYRIGHT.TXT
 	[ $? -ne 0 ] && return 1
 	
 	return 0
