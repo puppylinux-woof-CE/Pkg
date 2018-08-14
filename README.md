@@ -42,7 +42,6 @@ a command line package manager for Puppy Linux
     │   ├── buildpet
     │   ├── splitpkg
     │   └── strippkg
-    ├── share/
     ├── sbin/
     │   ├── download_file_old
     │   ├── download_progress
