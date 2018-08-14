@@ -20,6 +20,92 @@ a command line package manager for Puppy Linux
 - includes a GTK frontend (GTKdialog) called Gpkgdialog 
   
   
+### Quick Start
+  
+Install Pkg:
+  * clone this repo: `cd ~; mkdir -pv Gitlab; git clone https://gitlab.com/sc0ttj/Pkg Gitlab/Pkg`
+  * install (and register with PetGet): `cd ~/Gitlab/Pkg; ./installer.sh`
+  
+Get started:
+  1. View useful welcome message: `pkg welcome`
+  2. Update all repo files: `pkg update-sources`
+  3. List available repos: `pkg repo-list`
+  4. Change repo: `pkg repo <REPONAME>`
+  5. Search current repo for packages by name: `pkg n <PKGNAME>`
+  6. Search ALL repos for package name: `pkg na <PKGNAME>`
+  7. Get package info: `pkg status <PKGNAME>`
+  8. Download and install a package (and its dependencies): `pkg add <PKGNAME>`
+  8. Remove a package (and any left-over dependencies): `pkg rm <PKGNAME>`
+  
+  
+### More advanced usage
+
+Search all package info in a repo:  
+
+`pkg search WORDS`
+  
+  
+Search all package info in all repos:  
+
+`pkg search-all WORDS`
+  
+  
+Download a package, plus its dependencies, but don't install:
+
+`pkg get-only PKGNAME`
+
+  
+Or manually download and install packages without dependencies:
+
+`pkg download PKGNAME; pkg install PKGNAME`
+
+  
+Choose from a selection of matching packages, and decide which  
+ones to download, install, which dependencies to get, as you go:
+
+`pkg --ask get "firefox mplayer"`
+
+  
+Ask to uninstall each '_DEV' package you have installed:
+
+`pkg list-installed | grep _DEV | pkg --ask uninstall -`
+
+  
+Display busybox package status, and package contents:
+
+`pkg -ps busybox -c busybox`
+  
+  
+Download and unzip all repo packages matching 'freeciv':
+
+`cd /root/pkg; $SELF na freeciv | pkg d -; pkg ld freeciv | pkg unpack -`
+
+  
+Build (compile) packages from source:
+
+`pkg build emelfm`
+  
+  
+Build (compile) packages from source, with custom build options:  
+(requires BUILDTOOL=buildpet in ~/.pkg/pkgrc)
+
+`pkg build xarchiver --configure='--prefix=/usr/local --other-opts' --cflags='-D -02 -whatever'`
+  
+
+Set a different config file:
+
+`PKGRC=/path/to/your/pkgrc <pkg command>`
+  
+  
+Let Pkg suggest packages on missing commands:
+
+`source /usr/share/pkg/command_not_found_handle`
+
+Disable package suggestions on missing command with:
+
+`unset command_not_found_handle`
+
+  
 ## Files
 
 ```
@@ -234,7 +320,22 @@ These options cannot be used with any other options:
  pkg tgz2pet /path/to/file	# convert a local .tar.gz file to PET
 
  pkg unpack /path/to/file	# extract the given package file
+```
 
 
+## Environment Variables:
 
- ```
+```
+ HIDE_INSTALLED [=false]  if true, ignore/hide installed packages
+ HIDE_BUILTINS  [=true]   if true, ignore/hide builtin packages
+ HIDE_USER_PKGS [=true]   if true, ignore/hide user installed packages
+ NO_ALIASES   [=false]    if true, ignore package name aliases in searches
+ NO_INSTALL   [=false]    if true, skip installing of packages
+ PKG_NO_COLOURS [=false]  if true, disable coloured output
+```
+  
+When BUILDTOOL=buildpet in ~/.pkg/pkgrc (use with `pkg build` command):
+```
+ PKG_CONFIGURE  [='']       custom configure options fpr building packages
+ PKG_CFLAGS   [='']       custom CFLAG options for buiding packages
+```

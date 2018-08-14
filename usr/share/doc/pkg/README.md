@@ -2,7 +2,6 @@
 
 a command line package manager
 
-## 
 ## Features:
 
 - powerful command line interface, lots of options
@@ -20,14 +19,12 @@ a command line package manager
 - includes a console frontend (dialog) menu called Pkgdialog
 - includes a GTK frontend (GTKdialog) called Gpkgdialog
   
-## 
 ### Dependencies
 
 * Busybox   (ash, wget, find, which, grep, sed, tar, du, sync, etc)
 * coreutils (cp, mv, rm, wc, uniq, chmod, cut, cat, sort, etc)
 * Puppy Package Manager (for `pkg --repo-update` only)  
   
-## 
 ### Quick Start
   
 Install Pkg:
@@ -99,9 +96,22 @@ Build (compile) packages from source, with custom build options:
 (requires BUILDTOOL=buildpet in ~/.pkg/pkgrc)
 
 `pkg build xarchiver --configure='--prefix=/usr/local --other-opts' --cflags='-D -02 -whatever'`
+  
+  
+Set a different config file:
 
+`PKGRC=/path/to/your/pkgrc <pkg command>`
+  
+  
+Let Pkg suggest packages on missing commands:
 
-## 
+`source /usr/share/pkg/command_not_found_handle`
+
+Disable package suggestions on missing command with:
+
+`unset command_not_found_handle`
+
+  
 ## Environment Variables:
 
 ```
@@ -119,7 +129,7 @@ When BUILDTOOL=buildpet in ~/.pkg/pkgrc (use with `pkg build` command):
  PKG_CFLAGS   [='']       custom CFLAG options for buiding packages
 ```
   
-## 
+  
 ## Config files used:
 
 ```
