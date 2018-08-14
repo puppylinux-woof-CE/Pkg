@@ -101,4 +101,7 @@ These commands can be used with the options above, but not each other:
  help-all|H                 show a full description, with added info
  usage [CMD]                show usage of CMD, or list available cmds
  examples|ex                show example command line usage of $SELF
- func-list                  list all functions used in this program"
+ func-list                  list all functions used in this program
+ 
+${ENV_VAR_HELP}"
+ 

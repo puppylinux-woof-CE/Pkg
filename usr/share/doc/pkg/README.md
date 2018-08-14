@@ -20,69 +20,104 @@ a command line package manager
 - includes a console frontend (dialog) menu called Pkgdialog
 - includes a GTK frontend (GTKdialog) called Gpkgdialog
   
-  
 ## 
 ### Dependencies
 
 * Busybox   (ash, wget, find, which, grep, sed, tar, du, sync, etc)
 * coreutils (cp, mv, rm, wc, uniq, chmod, cut, cat, sort, etc)
 * Puppy Package Manager (for `pkg --repo-update` only)  
-
-
-##  
-## Get started
-
-Here are some important common commands:
-
-See current repo:  
-
-`pkg repo`
-
-See available repos:  
-
-`pkg repo-list`
-
-Set a new repo:  
-
-`pkg repo REPO`
-
-Search a repo by package name:  
-
-`pkg names PKGNAME`
-
-Search all package info in a repo:  
-`pkg search WORDS`
-
-
-Download and install a package, plus its dependencies:
-
-`pkg get PKGNAME`
-
-Download a package, plus its dependencies, but don't install:
-
-`pkg get-only PKGNAME`
-
-Or manually download and install packages without dependencies:
-
-`pkg download PKGNAME; pkg install PKGNAME`
-
+  
+## 
+### Quick Start
+  
+Install Pkg:
+  * clone this repo: `cd ~; mkdir -pv Gitlab; git clone https://gitlab.com/sc0ttj/Pkg Gitlab/Pkg`
+  * install (and register with PetGet): `cd ~/Gitlab/Pkg; ./installer.sh`
+  
+Get started:
+  1. View useful welcome message: `pkg welcome`
+  2. Update all repo files: `pkg update-sources`
+  3. List available repos: `pkg repo-list`
+  4. Change repo: `pkg repo <REPONAME>`
+  5. Search current repo for packages by name: `pkg n <PKGNAME>`
+  6. Search ALL repos for package name: `pkg na <PKGNAME>`
+  7. Get package info: `pkg status <PKGNAME>`
+  8. Download and install a package (and its dependencies): `pkg add <PKGNAME>`
+  8. Remove a package (and any left-over dependencies): `pkg rm <PKGNAME>`
+  
 
 ## 
 ### More advanced usage
 
+Search all package info in a repo:  
+
+`pkg search WORDS`
+  
+  
+Search all package info in all repos:  
+
+`pkg search-all WORDS`
+  
+  
+Download a package, plus its dependencies, but don't install:
+
+`pkg get-only PKGNAME`
+
+  
+Or manually download and install packages without dependencies:
+
+`pkg download PKGNAME; pkg install PKGNAME`
+
+  
 Choose from a selection of matching packages, and decide which 
 ones to download, install, which dependencies to get, as you go:
 
 `pkg --ask get "firefox mplayer"`
 
+  
 Ask to uninstall each '_DEV' package you have installed:
 
 `pkg list-installed | grep _DEV | pkg --ask uninstall -`
 
+  
 Display busybox package status, and package contents:
 
 `pkg -ps busybox -c busybox`
   
+  
+Download and unzip all repo packages matching 'freeciv':
+
+`cd /root/pkg; $SELF na freeciv | pkg d -; pkg ld freeciv | pkg unpack -`
+
+  
+Build (compile) packages from source:
+
+`pkg build emelfm`
+  
+  
+Build (compile) packages from source, with custom build options:  
+(requires BUILDTOOL=buildpet in ~/.pkg/pkgrc)
+
+`pkg build xarchiver --configure='--prefix=/usr/local --other-opts' --cflags='-D -02 -whatever'`
+
+
+## 
+## Environment Variables:
+
+```
+ HIDE_INSTALLED [=false]  if true, ignore/hide installed packages
+ HIDE_BUILTINS  [=true]   if true, ignore/hide builtin packages
+ HIDE_USER_PKGS [=true]   if true, ignore/hide user installed packages
+ NO_ALIASES   [=false]    if true, ignore package name aliases in searches
+ NO_INSTALL   [=false]    if true, skip installing of packages
+ PKG_NO_COLOURS [=false]  if true, disable coloured output
+```
+  
+When BUILDTOOL=buildpet in ~/.pkg/pkgrc (use with `pkg build` command):
+```
+ PKG_CONFIGURE  [='']       custom configure options fpr building packages
+ PKG_CFLAGS   [='']       custom CFLAG options for buiding packages
+```
   
 ## 
 ## Config files used:
@@ -91,8 +126,8 @@ Display busybox package status, and package contents:
 # These config files get copied to ~/.pkg/ on first run.
 
 /etc/pkg/pkgrc		# the Pkg rc file (config file)
-/etc/pkg/sources	# the database of all supported repositories
-/etc/pkg/sources-all	# the database of all available (installed) repos
+/etc/pkg/sources	# the database of all supported (installed) repositories
+/etc/pkg/sources-all	# the database of all available repos
 
 # NOT INCLUDED in Pkg:
 
@@ -100,7 +135,7 @@ Display busybox package status, and package contents:
 /root/.packages/user-installed-packages		# user installed packages
 /root/.packages/woof-installed-packages		# built-in packages
 /root/.packages/devx-installed-packages		# built-in devx packages
-/root/.packages/[pkgname].files			# package file lists
+/root/.packages/<pkgname>.files			# package file lists
 
 ```
 
@@ -132,6 +167,7 @@ BLEDGE="no"		# always get latest pkg versions (ignore fallback list)
 RDCHECK="yes"		# recursive dep check
 BUILDTOOL=petbuild	# the tools used for compiling pkgs (petbuild|buildpet|src2pkg|sbopkg)
 ```
+
 ## 
 ### Example /etc/pkg/sources-all:
 
@@ -150,7 +186,7 @@ Description:
 * url4 - additional mirror of the repository (optional)
 * fallback_list - a list of repos to search if pkg not in current repo
 
-Examples:
+Example:
 ```# some Puppy repos
 noarch|pet|Packages-puppy-noarch-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-noarch/|http://distro.ibiblio.org/puppylinux/pet_packages-noarch/|||common quirky wary53x wary51x lucid dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14
 
@@ -286,26 +322,46 @@ These options cannot be used with any other options:
 
 ```
  pkg s SEARCH			# list pkgs in current repo matching SEARCH
+
  pkg sa SEARCH			# list pkgs in all repos matching SEARCH
+
  pkg n SEARCH			# search name only, list all matching pkgs
- pkg g filezilla		# get & install filezilla and deps
- pkg -a g filezilla		# ask to download filezilla and its deps
- pkg -a la			# ask to delete all downloaded packages
+
+ pkg add blender  # install Blender and it dependencies
+
+ pkg rm blender   # remove Blender and any left-over dependencies
+
+ pkg la			  # ask to delete all downloaded packages
+
  pkg -a e PKGNAME		# install deps of PKGNAME, ask each time
+
  pkg -a d qupzilla-1.2.0	# ask to download qupzilla-1.2.0
+
  pkg go filezilla		# download filezilla & deps, don't install
+
  pkg e PKGNAME			# install all deps of PKGNAME, dont ask
+
  pkg d qupzilla-1.3.1		# download qupzilla-1.3.1 no questions
+
  pkg l qupzilla-1.3.1		# delete the downloaded qupzilla-1.3.1
- pkg pb jwm			# compile, build & install the 'jwm' package
- pkg la			# delete all downloaded packages without asking!
- pkg li vim | pkg -ps -	# Get info on all installed Vim pkgs
- pkg li vim | pkg -wr -	# Get repo of an installed Vim pkg 
+
+ pkg build jwm		# compile, build & install the 'jwm' package
+
+ pkg la			# delete all downloaded packages without asking
+
+ pkg li vim | pkg status -	# Get info on all installed Vim pkgs
+
+ pkg li vim | pkg wr -	# Get repo of an installed Vim pkg 
+
  pkg li | pkg -a u -		# Ask to uninstall installed pkgs one by one 
+
  pkg dir2sfs /path/to/dir/	# convert a local dir to a .sfs package
+
  pkg i /path/to/file.pet	# install PET, include the extension!
+
  pkg tgz2pet /path/to/file	# convert a local .tar.gz file to PET
- pkg unpack /path/to/file	# extract the given pkg file contents
+
+ pkg unpack /path/to/file	# extract the given package file
 ```
 
 ## 

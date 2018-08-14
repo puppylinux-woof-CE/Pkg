@@ -1,6 +1,6 @@
 # Pkg
 a command line package manager for Puppy Linux
-
+  
 ## Features
 
 - powerful command line interface, lots of options
@@ -18,8 +18,8 @@ a command line package manager for Puppy Linux
 - compatible with Puppy Package Manager (petget)
 - includes a console frontend (dialog) menu called Pkgdialog
 - includes a GTK frontend (GTKdialog) called Gpkgdialog 
-
-
+  
+  
 ## Files
 
 ```
@@ -42,14 +42,7 @@ a command line package manager for Puppy Linux
     │   ├── buildpet
     │   ├── splitpkg
     │   └── strippkg
-    ├── lib/
-    │   └── pkg/
-    │       └── docs/
-    │           ├── examples.txt
-    │           ├── help-all.txt
-    │           ├── help.txt
-    │           └── usage
-    │               └── [lots of scripts]
+    ├── share/
     ├── sbin/
     │   ├── download_file_old
     │   ├── download_progress
@@ -81,6 +74,14 @@ a command line package manager for Puppy Linux
         │   ├── personal/
         │   ├── system/
         │   └── utility/
+        ├── pkg/
+        │   ├── usage/
+        │   │   └── [commands usage info]
+        │   └── docs/
+        │       ├── env_vars.txt
+        │       ├── examples.txt
+        │       ├── help.txt
+        │       └── help-all.txt
         ├── doc/
         │   └── pkg/
         │       └── README.md
@@ -90,7 +91,8 @@ a command line package manager for Puppy Linux
 
 33 directories, 388 files
 ```
-
+  
+  
 ## Usage 
 
 ```
@@ -186,33 +188,54 @@ These options cannot be used with any other options:
  --help|-h			show this help information
  --help-all|-H			show a full description, with added info
 ```
-
-## Examples
-
-```
-EXAMPLE COMMANDS:
-
- pkg -s SEARCH			# list pkgs in current repo matching SEARCH
- pkg -sa SEARCH			# list pkgs in all repos matching SEARCH
- pkg -n SEARCH			# search name only, list all matching pkgs
- pkg -g filezilla		# get & install filezilla and deps
- pkg -a -g filezilla		# ask to download filezilla and its deps
- pkg -a -la			# ask to delete all downloaded packages
- pkg -a -e PKGNAME		# install deps of PKGNAME, ask each time
- pkg -a -d qupzilla-1.2.0	# ask to download qupzilla-1.2.0
- pkg -go filezilla		# download filezilla & deps, don't install
- pkg -e PKGNAME			# install all deps of PKGNAME, dont ask
- pkg -d qupzilla-1.3.1		# download qupzilla-1.3.1 no questions
- pkg -l qupzilla-1.3.1		# delete the downloaded qupzilla-1.3.1
- pkg -pb jwm			# compile, build & install the 'jwm' package
- pkg -la			# delete all downloaded packages without asking!
- pkg -li vim | pkg -ps -	# Get info on all installed Vim pkgs
- pkg -li vim | pkg -wr -	# Get repo of an installed Vim pkg 
- pkg -li | pkg -a -u -		# Ask to uninstall installed pkgs one by one 
- pkg --dir2pet /path/to/dir/	# convert a local dir to a .pet package
- pkg --dir2sfs /path/to/dir/	# convert a local dir to a .sfs package
- pkg -i /path/to/file.pet	# install PET, include the extension!
- pkg --tgz2pet /path/to/file	# convert a local .tar.gz file to PET
- pkg --unpack /path/to/file	# extract the given pkg file contents
+  
+## Example commands:
 
 ```
+ pkg s SEARCH			# list pkgs in current repo matching SEARCH
+
+ pkg sa SEARCH			# list pkgs in all repos matching SEARCH
+
+ pkg n SEARCH			# search names only, list all matching pkgs
+
+ pkg na SEARCH			# search name only, all repos, list matching pkgs
+
+ pkg add blender  # install Blender and it dependencies
+
+ pkg rm blender   # remove Blender and any left-over dependencies
+
+ pkg la			  # ask to delete all downloaded packages
+
+ pkg -a e PKGNAME		# install deps of PKGNAME, ask each time
+
+ pkg -a d qupzilla-1.2.0	# ask to download qupzilla-1.2.0
+
+ pkg go filezilla		# download filezilla & deps, don't install
+
+ pkg e PKGNAME			# install all deps of PKGNAME, dont ask
+
+ pkg d qupzilla-1.3.1		# download qupzilla-1.3.1 no questions
+
+ pkg l qupzilla-1.3.1		# delete the downloaded qupzilla-1.3.1
+
+ pkg build jwm		# compile, build & install the 'jwm' package
+
+ pkg la			# delete all downloaded packages without asking
+
+ pkg li vim | pkg status -	# Get info on all installed Vim pkgs
+
+ pkg li vim | pkg wr -	# Get repo of an installed Vim pkg 
+
+ pkg li | pkg -a u -		# Ask to uninstall installed pkgs one by one 
+
+ pkg dir2sfs /path/to/dir/	# convert a local dir to a .sfs package
+
+ pkg i /path/to/file.pet	# install PET, include the extension!
+
+ pkg tgz2pet /path/to/file	# convert a local .tar.gz file to PET
+
+ pkg unpack /path/to/file	# extract the given package file
+
+
+
+ ```

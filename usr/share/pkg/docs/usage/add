@@ -1,8 +1,8 @@
-USAGE="Usage: ${bold}pkg get PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg add PKGNAME${endcolour}
 
 Will download and install the best match 
 of PKGNAME, as well as its dependencies, 
-not including builtins.
+not including builtin packages.
 
 PKGNAME should be a valid repo package.
 
