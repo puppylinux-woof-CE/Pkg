@@ -163,11 +163,13 @@ WORKDIR=~/pkg
 
 # add to tab completion settings to bashrc and print hint
 if [ -z "$PKG_TAB_COMPLETION" ];then
-  # add to bash rc
-  echo "" >> ~/.bashrc
-  echo "# enable $APPNAME $APPVER TAB completion" >> ~/.bashrc
-  echo "export PKG_TAB_COMPLETION=true" >> ~/.bashrc
-  echo ". /etc/bash_completion.d/pkg 2>/dev/null" >> ~/.bashrc
+  if [ "$(grep 'export PKG_TAB_COMPLETION=true' ~/.bashrc)" = "" ];then
+    # add to bashrc
+    echo "" >> ~/.bashrc
+    echo "# enable $APPNAME $APPVER TAB completion" >> ~/.bashrc
+    echo "export PKG_TAB_COMPLETION=true" >> ~/.bashrc
+    echo ". /etc/bash_completion.d/pkg 2>/dev/null" >> ~/.bashrc
+  fi
 fi
 
 # make tmp dir writable by everyone if needed
