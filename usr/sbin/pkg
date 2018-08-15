@@ -2021,44 +2021,46 @@ prepare_petbuild(){              # get 01mickos petbuild system from Git, if nee
   local gitcheck=`which git`
   
   # exit if no devx
-  [ "`which gcc`" = '' ] && echo "You need the devx SFS installed to compile packages." && rm /tmp/pkg/petbuild_prepared 2>/dev/null && exit 3
+  [ "`which gcc`" = '' ] \
+    && echo "You need the devx SFS installed to compile packages." \
+    && rm /tmp/pkg/petbuild_prepared 2>/dev/null \
+    && exit 3
+
   # exit if no git
-  [ "`$gitcheck`" = '' ] && echo "You need git installed to auto-install petbuild." && rm /tmp/pkg/petbuild_prepared 2>/dev/null && exit 3
+  [ "`$gitcheck`" = '' ] \
+    && echo "You need git installed to auto-install petbuild." \
+    && rm /tmp/pkg/petbuild_prepared 2>/dev/null \
+    && exit 3
 
   if [ ! -d /usr/share/petbuild ];then
     rm /tmp/pkg/petbuild_prepared 2>/dev/null && exit 1
   fi
   
-  # if buildpet prepared flag not yet set
+  # if petbuild prepared flag not yet set
   if [ ! -f /tmp/pkg/petbuild_prepared ];then
   
     # backup old petbuild if installed
     [ -d /usr/share/petbuild/ ] && mv /usr/share/petbuild/ /usr/share/petbuild.backup/ 2>/dev/null
     
-    # inform user if we backed up their old PetBuild
-    [ -d /usr/share/petbuild.backup/ ] && echo "Previous PetBuild install backed up to /usr/share/petbuild.backup/"
+    # remove the original petbuild dir (we have a backup)
+    if [ -d /usr/share/petbuild.backup/ ];then
+      rm -rf /usr/share/petbuild 2>/dev/null
+    fi
 
     # clone petbuild into /usr/share/petbuild
-    git clone https://github.com/puppylinux-woof-CE/petbuilds.git /usr/share/petbuild #|| return 128
-    
-    # exit if git failed
-    if [ $? -eq 128 ];then
-      rm /tmp/pkg/petbuild_prepared 2>/dev/null
-      echo "Could not clone PetBuild repo"
-      exit 1
-    fi
+    git clone https://github.com/puppylinux-woof-CE/petbuilds.git /usr/share/petbuild &>/dev/null
     
     # if still no petbuild dir in /usr/share, tell user to install themselves
     if [ ! -d /usr/share/petbuild ];then
-      echo 
-      echo "Run this command to download PetBuild:"
-      echo 
-      echo -e " ${green}git clone https://github.com/puppylinux-woof-CE/petbuilds /usr/share/petbuild${endcolour}"
-      echo
-      echo "Alternatively, use a different build tool backend by changing BUILDTOOL= "
-      echo "to one of the options below, in your $PKGRC file:"
-      echo "petbuild, buildpet, sbopkg or src2pkg"
-      echo ""
+      echo >&2
+      echo "Run this command to download PetBuild:" >&2
+      echo >&2
+      echo -e " ${green}git clone https://github.com/puppylinux-woof-CE/petbuilds /usr/share/petbuild${endcolour}" >&2
+      echo >&2
+      echo "Alternatively, use a different build tool backend by changing BUILDTOOL= " >&2 
+      echo "to one of the options below, in the $PKGRC file:" >&2
+      echo "petbuild, buildpet, sbopkg or src2pkg" >&2
+      echo >&2
 
       exit 1
     fi
@@ -2121,7 +2123,7 @@ pkg_build(){                     # builds packages from source (see BUILDTOOL in
       # get pkg extension
       EX=`get_pkg_ext "$1"`
       
-      #get pkg name only, no extension or path
+      # get pkg name only, no extension or path
       PKGNAME="$(basename "$1" .$EX)"
 
       # get petbuild PKGNAME, then build using 01mickos petbuild
@@ -2254,7 +2256,7 @@ list_build_scripts(){            # list available build scripts FUNCLIST
   . ${PKGRC}
   
   # make sure PetBuild is ready
-  prepare_petbuild
+  [ "$BUILDTOOL" = "petbuild" ] && prepare_petbuild
   
   # if no option given, just sort the results
   [ "$1" != "" ] && FILTER="grep -i $1" || FILTER="sort"

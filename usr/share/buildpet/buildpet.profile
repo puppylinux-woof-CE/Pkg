@@ -35,9 +35,13 @@ BUILD_TARGET="$PKG_ARCH-puppy-linux-gnu"
 BASE_INSTALL_PREFIX="/usr"
 
 # if PKG_CONFIGURE sets new PREFIX dir, apply it to BASE_INSTALL_PREFIX
-[ "`echo "$PKG_CONFIGURE" | grep -m1 'prefix='`" != '' ] && \
-  BASE_INSTALL_PREFIX="`echo "$PKG_CONFIGURE" | sed -e 's/.*prefix=//g' -e 's/ .*//'`"
-
+if [ "`echo "$PKG_CONFIGURE" | grep -m1 'prefix='`" != '' ];then
+  BASE_INSTALL_PREFIX="`echo "$PKG_CONFIGURE" | sed \
+                        -e 's/.*prefix=//g'         \
+                        -e 's/ .*//'                \
+                        -e 's/"//g'                 \
+                        -e "s/'//g"`"
+fi
 # the base flags for ./configure or ./autogen.sh, with $PKG_CONFIGURE appended
 BASE_CONFIGURE_ARGS="--build=$BUILD_TARGET \
                      --libexecdir=$BASE_INSTALL_PREFIX/lib$LIBDIR_SUFFIX/$PKG_NAME \

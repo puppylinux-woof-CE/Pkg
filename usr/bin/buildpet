@@ -44,12 +44,18 @@ fi
 
 
 case $DISTRO_FILE_PREFIX in
+artful)
+	PKG_ENDING="artful";;
+bionic)
+	PKG_ENDING="bionic";;
 dpup)
 	PKG_ENDING="dpup";;
 lupu|luci|luma|upup|lupq|stud)
 	PKG_ENDING="lucid";;
 macpup)
 	PKG_ENDING="macpup";;
+precise)
+	PKG_ENDING="precise";;
 qrky|qret)
 	PKG_ENDING="q1";;
 racy)
@@ -60,13 +66,22 @@ slacko)
 	PKG_ENDING="slacko";;
 solid)
 	PKG_ENDING="solid";;
-spup|slacko)
+stretch)
+	PKG_ENDING="stretch";;
+spup|slacko|slacky)
 	PKG_ENDING="s";;
-wary)
+tahr)
+	PKG_ENDING="tahr";;
+wary*)
 	PKG_ENDING="w5";;
+xenial)
+	PKG_ENDING="xenial";;
 *)  #Everything else
 	PKG_ENDING="$PKG_ARCH";;
 esac
+
+# add arch to end of package name
+#PKG_ENDING="${PKG_ENDING}-${PKG_ARCH}"
 
 # extra info folder
 INFO_DIR="/tmp/buildpet_info"
