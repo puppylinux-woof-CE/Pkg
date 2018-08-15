@@ -91,10 +91,8 @@ cleanup(){
   *)   msg="Error code = $2" ;;
   esac
   # print msg
-    [ "$2" != "0" ]  && echo -e 1>&2 "${red}Error${endcolour} ${2}: ${lineno}$msg"
-    # clean up
-    make clean &>/dev/null
-    exit $2
+  [ "$2" != "0" ]  && echo -e 1>&2 "${red}Error${endcolour} ${2}: ${lineno}$msg"
+  exit $2
 }
 trap 'cleanup ${LINENO:-none} $?' EXIT INT TERM
 
@@ -2172,7 +2170,7 @@ pkg_build(){                     # builds packages from source (see BUILDTOOL in
 
       # now compile the package
       PKG_CONFIGURE="$PKG_CONFIGURE" PKG_CFLAGS="$PKG_CFLAGS" buildpet $BUILDSCRIPT
-
+      
     ;;
   
     src2pkg)  # by amigo

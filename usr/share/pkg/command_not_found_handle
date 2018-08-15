@@ -1,14 +1,15 @@
-#!/bin/bash
-
 # BASH 4 enables a `command_not_found_handle` function 
 # that is executed when a command is not found, which 
 # we can overwrite.
+
 if [ "${BASH_VERSINFO[0]}" = '4' ];then
   # if user gives a command not installed in $PATH, show a 
   # custom 'not found' message.
   function command_not_found_handle {
   
-    if [ "$1" = "" ] || [ "$1" = "lsb_release" ]
+    # prevent weird error which causes a loop (make clean, lsb_release, setopt)
+    # and only allow one instance (lock file)
+    if [ "$1" = "" ] || [ "$1" = "lsb_release" ] || [ "$1" = "setopt" ] || [ -f /tmp/command_not_found_lock_file ]
     then
       return 1
     fi
@@ -19,6 +20,8 @@ if [ "${BASH_VERSINFO[0]}" = '4' ];then
       echo "Error: command '${1}' not found." >&2
       return 1
     fi
+
+    touch /tmp/command_not_found_lock_file
 
     # $1 is the command given
     local cmd=$1
@@ -51,7 +54,10 @@ if [ "${BASH_VERSINFO[0]}" = '4' ];then
         ;;
     esac
 
-    # we will store the packages found in a temp file, reset it for now
+    # get parent command, exit if it is 'make', prevent weird errors
+    /bin/ps -o comm= $PPID | grep 'make' && return 1
+
+    # remove temp file
     rm -f /tmp/pkg/missing_cmd_packages &>/dev/null
 
     # we will look for package names matching 
@@ -91,7 +97,7 @@ if [ "${BASH_VERSINFO[0]}" = '4' ];then
       echo "Error: command '${cmd}' not found." >&2
     fi
   
+    rm /tmp/command_not_found_lock_file &>/dev/null
     return 127
   }
 fi
-
