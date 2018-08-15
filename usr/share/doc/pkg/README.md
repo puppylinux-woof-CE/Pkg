@@ -84,7 +84,7 @@ Display busybox package status, and package contents:
   
 Download and unzip all repo packages matching 'freeciv':
 
-`cd /root/pkg; $SELF na freeciv | pkg d -; pkg ld freeciv | pkg unpack -`
+`cd /root/pkg; pkg na freeciv | pkg d -; pkg ld freeciv | pkg unpack -`
 
   
 Build (compile) packages from source:
@@ -231,7 +231,7 @@ pkg --update-sources`
 Pkg - a command-line package manager
 ============================================================
 
-Usage: ${bold}$SELF [OPTION(S)] COMMAND SEARCH|PKGNAME|BUILDSCRIPT|FILE|-${endcolour}
+Usage: ${bold}pkg [OPTION(S)] COMMAND SEARCH|PKGNAME|BUILDSCRIPT|FILE|-${endcolour}
 
 OPTIONS:
 
@@ -239,7 +239,7 @@ These options can be used together and MUST precede all others:
   
  --ask|-a 			ask before doing stuff (give as 1st option)
  --force |-f			force downloading, installing and uninstalling
- --no-colour|-nc		disable ANSI colours in $SELF output
+ --no-colour|-nc		disable ANSI colours in Pkg output
 
 COMMANDS:
 
@@ -320,7 +320,7 @@ These options cannot be used with any other options:
  welcome			print some useful cmds to help get started
  func-list			list all functions used in this program
  version|v			show the version of this script
- examples|ex			show example command line usage of $SELF
+ examples|ex			show example command line usage of Pkg
  usage [CMD]			show usage of CMD, or list available cmds
  help|h				show this help information
  help-all|H			show a full description, with added info

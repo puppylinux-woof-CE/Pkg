@@ -78,7 +78,7 @@ Display busybox package status, and package contents:
   
 Download and unzip all repo packages matching 'freeciv':
 
-`cd /root/pkg; $SELF na freeciv | pkg d -; pkg ld freeciv | pkg unpack -`
+`cd /root/pkg; pkg na freeciv | pkg d -; pkg ld freeciv | pkg unpack -`
 
   
 Build (compile) packages from source:
