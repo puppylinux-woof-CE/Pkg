@@ -37,7 +37,7 @@ build() {
 
 	# configure the package
 	./configure $BASE_CONFIGURE_ARGS \
-	            --prefix=$BASE_INSTALL_PREFIX
+	            --prefix=$BASE_PATH_PREFIX
 	[ $? -ne 0 ] && return 1
 
 	# build the package
@@ -53,17 +53,17 @@ package() {
 	[ $? -ne 0 ] && return 1
 
 	# add a backwards-compatibility symlink
-	ln -s xarchiver ${INSTALL_DIR}${BASE_INSTALL_PREFIX}/bin/xarchive
+	ln -s xarchiver ${INSTALL_DIR}${BASE_PATH_PREFIX}/bin/xarchive
 	[ $? -ne 0 ] && return 1
 	
 	# delete the plugins
-	rm -rf ${INSTALL_DIR}${BASE_INSTALL_PREFIX}/lib$LIBDIR_SUFFIX
+	rm -rf ${INSTALL_DIR}${BASE_PATH_PREFIX}/lib$LIBDIR_SUFFIX
 	[ $? -ne 0 ] && return 1
 	
 	# remove unneeded icons
-	mv ${INSTALL_DIR}${BASE_INSTALL_PREFIX}/share/icons/hicolor/48x48/apps/xarchiver.png ${INSTALL_DIR}${BASE_INSTALL_PREFIX}/share/pixmaps
+	mv ${INSTALL_DIR}${BASE_PATH_PREFIX}/share/icons/hicolor/48x48/apps/xarchiver.png ${INSTALL_DIR}${BASE_PATH_PREFIX}/share/pixmaps
 	[ $? -ne 0 ] && return 1
-	rm -rf ${INSTALL_DIR}${BASE_INSTALL_PREFIX}/share/icons
+	rm -rf ${INSTALL_DIR}${BASE_PATH_PREFIX}/share/icons
 	[ $? -ne 0 ] && return 1
 	
 	# replace the menu entry
@@ -77,9 +77,9 @@ Terminal=false
 Type=Application
 MimeType=application/x-arj;application/arj;application/x-bzip;application/x-bzip-compressed-tar;application/x-gzip;application/x-rar;application/x-rar-compressed;application/x-tar;application/x-zip;application/x-zip-compressed;application/zip;multipart/x-zip;application/x-7z-compressed;application/x-compressed-tar;application/x-bzip2;application/x-bzip2-compressed-tar;
 Categories=Archiving;Utility;
-GenericName=Xarchiver archive manager' > ${INSTALL_DIR}${BASE_INSTALL_PREFIX}/share/applications/xarchiver.desktop
+GenericName=Xarchiver archive manager' > ${INSTALL_DIR}${BASE_PATH_PREFIX}/share/applications/xarchiver.desktop
 	[ $? -ne 0 ] && return 1
-	chmod 644 ${INSTALL_DIR}${BASE_INSTALL_PREFIX}/share/applications/xarchiver.desktop
+	chmod 644 ${INSTALL_DIR}${BASE_PATH_PREFIX}/share/applications/xarchiver.desktop
 	[ $? -ne 0 ] && return 1
 	
 	return 0

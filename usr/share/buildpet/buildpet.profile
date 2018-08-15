@@ -32,22 +32,23 @@ BUILD_THREADS="$(cat /proc/cpuinfo | grep processor | wc -l)"
 BUILD_TARGET="$PKG_ARCH-puppy-linux-gnu"
 
 # the base install prefix for packages
-BASE_INSTALL_PREFIX="/usr"
+BASE_PATH_PREFIX="/usr"
 
-# if PKG_CONFIGURE sets new PREFIX dir, apply it to BASE_INSTALL_PREFIX
+# if PKG_CONFIGURE sets new PREFIX dir, apply it to BASE_PATH_PREFIX
 if [ "`echo "$PKG_CONFIGURE" | grep -m1 'prefix='`" != '' ];then
-  BASE_INSTALL_PREFIX="`echo "$PKG_CONFIGURE" | sed \
-                        -e 's/.*prefix=//g'         \
-                        -e 's/ .*//'                \
-                        -e 's/"//g'                 \
-                        -e "s/'//g"`"
+  BASE_PATH_PREFIX="`echo "$PKG_CONFIGURE" | sed \
+                    -e 's/.*prefix=//g' \
+                    -e 's/ .*//'        \
+                    -e 's/"//g'         \
+                    -e "s/'//g"`"
 fi
+
 # the base flags for ./configure or ./autogen.sh, with $PKG_CONFIGURE appended
 BASE_CONFIGURE_ARGS="--build=$BUILD_TARGET \
-                     --libexecdir=$BASE_INSTALL_PREFIX/lib$LIBDIR_SUFFIX/$PKG_NAME \
+                     --libexecdir=$BASE_PATH_PREFIX/lib$LIBDIR_SUFFIX/$PKG_NAME \
                      --sysconfdir=/etc --localstatedir=/var \
-                     --mandir=$BASE_INSTALL_PREFIX/share/man \
-                     --prefix=$BASE_INSTALL_PREFIX --disable-static --enable-shared \
+                     --mandir=$BASE_PATH_PREFIX/share/man \
+                     --prefix=$BASE_PATH_PREFIX --disable-static --enable-shared \
                      --disable-debug --without-pic \
                      $PKG_CONFIGURE"
 
