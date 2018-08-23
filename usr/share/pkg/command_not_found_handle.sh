@@ -3,6 +3,11 @@
 # we can overwrite.
 
 if [ "${BASH_VERSINFO[0]}" = '4' ];then
+
+  cat=$(which cat)
+  grep=$(which grep)
+  cut=$(which cut)
+
   # if user gives a command not installed in $PATH, show a 
   # custom 'not found' message.
   function command_not_found_handle {
@@ -63,18 +68,18 @@ if [ "${BASH_VERSINFO[0]}" = '4' ];then
     # we will look for package names matching 
     # the given command (${cmd}_ on ubuntu/debian pups, else ${cmd}-) 
     # and return the package name
-    pkg --names-all "${cmd}${sep1}" 2>/dev/null | grep -vE '\-help\-|_DEV|_DOC|_NLS|\-dev|\-doc|\-nls|\-locale|\-data' > /tmp/pkg/missing_cmd_packages
+    /usr/sbin/pkg --names-all "${cmd}${sep1}" 2>/dev/null | $grep -vE '\-help\-|_DEV|_DOC|_NLS|\-dev|\-doc|\-nls|\-locale|\-data' > /tmp/pkg/missing_cmd_packages
 
     # if Pkg found nothing, search for $cmd-
     if [ ! -s /tmp/pkg/missing_cmd_packages ]
     then
-      pkg --names-all "${cmd}${sep2}" 2>/dev/null | grep -vE '\-help\-|_DEV|_DOC|_NLS|\-dev|\-doc|\-nls|\-locale|\-data' > /tmp/pkg/missing_cmd_packages
+      /usr/sbin/pkg --names-all "${cmd}${sep2}" 2>/dev/null | $grep -vE '\-help\-|_DEV|_DOC|_NLS|\-dev|\-doc|\-nls|\-locale|\-data' > /tmp/pkg/missing_cmd_packages
     fi
     
     # if Pkg still found nothing, search for $cmd
     if [ ! -s /tmp/pkg/missing_cmd_packages ]
     then
-      pkg --names-all "${cmd}" 2>/dev/null | grep -vE '\-help\-|_DEV|_DOC|_NLS|\-dev|\-doc|\-nls|\-locale|\-data' > /tmp/pkg/missing_cmd_packages
+      /usr/sbin/pkg --names-all "${cmd}" 2>/dev/null | $grep -vE '\-help\-|_DEV|_DOC|_NLS|\-dev|\-doc|\-nls|\-locale|\-data' > /tmp/pkg/missing_cmd_packages
     fi
 
     if [ -s /tmp/pkg/missing_cmd_packages ]
@@ -82,13 +87,13 @@ if [ "${BASH_VERSINFO[0]}" = '4' ];then
       # if $pkgname is only one line, we got 1 package, so 
       # lets add that package name into the example, else 
       # it will show '<package-name>'
-      wc -l /tmp/pkg/missing_cmd_packages | grep -q '^1 ' && pkgname_example=`cat /tmp/pkg/missing_cmd_packages | cut -f1 -d$sep1`
+      wc -l /tmp/pkg/missing_cmd_packages | $grep -q '^1 ' && pkgname_example=`$cat /tmp/pkg/missing_cmd_packages | $cut -f1 -d$sep1`
 
       # If Pkg suggested some packages, let's print a custom 
       # message, listing those packages
       echo "The '$cmd' command might be available in the following packages:" >&2
       echo >&2
-      cat /tmp/pkg/missing_cmd_packages >&2
+      $cat /tmp/pkg/missing_cmd_packages >&2
       echo >&2
       echo "You can install it with the following command:" >&2
       echo "  pkg add ${pkgname_example:-<package-name>}"   >&2
