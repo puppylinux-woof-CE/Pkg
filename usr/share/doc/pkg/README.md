@@ -105,7 +105,7 @@ Set a different config file:
   
 Let Pkg suggest packages on missing commands:
 
-`source /usr/share/pkg/command_not_found_handle`
+`source /usr/share/pkg/command_not_found_handle.sh`
 
 Disable package suggestions on missing command with:
 
