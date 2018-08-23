@@ -15,8 +15,6 @@ echo
 
 pkg update-sources && echo && pkg repo-update && \
 {
-  source /etc/bash_completion.d/pkg
-
   echo -e "\nAvailable repos: \n"
   pkg repo-list
 
