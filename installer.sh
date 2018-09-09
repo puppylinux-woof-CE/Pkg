@@ -10,7 +10,7 @@ find etc/ root/ sbin/ usr/ | sed -e 's/^/\//g' > ~/.packages/${pkgname}.files
 
 echo -e "Setting up Pkg... \n"
 
-pkg welcome 
+pkg welcome
 echo
 
 pkg update-sources && echo && pkg repo-update && \
@@ -19,7 +19,8 @@ pkg update-sources && echo && pkg repo-update && \
   pkg repo-list
 
   echo
-  echo 'For more help, use `pkg help`'
+  echo 'For a basic intro, use `pkg welcome`'
+  echo 'For more help, use `pkg help` or `pkg help-all`'
   echo
 }
 
