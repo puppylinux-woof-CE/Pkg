@@ -3334,25 +3334,30 @@ pkg_install(){                   # install a downloaded package FUNCLIST
             dpkg-deb --contents "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" | grep -v '/$' | tr -s ' ' | cut -f6 -d' ' | sed -e 's/^.//g' | grep -v '^$' > $HOME/.packages/${PKGNAME}.files
           fi
 
-          if [ -f $HOME/.packages/${PKGNAME}.files ];then
-            pkg_has_archdir="$(grep -m1 "$DISTRO_ARCHDIR" "$HOME/.packages/${PKGNAME}.files")"
-          fi
+					# woofce: NO_MULTIARCH_SYMLINK=1 (DISTRO_SPECS)
+					if [ -z "$NO_MULTIARCH_SYMLINK" ] ; then
+            if [ -f $HOME/.packages/${PKGNAME}.files ];then
+              pkg_has_archdir="$(grep -m1 "$DISTRO_ARCHDIR" "$HOME/.packages/${PKGNAME}.files")"
+            fi
 
-          # Workaround to avoid overwriting the $DISTRO_ARCHDIR symlink.
-          if [ "$DISTRO_ARCHDIR" != "" -a -f $HOME/.packages/${PKGNAME}.files -a "$pkg_has_archdir" != "" ]; then
-             mkdir -p /tmp/$PKGNAME
-             rm -rf /tmp/$PKGNAME/*
-             dpkg-deb -x "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" /tmp/$PKGNAME/ 2> $TMPDIR/$SELF-cp-errlog
-             for f in $(find /tmp/$PKGNAME \( -type f -o -type l \))
-             do
-               xpath=$(echo "$f" |  cut  -f 4-30 -d "/" | sed "s/$DISTRO_ARCHDIR\///")
-               mkdir -p ${DIRECTSAVEPATH}/$(dirname "$xpath")
-               cp -a "$f" ${DIRECTSAVEPATH}/$(dirname "$xpath")/
-             done
-            rm -rf /tmp/$PKGNAME &>/dev/null
-          else
-             dpkg-deb -x "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
-          fi
+						# Workaround to avoid overwriting the $DISTRO_ARCHDIR symlink.
+						if [ "$DISTRO_ARCHDIR" != "" -a -f $HOME/.packages/${PKGNAME}.files -a "$pkg_has_archdir" != "" ]; then
+						   mkdir -p /tmp/$PKGNAME
+						   rm -rf /tmp/$PKGNAME/*
+						   dpkg-deb -x ${CURDIR}/${PKGNAME}.deb /tmp/$PKGNAME/ 2> $TMPDIR/$SELF-cp-errlog
+						   for f in $(find /tmp/$PKGNAME \( -type f -o -type l \))
+						   do
+							 xpath=$(echo "$f" |  cut  -f 4-30 -d "/" | sed "s/$DISTRO_ARCHDIR\///")
+							 mkdir -p ${DIRECTSAVEPATH}/$(dirname "$xpath")
+							 cp -a "$f" ${DIRECTSAVEPATH}/$(dirname "$xpath")/
+						  done
+						  rm -rf /tmp/$PKGNAME &>/dev/null
+						else
+						   dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
+						fi
+ 					else
+						dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
+ 					fi
 
           if [ "`cat $TMPDIR/$SELF-cp-errlog | grep 'tar: Exiting with failure status due to previous errors'`" != "" ];then
             error "Failed to unpack $PKGNAME.deb"
@@ -3544,62 +3549,65 @@ pkg_install(){                   # install a downloaded package FUNCLIST
         if [ ! -h "${DIRECTSAVEPATH}${ONESPEC}" ];then
          DIRLINK=""
          if [ -h "/initrd${PUP_LAYER}${ONESPEC}" ];then #120107
-        DIRLINK="`readlink -m "/initrd${PUP_LAYER}${ONESPEC}" | sed -e "s%/initrd${PUP_LAYER}%%"`" #PUP_LAYER: see /etc/rc.d/PUPSTATE. 120107
-        xDIRLINK="`readlink "/initrd${PUP_LAYER}${ONESPEC}"`" #120107
+          DIRLINK="`readlink -m "/initrd${PUP_LAYER}${ONESPEC}" | sed -e "s%/initrd${PUP_LAYER}%%"`" #PUP_LAYER: see /etc/rc.d/PUPSTATE. 120107
+          xDIRLINK="`readlink "/initrd${PUP_LAYER}${ONESPEC}"`" #120107
          fi
          if [ ! "$DIRLINK" ];then
-        if [ -h "/initrd${SAVE_LAYER}${ONESPEC}" ];then #120107
-         DIRLINK="`readlink -m "/initrd${SAVE_LAYER}${ONESPEC}" | sed -e "s%/initrd${SAVE_LAYER}%%"`" #SAVE_LAYER: see /etc/rc.d/PUPSTATE. 120107
-         xDIRLINK="`readlink "/initrd${SAVE_LAYER}${ONESPEC}"`" #120107
-        fi
-         fi
-         if [ "$DIRLINK" ];then
-        if [ -d "$DIRLINK"  ];then
-         if [ "$DIRLINK" != "${ONESPEC}" ];then #precaution.
-          mkdir -p "${DIRECTSAVEPATH}${DIRLINK}" #120107
-          cp -a -f --remove-destination ${DIRECTSAVEPATH}"${ONESPEC}"/* "${DIRECTSAVEPATH}${DIRLINK}/" #ha! fails if put double-quotes around entire expression.
-          rm -rf "${DIRECTSAVEPATH}${ONESPEC}"
-          if [ "$DIRECTSAVEPATH" = "" ];then
-           ln -s "$xDIRLINK" "${ONESPEC}"
-          else
-           DSOPATH="`dirname "${DIRECTSAVEPATH}${ONESPEC}"`"
-           DSOBASE="`basename "${DIRECTSAVEPATH}${ONESPEC}"`"
-           rm -f "${DSOPATH}/.wh.${DSOBASE}" #allow underlying symlink to become visible on top.
+          if [ -h "/initrd${SAVE_LAYER}${ONESPEC}" ];then #120107
+           DIRLINK="`readlink -m "/initrd${SAVE_LAYER}${ONESPEC}" | sed -e "s%/initrd${SAVE_LAYER}%%"`" #SAVE_LAYER: see /etc/rc.d/PUPSTATE. 120107
+           xDIRLINK="`readlink "/initrd${SAVE_LAYER}${ONESPEC}"`" #120107
           fi
          fi
-        fi
+         if [ "$DIRLINK" ];then
+          if [ -d "$DIRLINK"  ];then
+           if [ "$DIRLINK" != "${ONESPEC}" ];then #precaution.
+            mkdir -p "${DIRECTSAVEPATH}${DIRLINK}" #120107
+            cp -a -f --remove-destination ${DIRECTSAVEPATH}"${ONESPEC}"/* "${DIRECTSAVEPATH}${DIRLINK}/" #ha! fails if put double-quotes around entire expression.
+            rm -rf "${DIRECTSAVEPATH}${ONESPEC}"
+            if [ "$DIRECTSAVEPATH" = "" ];then
+             ln -s "$xDIRLINK" "${ONESPEC}"
+            else
+             DSOPATH="`dirname "${DIRECTSAVEPATH}${ONESPEC}"`"
+             DSOBASE="`basename "${DIRECTSAVEPATH}${ONESPEC}"`"
+             rm -f "${DSOPATH}/.wh.${DSOBASE}" #allow underlying symlink to become visible on top.
+            fi
+           fi
+          fi
          fi
         fi
        fi
       done
 
-      #121217 it seems that this problem is occurring in other modes (13 reported)...
-      #121123 having a problem with multiarch symlinks in full-installation...
-      #it seems that the symlink is getting replaced by a directory.
-      if [ "$DISTRO_ARCHDIR" ];then #in /etc/rc.d/DISTRO_SPECS. 130112 change test from DISTRO_ARCHDIR. 130114 revert DISTRO_ARCHDIR_SYMLINKS==yes.
-        if [ -d /usr/lib/${DISTRO_ARCHDIR} ];then
-         if [ ! -h /usr/lib/${DISTRO_ARCHDIR} ];then
-        cp -a -f --remove-destination /usr/lib/${DISTRO_ARCHDIR}/* /usr/lib/
-        sync
-        rm -r -f /usr/lib/${DISTRO_ARCHDIR}
-        ln -s ./ /usr/lib/${DISTRO_ARCHDIR}
-         fi
-        fi
-        if [ -d /lib/${DISTRO_ARCHDIR} ];then
-         if [ ! -h /lib/${DISTRO_ARCHDIR} ];then
-        cp -a -f --remove-destination /lib/${DISTRO_ARCHDIR}/* /lib/
-        sync
-        rm -r -f /lib/${DISTRO_ARCHDIR}
-        ln -s ./ /lib/${DISTRO_ARCHDIR}
-         fi
-        fi
-        if [ -d /usr/bin/${DISTRO_ARCHDIR} ];then
-         if [ ! -h /usr/bin/${DISTRO_ARCHDIR} ];then
-        cp -a -f --remove-destination /usr/bin/${DISTRO_ARCHDIR}/* /usr/bin/
-        sync
-        rm -r -f /usr/bin/${DISTRO_ARCHDIR}
-        ln -s ./ /usr/bin/${DISTRO_ARCHDIR}
-         fi
+			# woofce: NO_MULTIARCH_SYMLINK=1 (DISTRO_SPECS)
+			if [ -z "$NO_MULTIARCH_SYMLINK" ] ; then
+        #121217 it seems that this problem is occurring in other modes (13 reported)...
+        #121123 having a problem with multiarch symlinks in full-installation...
+        #it seems that the symlink is getting replaced by a directory.
+        if [ "$DISTRO_ARCHDIR" ];then #in /etc/rc.d/DISTRO_SPECS. 130112 change test from DISTRO_ARCHDIR. 130114 revert DISTRO_ARCHDIR_SYMLINKS==yes.
+          if [ -d /usr/lib/${DISTRO_ARCHDIR} ];then
+            if [ ! -h /usr/lib/${DISTRO_ARCHDIR} ];then
+              cp -a -f --remove-destination /usr/lib/${DISTRO_ARCHDIR}/* /usr/lib/
+              sync
+              rm -r -f /usr/lib/${DISTRO_ARCHDIR}
+              ln -s ./ /usr/lib/${DISTRO_ARCHDIR}
+            fi
+          fi
+          if [ -d /lib/${DISTRO_ARCHDIR} ];then
+            if [ ! -h /lib/${DISTRO_ARCHDIR} ];then
+              cp -a -f --remove-destination /lib/${DISTRO_ARCHDIR}/* /lib/
+              sync
+              rm -r -f /lib/${DISTRO_ARCHDIR}
+              ln -s ./ /lib/${DISTRO_ARCHDIR}
+            fi
+          fi
+          if [ -d /usr/bin/${DISTRO_ARCHDIR} ];then
+            if [ ! -h /usr/bin/${DISTRO_ARCHDIR} ];then
+              cp -a -f --remove-destination /usr/bin/${DISTRO_ARCHDIR}/* /usr/bin/
+              sync
+              rm -r -f /usr/bin/${DISTRO_ARCHDIR}
+              ln -s ./ /usr/bin/${DISTRO_ARCHDIR}
+            fi
+          fi
         fi
       fi
 
