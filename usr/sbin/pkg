@@ -530,7 +530,7 @@ get_pkg_name(){                   # return pkg name with version FUNCLIST
   local pkg_name="`basename "$1" .$pkg_ext`"
 
   # get the repos files in the correct (fall back) order, then add file paths
-  supported_repo_files="`list_sources_files | sed -e "s#^#$HOME/.packages/#g"`"
+  supported_repo_files="`repo_file_list | sed -e "s#^#$HOME/.packages/#g"`"
 
   # get the relevant repo contents (fields 1,2,8) from all repos,
   # then add pipes to line start/end for easier parsing later, then do
@@ -752,7 +752,7 @@ is_repo_pkg (){                   # return true if pkg is in supported repo, els
   local all_supported_repofiles
 
   # all repo files, full paths
-  all_supported_repofiles=`list_sources_files | sed "s#^#$HOME/.packages/#" | tr '\n' ' '`
+  all_supported_repofiles=`repo_file_list | sed "s#^#$HOME/.packages/#" | tr '\n' ' '`
 
   # search all repo files for the $1
   repo_pkg="`cat $all_supported_repofiles 2>/dev/null\
@@ -1195,33 +1195,6 @@ list_all_sources(){               # return all (or matching) repos (~/.pkg/sourc
 }
 
 
-list_sources_files(){             # list repo files of all available repos FUNCLIST
-  # get the specific ordering of our supported repos from the config
-  . ${PKGRC}
-
-  [ -f ${TMPDIR}source_files ] && cat ${TMPDIR}source_files && return 0
-
-  local repos_list
-  local FALLBACKS="`grep "^$REPONAME|" ${HOME}/.pkg/sources | cut -f8 -d'|' `"
-
-  # add current repo to list, then all repos it falls back to
-  repos_list="$REPONAME $FALLBACKS"
-  # now add all other repos, sort, remove duplicates
-  repos_list="$RL `echo $(repo_list)`"| sort | uniq
-
-  # for each repo available
-  for R in $repos_list
-  do
-    # get the repo file name for sources-all
-    RF="`grep "^$R|" ${HOME}/.pkg/sources-all | cut -f3 -d'|'`"
-    # if repo file is valid, echo to stdout
-    [ "$RF" != "" -a -f "$HOME/.packages/$RF" ] && echo $RF >> ${TMPDIR}source_files
-  done
-
-  cat ${TMPDIR}source_files
-}
-
-
 add_source(){                     # add a new repo to your repo 'sources' list FUNCLIST
   [ ! "$1" \
     -o "$1" = "-" \
@@ -1238,17 +1211,19 @@ add_source(){                     # add a new repo to your repo 'sources' list F
   # do checks before adding repo (dont add duplicate, make sure file exists, etc)
 
   # check if repo name already in sources-all
-  [ "`grep "^$REPOTOADD\$" ~/.pkg/sources-all`" != "" ]  && echo "Repo with the name '$REPOTOADD' already in the list" && exit 1
+  [ "`grep "^$REPOTOADD\$" ~/.pkg/sources-all`" != "" ]  && echo "Repo with the name '$REPOTOADD' already in the list" && return 1
   # check if repo already in our repo list
-  [ "`repo_list | grep "^$REPOTOADD\$"`" != "" ] && echo "Repo with the name '$REPOTOADD' already in the list" && exit 1
+  [ "`repo_list | grep "^$REPOTOADD\$"`" != "" ] && echo "Repo with the name '$REPOTOADD' already in the list" && return 1
   # check if repo filename already  exists in sources-all
-  [ "`repo_file_list | grep "^$REPOFILETOADD\$"`" != "" ]    && echo "Repo with database file $HOME/.packages/'$REPOFILETOADD' already in the list" && exit 1
+  [ "`repo_file_list | grep "^$REPOFILETOADD\$"`" != "" ]   && echo "Repo with database file $HOME/.packages/'$REPOFILETOADD' already in the list" && return 1
   # check if the repo file exists in $HOME/.packages
-  [ ! -f "`find $HOME/.packages/ -name "$REPOFILETOADD"`" ] && echo "The repo database file '$HOME/.packages/$REPOFILETOADD' not found." && exit 1
+  [ ! -f "`find $HOME/.packages/ -name "$REPOFILETOADD"`" ] && echo "The repo database file '$HOME/.packages/$REPOFILETOADD' not found." && return 1
 
-  # all good, so add repo entry to sources-all
-  echo "$1" >> ${HOME}/.pkg/sources-all
-  echo ""   >> ${HOME}/.pkg/sources-all
+  if [ "$(grep -m1 "^$REPOTOADD|" ${HOME}/.pkg/sources-all)" = "" ];then
+    # all good, so add repo entry to sources-all
+    echo "$1" >> ${HOME}/.pkg/sources-all
+    echo ""   >> ${HOME}/.pkg/sources-all
+  fi
 
   # update users repo sources to get the new repo
   update_sources 1>/dev/null || { echo "Could not update repo sources."; exit 2; }
@@ -1289,7 +1264,7 @@ update_sources(){                 # create the list of available repos FUNCLIST
     fi
   done
 
-  cleaned_repo_list="`cat ${HOME}/.pkg/sources-all 2>/dev/null | grep -v ^'#'`"
+  cleaned_repo_list="`cat ${HOME}/.pkg/sources-all 2>/dev/null | grep -v ^'#'| grep -v ^$`"
 
   # now add any other repos to the list (repos that are installed, but not added from fallback list)
   echo "$cleaned_repo_list" | while read repo_entry
@@ -1305,7 +1280,7 @@ update_sources(){                 # create the list of available repos FUNCLIST
 
     # set a flag true if repo already in repo, false if not
     already_in_repo=false
-    [ "`grep -m1 "^$repo_entry" ${HOME}/.pkg/sources 2>/dev/null`" ] && already_in_repo=true
+    [ "`grep -m1 "^$repo_entry" ${HOME}/.pkg/sources 2>/dev/null`" != "" ] && already_in_repo=true
 
     if [ -f "$repo_file" -a "$already_in_repo" = false ];then
       echo "Adding repo: $repo_name.."
@@ -1419,7 +1394,7 @@ convert_repofile(){               # convert repo files formats (pre-woof/post-wo
     do
       PKGNAME='' PKGNAMEONLY='' PKGVER='' SIZE='' CAT='' DEPS='' BUILD='' SUBDIR='' PKGEXT='.pet' DESC=''
 
-      PKGNAME="`echo "$LINE" | cut -d'"' -f2`"
+      PKGNAME="`echo "$LINE" | cut -d'"' -f2`" #'micro
       [ "`echo $PKGNAME | grep ".deb\$"`" != "" ]     && PKGEXT='.deb'    && PKGNAME="`basename $PKGNAME1 .deb`"
       [ "`echo $PKGNAME | grep ".pet\$"`" != "" ]     && PKGEXT='.pet'    && PKGNAME="`basename $PKGNAME1 .pet`"
       [ "`echo $PKGNAME | grep ".rpm\$"`" != "" ]     && PKGEXT='.rpm'    && PKGNAME="`basename $PKGNAME1 .rpm`"
@@ -1443,7 +1418,7 @@ convert_repofile(){               # convert repo files formats (pre-woof/post-wo
       # get pkg version
       PKGVER="`LANG=C echo "$LINE" | sed -e 's/^[^0-9]*-//g' | cut -f1 -d'_' | cut -f1 -d'-'`"
       # get pkg size
-      SIZE="`echo $LINE| cut -d'"' -f6 | cut -d' ' -f3`"
+      SIZE="`echo $LINE| cut -d'"' -f6 | cut -d' ' -f3`" #'micro
       SIZE=${SIZE## }
       SIZE=${SIZE%% }
       # must check again if pkg had no deps
@@ -1454,7 +1429,7 @@ convert_repofile(){               # convert repo files formats (pre-woof/post-wo
       [ "`echo "$CAT" | grep ';'`" != "" ] && CAT="`echo "$CAT" | cut -f1 -d';'`"
       # get pkg deps
       DEPS="`echo "$LINE" | cut -d'"' -f6 | cut -d' ' -f2 | grep ^'+'`"
-      DESC="`echo "$LINE" | cut -f10 -d'|'`"
+      DESC="`echo "$LINE" | cut -f10 -d'|'`" #'micro
       # build the woof compatible repo file
       [ "$PKGNAME" != "" ] && echo "$PKGNAME|$PKGNAMEONLY|$VER|$BUILD|$CAT|$SIZE|$SUBDIR|${PKGNAME}${PKGEXT}|$DEPS|$DESC|$DISTRO_BINARY_COMPAT|$DISTRO_COMPAT_VERSION||" >> $TMPDIR/$FILENAME
     done
@@ -1606,9 +1581,9 @@ list_all_pkg_names(){            # list (matching) pkg names of any repo FUNCLIS
   rm $TMPDIR/pkglist &>/dev/null
 
   # if bleeding edge disabled, output the list repo by repo, in the fallback order, current repo first (that order is set in update_sources)
-  LANG=C list_sources_files | while read repo_file
+  repo_file_list | while read repo_file
   do
-    LANG=C cut -f1 -d'|' ${HOME}/.packages/${repo_file} 2>/dev/null | grep "^$1" | sort --field-separator='-' -k1,1df -k2gr -k3gr -k4gr >> $TMPDIR/pkglist
+    cut -f1 -d'|' ${HOME}/.packages/${repo_file} 2>/dev/null | grep "^$1" | sort --field-separator='-' -k1,1df -k2gr -k3gr -k4gr >> $TMPDIR/pkglist
   done
 
   # if bleeding edge enabled, re-order the whole list, so Pkg returns the most recent pgk versions from ANY repos
@@ -1634,7 +1609,7 @@ list_all_pkg_names(){            # list (matching) pkg names of any repo FUNCLIS
       # get the list of aliases
       ALIAS_LIST="`grep -m1 "$1" $TMPDIR/pkg_aliases  2>/dev/null | tr ',' ' '`";
       # for each repo
-      LANG=C list_sources_files | while read RF
+      LANG=C repo_file_list | while read RF
       do
         # and for each alias
         for ALIAS in $ALIAS_LIST; do
@@ -1686,17 +1661,17 @@ which_repo(){                    # list matching pkg and its repo, in any repo F
   else
 
     # for each repo
-    for repo_file in `list_sources_files`
+    for repo_file in `repo_file_list`
     do
       # get the repo name
       repo_name="`grep -m1 "$repo_file|" ${HOME}/.pkg/sources | cut -f1 -d'|'`"
-      # create a the entries, example: "vlc slacko14.2"
+      # create the entries, example: "vlc slacko14.2"
       # (each line shows a matching package, then a SPACE, then the name of repo the package lives in)
       pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "^$PKGNAME|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
-      [ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "|$PKGNAME_ONLY|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
-      [ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "^$PKGNAME_ONLY|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
       [ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "|$PKGNAME.$EX|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
       [ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "|$1.$EX|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
+      [ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "|$PKGNAME_ONLY|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
+      [ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "^$PKGNAME_ONLY|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
       [ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "|$1|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
       [ "$pkg_list" = '' ] && pkg_list="$pkg_list`LANG=C grep "$PKGNAME" ${HOME}/.packages/${repo_file} 2>/dev/null | grep -m1 "^$1|" | cut -f1 -d'|' | tr '\n' '@' | sed -e "s#@# $repo_name\n#g"`"
     done
@@ -1729,7 +1704,7 @@ search_pkgs(){                   # current repo, show pkg name and desc in colum
 search_fast(){                   # current repo, show pkg names only, case sensitive FUNCLIST
   local RES
   # get matching pkgs
-  RES="`LANG=C grep "$1" ${HOME}/.packages/${REPOFILE} 2>/dev/null | cut -f1 -d'|'`" #'
+  RES="`LANG=C grep "$1" ${HOME}/.packages/${REPOFILE} 2>/dev/null | cut -f1 -d'|'`"
   # error if no result
   [ ! "$RES" ] && exit 1
 
@@ -1760,7 +1735,7 @@ search_all_pkgs(){               # all repos, show pkg name and desc in columns 
   local descfull
 
 
-  for repo_file in `list_sources_files`
+  for repo_file in `repo_file_list`
   do #090817
     # convert repo file to nice columnised output
     cat ${HOME}/.packages/${repo_file} 2>/dev/null | grep -i "$1" | while read repo_line;
@@ -1791,7 +1766,7 @@ search_all_fast(){               # all repos, show pkg names only, case sensitiv
   rm $TMPDIR/pkglist &>/dev/null
   if [ "$BLEDGE" = "yes" ];then
     RES=''
-    for RF in `list_sources_files`
+    for RF in `repo_file_list`
     do #090817
       cat ${HOME}/.packages/${RF} 2>/dev/null | grep -i "$1" | cut -f1 -d'|' | sort --field-separator='-' -k1,1df -k2gr -k3gr -k4gr | uniq | sed -e '/^$/d' >> $TMPDIR/pkglist
     done
@@ -1799,7 +1774,7 @@ search_all_fast(){               # all repos, show pkg names only, case sensitiv
   else
     # if bleeding edge disabled, output the list repo by repo, in #
     # the fallback order, current repo first (that order is set in update_sources)
-    for RF in `list_sources_files`
+    for RF in `repo_file_list`
     do #090817
       cat ${HOME}/.packages/${RF} 2>/dev/null | grep -i "$1"| cut -f1 -d'|' | sort --field-separator='-' -k1,1df -k2gr -k3gr -k4gr | uniq | sed -e '/^$/d' >> $TMPDIR/pkglist
     done
@@ -2931,7 +2906,7 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
     #NET="`check_net`"; [ $NET -eq 1 ] && echo "You need an internet connection" && exit 2
 
     # for each repo, starting with current repo
-    list_sources_files | while read repo_file
+    repo_file_list | while read repo_file
     do
 
       # the file with our repo URL info
@@ -5158,7 +5133,7 @@ list_deps(){                     # list all deps of PKG, space separated on one 
   fi
 
   # remove all blacklisted packages from the list
-  cat ${TMPDIR}missing_deps | grep -v -E "'$blacklisted_pkgs_list'" > ${TMPDIR}missing_deps_without_blacklisted_pkgs
+  cat ${TMPDIR}missing_deps 2>/dev/null | grep -v -E "'$blacklisted_pkgs_list'" > ${TMPDIR}missing_deps_without_blacklisted_pkgs
   mv ${TMPDIR}missing_deps_without_blacklisted_pkgs ${TMPDIR}missing_deps
 
   [ ! -f ${TMPDIR}missing_deps -o -z ${TMPDIR}missing_deps ] && rm /tmp/pkg/list_deps_busy 2>/dev/null && return 1
@@ -5228,7 +5203,7 @@ find_deps(){                     # make 2 lists: DEPS_INSTALLED and DEPS_MISSING
 
   # loop through all repo files, or current repo only, depending on PKGSEARCH in RC file
   # add the full path to the file(s) while we are getting the list of repo files
-  [ "$DEPSEARCH" = "list_all_pkg_names" ] && repo_files="`list_sources_files | sed -e "s|^|$HOME/.packages/|g" | tr '\n' ' '`" || repo_files="$HOME/.packages/$REPOFILE"
+  [ "$DEPSEARCH" = "list_all_pkg_names" ] && repo_files="`repo_file_list | sed -e "s|^|$HOME/.packages/|g" | tr '\n' ' '`" || repo_files="$HOME/.packages/$REPOFILE"
 
   # get the list of deps from the repo entry of this pkg
   deps_list="`LANG=C list_deps "$PKGNAME"`"
@@ -5247,7 +5222,7 @@ find_deps(){                     # make 2 lists: DEPS_INSTALLED and DEPS_MISSING
     mv ${TMPDIR}installed_pkgs_sorted ${TMPDIR}installed_pkgs
 
     comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs | grep -v ^$ > ${TMPDIR}missing_deps
-    deps_list="`cat "${TMPDIR}missing_deps" | grep -v ^$ | sort | tr '\n' ' ' `"
+    deps_list="`cat "${TMPDIR}missing_deps" 2>/dev/null | grep -v ^$ | sort | tr '\n' ' ' `"
   fi
 
   # so now, $deps_list='dep1 dep2 dep3'
