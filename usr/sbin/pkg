@@ -1155,13 +1155,10 @@ repo_list(){                      # list names of all avail repos FUNCLIST
   for line in $current_fallback_list
   do
     # get the repo file
-    repo_file="`grep "^$LINE|" ${HOME}/.pkg/sources | cut -f3 -d'|'`"
+    repo_file="`grep "^$line|" ${HOME}/.pkg/sources | cut -f3 -d'|'`"
     # add it to the list
     [ "$repo_file" != "" ] && list="$list$line "
   done
-
-  # add space at end to help search in for loop below
-  line="$line "
 
   # now add all other avail repos to the end of fallback list
   for repo_name in $repo_names
@@ -1178,10 +1175,39 @@ repo_list(){                      # list names of all avail repos FUNCLIST
 
 
 repo_file_list(){                 # list available repo files, $1 optional FUNCLIST
-  local file_list
-  file_list="`cat ${HOME}/.pkg/sources | grep "^$1|"| cut -f3 -d'|'`"
-  [ "$file_list" = ''  ] && file_list="`cat ${HOME}/.pkg/sources | grep "^$1"| cut -f3 -d'|'`"
-  [ "$file_list" != '' ] && echo "$file_list"
+
+  # we need to list these repos in the order defined in the RC file
+  # so Pkg can 'fall back' to other repos in that order
+
+  # get current config
+  . ${PKGRC}
+
+  # set vars for this func
+  local list=''
+  local repo_file=''
+  local repo_files=`cut -f3 -d'|' ${HOME}/.pkg/sources`
+  local current_fallback_list=`grep "^$REPONAME|" ${HOME}/.pkg/sources | cut -f8 -d'|' | grep -v "^\$"`
+
+  # get current repo fallback list order.. note if repo not listed in fallback list, it will be appended after
+  for line in $current_fallback_list
+  do
+    # get the repo file
+    repo_file="`grep "^$line|" ${HOME}/.pkg/sources | cut -f3 -d'|'`"
+    # add it to the list
+    [ "$repo_file" != "" ] && list="$list$repo_file "
+  done
+
+  # now add all other avail repos to the end of fallback list
+  for repo_file in $repo_files
+  do
+    #if not blank, not already in the repo list and not the current repo ($REPONAME from rc file) then add to list
+    [ "$repo_file" != "" -a "`echo "$list" | grep "$repo_file "`" = ""  -a "$repo_file" != "$REPOFILE" ] && list="$list$repo_file "
+  done
+
+  # list the current repo first
+  echo $REPOFILE
+  # then the other repos
+  echo "$list" | tr ' ' '\n' | grep -v "^\$"
 }
 
 
