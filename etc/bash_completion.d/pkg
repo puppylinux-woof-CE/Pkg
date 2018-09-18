@@ -40,7 +40,10 @@ _pkg() {
 
   # if the 'previous' option is 'pkg', user is completing a pkg command,
   # so shift args: this will skip listing package names
-  if [ "${COMP_WORDS[COMP_CWORD-1]}" = "pkg" ];then
+  if [ "${COMP_WORDS[COMP_CWORD-1]}" = "pkg"     ] || \
+     [ "${COMP_WORDS[COMP_CWORD-1]}" = "usage"   ] || \
+     [ "${COMP_WORDS[COMP_CWORD-1]}" = '--usage' ]
+  then
     shift
   fi
 
