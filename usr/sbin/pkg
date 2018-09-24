@@ -2462,9 +2462,9 @@ pkg_entry(){                     # show pkg repo entry, each field on a new line
   PKGNAME=`get_pkg_name "$PKGNAME"`
   PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
 
-  PKG_ENTRY="`cat ${HOME}/.packages/Packages-* | grep "|$PKGNAME|"`"
-  [ "$PKG_ENTRY" = '' ] && PKG_ENTRY="`cat ${HOME}/.packages/Packages-* | grep "|$PKGNAME_ONLY|"`"
-  [ "$PKG_ENTRY" = '' ] && PKG_ENTRY="`cat ${HOME}/.packages/Packages-* | grep "^$PKGNAME|"`"
+  PKG_ENTRY="`cat ${HOME}/.packages/Packages-* | grep -m1 "|$PKGNAME|"`"
+  [ "$PKG_ENTRY" = '' ] && PKG_ENTRY="`cat ${HOME}/.packages/Packages-* | grep -m1 "^$PKGNAME|"`"
+  [ "$PKG_ENTRY" = '' ] && PKG_ENTRY="`cat ${HOME}/.packages/Packages-* | grep -m1 "|$PKGNAME_ONLY|"`"
   if [ "$PKG_ENTRY" = '' ];then
     echo "$1 not found in $REPOFILE"
     exit 1
