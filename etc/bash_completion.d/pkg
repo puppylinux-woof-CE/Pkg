@@ -73,7 +73,7 @@ _pkg() {
 
 			opts="`echo *;`" ;;
 
-		--search-all|-sa|search-all|sa|--names-all|-na|names-all|na)
+		--search-all|-sa|search-all|sa|--names-all|-na|names-all|na|add|get|get-only|status|ps|PS)
 
 			opts="`echo $(pkg -na $2)`" ;;
 
@@ -93,7 +93,7 @@ _pkg() {
 
 			[ ! "$2" ] && opts="`echo $(pkg -rfl)`" || opts="`echo $(pkg -rfl $2)`" ;;
 
-		--list-installed|-li|--uninstall|-u|list-installed|li|uninstall|u|--what-needs|-wn|what-needs|wn)
+		--list-installed|-li|--uninstall|-u|list-installed|li|uninstall|u|--what-needs|-wn|what-needs|wn|'rm')
 
 			[ ! "$2" ] && opts="`echo $(pkg -li)`" || opts="`echo $(pkg -li $2)`" ;;
 
@@ -144,7 +144,7 @@ _pkg() {
 	fi
 
 	# build list of funcs to show as part of our auto complete options
-	func_list=`pkg --func-list | cut -f2 -d' ' | cut -f1 -d'(' | tr '\n' ' '`
+	local func_list=`pkg --func-list | cut -f2 -d' ' | cut -f1 -d'(' | tr '\n' ' '`
 
 	# print out all the options, or context sensitive options (pkg $OPT $2)
 	case "${cur//,/ }" in
