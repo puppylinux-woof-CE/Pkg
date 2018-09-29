@@ -2542,13 +2542,17 @@ pkg_status(){                    # print package name, status, deps, etc FUNCLIS
   [ "$pkg_repo" = '' ] && pkg_repo="`which_repo "$PKGNAME" | cut -f2 -d' '`"
 
   # if we got a repo name, get the repo file
-  [ "$pkg_repo" != '' ] && pkg_repo_file="`repo_file_list $pkg_repo`"
+  [ "$pkg_repo" != '' ] && pkg_repo_file="`repo_file_list $pkg_repo | grep -m1 $pkg_repo`"
 
   # if we have a repo to search for pkg info
   if [ "$pkg_repo_file" != "" ];then
 
     # get package description from its repo entry
     pkg_desc="`LANG=C grep -m1 "|${PKGNAME_ONLY}|" $HOME/.packages/$pkg_repo_file 2>/dev/null| grep -m1 "$PKGNAME" | cut -f10 -d'|' | head -1`"
+
+    if [ "$pkg_desc" = '' ];then
+      pkg_desc="`LANG=C grep -m1 "|${PKGNAME_ONLY}|" $HOME/.packages/Packages-* 2>/dev/null| grep -m1 "${PKGNAME}|" | cut -f10 -d'|' | head -1`"
+    fi
 
     # get size of pkg
     pkg_size=`LANG=C grep -m1 "|${PKGNAME_ONLY}|" $HOME/.packages/$pkg_repo_file 2>/dev/null | cut -f6 -d'|' | head -1`
@@ -5172,7 +5176,7 @@ list_deps(){                     # list all deps of PKG, space separated on one 
     echo $(get_pkg_name_only "$dep")
   done | sort -u | tr '\n' ' '`"
 
-  [ "$deps" != "" ] && echo "$deps"
+  [ "$deps" != "" ] && echo "$deps" | tr ' ' '\n' | sort -u | uniq | tr '\n' ' ' | sed -e 's/^ //g'
 
   # clean up
   rm ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE /tmp/pkg/list_deps_busy 2>/dev/null
