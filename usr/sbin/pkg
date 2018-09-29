@@ -6350,7 +6350,7 @@ first_run (){                    # welome message on first run
   echo "  pkg search <term>    # search all fields in the current repo"
   echo "  pkg names <pkgname>  # search package names in the current repo"
   echo "  pkg status <pkgname> # print info about the given package"
-  echo "  pkg get <pkgname>    # install & download packages and dependencies"
+  echo "  pkg add <pkgname>    # install & download packages and dependencies"
   echo
   echo " You can run the commands below to learn more about Pkg:"
   echo
