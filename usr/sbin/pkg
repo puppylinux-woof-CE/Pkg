@@ -2894,13 +2894,13 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
 
   . ${PKGRC}
 
-  local pkg_ext=''        # the extension of the given pkg, empty if not a supported pkg ext
-  local PKGNAME=''    # the pkgname with version
-  local ORIG_PKGNAME='' # keeps the original pkg name ($1)
-  local PKG_FILENAME='' # package file name (field 8 of repo, with extension)
-  local PKGFILE=''    # full path to package file
-  local NET=''      # 1 or 0 if net connection available
-  local curr_repo=''    # name of current repo in the loop
+  local pkg_ext=''        # extension of pkg, empty if not a supported pkg ext
+  local PKGNAME=''        # the pkgname with version
+  local ORIG_PKGNAME=''   # keeps the original pkg name ($1)
+  local PKG_FILENAME=''   # package file name (field 8 of repo, with extension)
+  local PKGFILE=''        # full path to package file
+  local NET=''            # 1 or 0 if net connection available
+  local curr_repo=''      # name of current repo in the loop
   local curr_repo_ext=''  # pkg ext for the current repo in the loop
   local prev_repo_url=''  # holder for the prev checked url we know is working
   local curr_repo_url=''  # mirror that is used to download the pkg
@@ -2908,7 +2908,7 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
   local curr_repo_url2='' # mirror2 for the current repo in the loop
   local curr_repo_url3='' # mirror3 for the current repo in the loop
   local curr_repo_url4='' # mirror4 for the current repo in the loop
-  local pkg_in_repo=''  # true if pkg found in ANY repo, else false
+  local pkg_in_repo=''    # true if pkg found in ANY repo, else false
 
   # get pkg extension
   pkg_ext=`get_pkg_ext "$1"`
@@ -3032,13 +3032,18 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
               for URL in $curr_repo_url_list
               do
                 [ -z "$URL" ] && continue
-                LANG=C ping -W2 -c1 -q `echo  "${URL}" | awk -F/ '{print $3}'` &>/dev/null
+                [ "$URL" = '/' ] && continue
+                [ "$URL" = '' ] && continue
+                wget --quiet --timeout=1 --no-parent --spider "${URL}"
+                #ping -W2 -c1 -q $(echo  "${URL}" | awk -F/ '{print $3}') &>/dev/null
                 REPLY=$?
                 if [ "$REPLY" = 0 ];then
                   # set the current URL
                   curr_repo_url="$URL"
-                  echo "$curr_repo_url" > $TMPDIR/curr_repo_url
-                  break
+                  if [ ! -z "$curr_repo_url" ];then
+                    echo "$curr_repo_url" > $TMPDIR/curr_repo_url
+                    break
+                  fi
                 fi
               done
             #else
@@ -3073,7 +3078,7 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
 
             # exit if URL is not found (if we get a 404 back)
             if [ -z "$DOWNLOAD_URL" -o "`wget -S --spider "$DOWNLOAD_URL" 2>&1 | grep -m1 'HTTP/1.1 404 Not Found'`" != '' ]; then
-              error "Package URL not found"
+              error "Package URL not found   $DOWNLOAD_URL"
               return 8
             fi
 
