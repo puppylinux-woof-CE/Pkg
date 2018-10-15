@@ -2470,8 +2470,8 @@ pkg_entry(){                     # show pkg repo entry, each field on a new line
     exit 1
   else
     echo "$PKG_ENTRY" | tr '|' '\n' | grep -v '^$'
-    exit 0
   fi
+  return 0
 }
 
 
