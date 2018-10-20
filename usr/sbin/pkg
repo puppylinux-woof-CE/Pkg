@@ -5110,39 +5110,40 @@ list_deps(){                     # list all deps of PKG, space separated on one 
         if [ -f $deps_list_file ];then
 
           # remove all blacklisted packages from the list
-          cat "$deps_list_file" | grep -v -E "'$blacklisted_pkgs_list'" > ${TMPDIR}deps_list_file_without_blacklisted_pkgs
+          grep -vE "'$blacklisted_pkgs_list'" "$deps_list_file" > ${TMPDIR}deps_list_file_without_blacklisted_pkgs
           mv ${TMPDIR}deps_list_file_without_blacklisted_pkgs ${TMPDIR}deps_list_file
 
           next_deps_list_file="${TMPDIR}all_deps_$(($i + 1))"
 
           # for each dep in $deps, get their deps too
-          for subdep in `cat $deps_list_file | sort -u | uniq | grep -v ^$`
+          for subdep in `sort -u $deps_list_file | grep -v ^$`
           do
+            [ "$subdep" = '' -o "$subdep" = ' ' ] && continue
+
             local subdeps_entry=''
             local subdeps=''
             local subdeps_list=''
 
-            [ "$subdep" = '' -o "$subdep" = ' ' ] && continue
-
             subdep="`get_pkg_name_only $subdep`"
+
+            local is_blacklisted=`is_blacklisted_pkg "$subdep"`
+            [ "$is_blacklisted" = true ] && continue
 
             local already_done=`grep -m1 "^${subdep}\$" ${TMPDIR}DEP_DONE 2>/dev/null`
             [ "$already_done" != '' ] && continue
 
             local is_builtin=`is_builtin_pkg "$subdep"`
-            local is_in_devx=`is_devx_pkg "$subdep"`
-            local is_blacklisted=`is_blacklisted_pkg "$subdep"`
-
             [ "$HIDE_BUILTINS" = true -a "$is_builtin" = true ] && continue
+
+            local is_in_devx=`is_devx_pkg "$subdep"`
             [ "$HIDE_BUILTINS" = true -a "$is_in_devx" = true ] && continue
-            [ "$is_blacklisted" = true ] && continue
 
             subdeps_entry="`get_deps_entry "$subdep"`"
             subdeps="${subdeps_entry/+/}" # remove first + at start of line
             subdeps="${subdeps//,+/ }"    # remove others .. DEPS will now be just 'dep1 dep2 dep3'
             subdeps="${subdeps//  / }"    # remove double spaces
 
-            if [ "$subdeps" != '' ];then
+            if [ "$subdeps" != '' ] && [ "$subdeps" != ' ' ];then
               # remove everything after the + (if the + is followed by alphanumeric chars), then add to tmp files
               subdeps_list="`echo "${subdeps}" | tr ' ' '\n' | grep -v ^$ | sed -e 's/++/+++/g' -e 's/+[a-z0-9].*//g'`"
               echo "$subdeps_list" >> ${TMPDIR}DEP_DONE
@@ -5168,11 +5169,10 @@ list_deps(){                     # list all deps of PKG, space separated on one 
   fi
 
   # remove all blacklisted packages from the list
-  cat ${TMPDIR}missing_deps 2>/dev/null | grep -v -E "'$blacklisted_pkgs_list'" > ${TMPDIR}missing_deps_without_blacklisted_pkgs
+  grep -vE "'$blacklisted_pkgs_list'" ${TMPDIR}missing_deps 2>/dev/null > ${TMPDIR}missing_deps_without_blacklisted_pkgs
   mv ${TMPDIR}missing_deps_without_blacklisted_pkgs ${TMPDIR}missing_deps
 
   [ ! -f ${TMPDIR}missing_deps -o -z ${TMPDIR}missing_deps ] && rm /tmp/pkg/list_deps_busy 2>/dev/null && return 1
-
   [ ! -f ${TMPDIR}missing_deps ] && return 1
 
   # get fixed deps list
@@ -5181,7 +5181,7 @@ list_deps(){                     # list all deps of PKG, space separated on one 
     echo $(get_pkg_name_only "$dep")
   done | sort -u | tr '\n' ' '`"
 
-  [ "$deps" != "" ] && echo "$deps" | tr ' ' '\n' | sort -u | uniq | tr '\n' ' ' | sed -e 's/^ //g'
+  [ "$deps" != "" ] && echo "$deps" | sed -e 's/^ //g'
 
   # clean up
   rm ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE /tmp/pkg/list_deps_busy 2>/dev/null
