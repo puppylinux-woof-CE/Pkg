@@ -2530,7 +2530,7 @@ pkg_status(){                    # print package name, status, deps, etc FUNCLIS
   fi
 
   # get the repo of this pkg, if needed
-  [ "$pkg_repo" = '' ] && pkg_repo="`which_repo "$PKGNAME" | cut -f2 -d' '`"
+  [ "$pkg_repo" = '' ] && pkg_repo="`which_repo "$PKGNAME" 2>/dev/null | cut -f2 -d' '`"
 
   # if we got a repo name, get the repo file
   [ "$pkg_repo" != '' ] && pkg_repo_file="`repo_file_list $pkg_repo | grep -m1 $pkg_repo`"
@@ -2566,15 +2566,15 @@ pkg_status(){                    # print package name, status, deps, etc FUNCLIS
       set_current_repo $prev_repo 1>/dev/null
 
       # create a nicely formatted, coloured list of deps, green for installed, yellow for missing
-      INSTALLED_DEPS_MSG="${green}`echo "${DEPS_INSTALLED}"|grep -v "^\$"| tr '\n' ','| sed -e "s#,\\$##" -e 's#,#, #g' | fold -w 60 -s | sed "s#\\n#\\t\\t\\n#g"`${endcolour}"
-      MISSING_DEPS_MSG="${yellow}`echo "${DEPS_MISSING}"   |grep -v "^\$"| tr '\n' ','| sed -e "s#,\\$##" -e 's#,#, #g' | fold -w 60 -s`${endcolour}"
+      INSTALLED_DEPS_MSG="${green}`echo "${DEPS_INSTALLED}"|grep -v "^\$"| tr '\n' ','| sed -e "s#,\\$##" -e 's#,#, #g' 2>/dev/null| fold -w 60 -s | sed -e "s#\\n#\\t\\t\\n#g" 2>/dev/null`${endcolour}"
+      MISSING_DEPS_MSG="${yellow}`echo "${DEPS_MISSING}"   |grep -v "^\$"| tr '\n' ','| sed -e "s#,\\$##" -e 's#,#, #g' 2>/dev/null| fold -w 60 -s`${endcolour}"
 
       DEPS_ENTRY="Installed deps: ${INSTALLED_DEPS_MSG:-None}
 Missing deps:   ${MISSING_DEPS_MSG:-None}"
 
     else
 
-      DEPS_ENTRY="Dependencies:   `list_deps "$PKGNAME"`"
+      DEPS_ENTRY="Dependencies:   `list_deps "$PKGNAME" 2>/dev/null`"
 
     fi
 
@@ -2620,8 +2620,8 @@ $DEPS_ENTRY"
       -o "`grep -m1 "^${PKGNAME}" ${HOME}/.packages/*-installed-packages 2>/dev/null`" ];then
 
       # get deps and size from its entry in user-installed-packages
-      DEPS_ENTRY="Dependencies:   `grep -m1 "^$PKGNAME" ${HOME}/.packages/user-installed-packages | cut -f9 -d'|' | sed -e 's/,+/,/' -e 's/^+//' -e 's/,$//'`"
-      [ "$DEPS_ENTRY" = '' ] && DEPS_ENTRY="Dependencies:   `grep -m1 "^$PKGNAME" ${HOME}/.packages/*-installed-packages | cut -f9 -d'|' | sed -e 's/,+/,/' -e 's/^+//' -e 's/,$//'`"
+      DEPS_ENTRY="Dependencies:   `grep -m1 "^$PKGNAME" ${HOME}/.packages/user-installed-packages | cut -f9 -d'|' | sed -e 's/,+/,/g' -e 's/^+//g' -e 's/,$//g' 2>/dev/null`"
+      [ "$DEPS_ENTRY" = '' ] && DEPS_ENTRY="Dependencies:   `grep -m1 "^$PKGNAME" ${HOME}/.packages/*-installed-packages | cut -f9 -d'|' | sed -e 's/,+/,/' -e 's/^+//' -e 's/,$//' 2>/dev/null`"
       pkg_size=`LANG=C grep -m1 "|$PKGNAME_ONLY|" $HOME/.packages/*-installed-packages | cut -f6 -d'|' | head -1`
       # add K to end of pkg_size, if not there already
       [ "$pkg_size" != '' ] && pkg_size="${pkg_size}K" && pkg_size="${pkg_size//KK/K}"
@@ -2695,13 +2695,13 @@ which_pkg(){                     # find out which pkg FILE comes from FUNCLIST
   # try user installed pkgs contents of $HOME/.packages/*.files
 
   # try '$dir/$file', returns filename (no path) of matching *.files
-  [ "$PKG_FILE_LIST" = '' ] && PKG_FILE_LIST="`grep -l "$DIRNAME/$FILENAME\$" ${HOME}/.packages/*.files | sed "s#$HOME/.packages/##g"`"
+  [ "$PKG_FILE_LIST" = '' ] && PKG_FILE_LIST="`grep -l "$DIRNAME/$FILENAME\$"  ${HOME}/.packages/*.files 2>/dev/null| sed "s#$HOME/.packages/##g" 2>/dev/null`"
 
   # try '$dir/$file_*' if needed
-  [ "$PKG_FILE_LIST" = '' ] && PKG_FILE_LIST="`grep -l "$DIRNAME/${FILENAME}_" ${HOME}/.packages/*.files | sed "s#$HOME/.packages/##g"`"
+  [ "$PKG_FILE_LIST" = '' ] && PKG_FILE_LIST="`grep -l "$DIRNAME/${FILENAME}_" ${HOME}/.packages/*.files 2>/dev/null| sed "s#$HOME/.packages/##g" 2>/dev/null`"
 
   # try '$dir/$file-*' if needed
-  [ "$PKG_FILE_LIST" = '' ] && PKG_FILE_LIST="`grep -l "$DIRNAME/${FILENAME}\-" ${HOME}/.packages/*.files | sed "s#$HOME/.packages/##g"`"
+  [ "$PKG_FILE_LIST" = '' ] && PKG_FILE_LIST="`grep -l "$DIRNAME/${FILENAME}\-" ${HOME}/.packages/*.files 2>/dev/null| sed "s#$HOME/.packages/##g" 2>/dev/null`"
 
   # if we found a package, set the package name to the name of the *.files file that we got
   [ "$PKG_FILE_LIST" != '' ] && PKGNAME="`basename "$PKG_FILE_LIST" .files`"
@@ -2726,11 +2726,11 @@ which_pkg(){                     # find out which pkg FILE comes from FUNCLIST
 
   # now look for '$file' in user installed repo list
   [ "$PKGNAME" = "" ] \
-    && PKGNAME="`cut -f1,2,8 -d'|' $HOME/.packages/user-installed-packages 2>/dev/null | sed -e "s/^/|/" -e "s/\$/|/" | grep -m1 "|$FILENAME_ONLY|" | cut -f2 -d'|'`"
+    && PKGNAME="`cut -f1,2,8 -d'|' $HOME/.packages/user-installed-packages 2>/dev/null | sed -e "s/^/|/" -e "s/\$/|/" 2>/dev/null| grep -m1 "|$FILENAME_ONLY|" | cut -f2 -d'|'`"
 
   # also look for '$file' in user/woof/devx installed repo list
   [ "$PKGNAME" = "" ] \
-    && PKGNAME="`cut -f1,2,8 -d'|' $HOME/.packages/*-installed-packages 2>/dev/null | sed -e "s/^/|/" -e "s/\$/|/" | grep -m1 "|$FILENAME_ONLY|" | cut -f2 -d'|'`"
+    && PKGNAME="`cut -f1,2,8 -d'|' $HOME/.packages/*-installed-packages 2>/dev/null | sed -e "s/^/|/" -e "s/\$/|/" 2>/dev/null | grep -m1 "|$FILENAME_ONLY|" | cut -f2 -d'|'`"
 
 
   # we searched for an exact match in builtins, user installed, woof installed and devx pkgs, now try some fuzzier matches
@@ -2754,32 +2754,28 @@ which_pkg(){                     # find out which pkg FILE comes from FUNCLIST
 
   # if we still didnt find it, look in user installed package lists, for FILENAME
   [ "$PKGNAME" = "" ] \
-    && PKGNAME=`cat ${HOME}/.packages/user-installed-packages \
-      | cut -f1,2,8 -d '|' \
-      | sed -e "s/^/|/" -e "s/\$/|/" \
+    && PKGNAME=`cut -f1,2,8 -d '|' ${HOME}/.packages/user-installed-packages \
+      | sed -e "s/^/|/" -e "s/\$/|/" 2>/dev/null \
       | grep -m1 "|${FILENAME_ONLY}|" \
       | cut -f2 -d'|'` 2>/dev/null
 
   # if we still didnt find it, look in all installed package lists, for FILENAME
   [ "$PKGNAME" = "" ] \
-    && PKGNAME=`cat ${HOME}/.packages/*-installed-packages \
-      | cut -f1,2,8 -d '|' \
-      | sed -e "s/^/|/" -e "s/\$/|/" \
+    && PKGNAME=`cut -f1,2,8 -d '|' ${HOME}/.packages/*-installed-packages \
+      | sed -e "s/^/|/" -e "s/\$/|/" 2>/dev/null \
       | grep -m1 "|${FILENAME_ONLY}|" \
       | cut -f2 -d'|'` 2>/dev/null
 
   # if we still didnt find it, look in all installed package lists, for *FILENAME
   [ "$PKGNAME" = "" ] \
-    && PKGNAME=`cat ${HOME}/.packages/*-installed-packages \
-      | cut -f1,2,8 -d '|' \
-      | sed -e "s/^/|/" -e "s/\$/|/" \
+    && PKGNAME=`cut -f1,2,8 -d '|' ${HOME}/.packages/*-installed-packages \
+      | sed -e "s/^/|/" -e "s/\$/|/" 2>/dev/null \
       | grep -m1 "${FILENAME_ONLY}|" \
       | cut -f2 -d'|'` 2>/dev/null
 
   # if we still didnt find it, look in all installed package lists, for FILENAME*
   [ "$PKGNAME" = "" ] \
-    && PKGNAME=`cat ${HOME}/.packages/*-installed-packages \
-      | cut -f1,2,8 -d '|' \
+    && PKGNAME=`cut -f1,2,8 -d '|' ${HOME}/.packages/*-installed-packages \
       | sed -e "s/^/|/" -e "s/\$/|/" \
       | grep -m1 "|${FILENAME_ONLY}" \
       | cut -f2 -d'|'` 2>/dev/null
