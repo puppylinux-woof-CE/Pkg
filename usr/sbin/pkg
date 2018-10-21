@@ -642,8 +642,7 @@ is_builtin_pkg (){                # return true if pkg is builtin, else false FU
   local pkg_builtin=''
   local pkg_name_only=''
 
-  pkg_builtin="`cat ${HOME}/.packages/woof-installed-packages 2>/dev/null\
-    | cut -f1,2,8 -d '|' \
+  pkg_builtin="`cut -f1,2,8 -d '|' ${HOME}/.packages/woof-installed-packages 2>/dev/null\
     | sed -e 's@^@|@' -e 's@$@|@' \
     | grep -m1 "|$1|"`"
 
@@ -653,8 +652,7 @@ is_builtin_pkg (){                # return true if pkg is builtin, else false FU
 
     # so search for pkg_name* AND pkg_name_only (exact match, should be in field 2)
     if [ "$pkg_name_only" != '' ];then
-      pkg_builtin="`cat ${HOME}/.packages/woof-installed-packages 2>/dev/null\
-        | cut -f1,2,8 -d '|' \
+      pkg_builtin="`cut -f1,2,8 -d '|' ${HOME}/.packages/woof-installed-packages 2>/dev/null\
         | sed -e 's@^@|@' -e 's@$@|@' \
         | grep "|$1" \
         | grep -m1 "|$pkg_name_only|"`"
@@ -678,8 +676,7 @@ is_devx_pkg (){                   # return true if pkg is in the devx, else fals
   local devx_pkg=''
   local pkg_name_only=''
 
-  devx_pkg="`cat ${HOME}/.packages/devx-only-installed-packages 2>/dev/null\
-    | cut -f1,2,8 -d '|' \
+  devx_pkg="`cut -f1,2,8 -d '|' ${HOME}/.packages/devx-only-installed-packages 2>/dev/null\
     | sed -e 's@^@|@' -e 's@$@|@' \
     | grep -m1 "|$1|"`"
 
@@ -689,8 +686,7 @@ is_devx_pkg (){                   # return true if pkg is in the devx, else fals
 
     # so search for pkg_name* AND |pkg_name_only| (exact match, should be in field 2)
     if [ "$pkg_name_only" != '' ];then
-      devx_pkg="`cat ${HOME}/.packages/devx-only-installed-packages 2>/dev/null\
-        | cut -f1,2,8 -d '|' \
+      devx_pkg="`cut -f1,2,8 -d '|' ${HOME}/.packages/devx-only-installed-packages 2>/dev/null\
         | sed -e 's@^@|@' -e 's@$@|@' \
         | grep "|$1" \
         | grep -m1 "|$pkg_name_only|"`"
@@ -714,8 +710,7 @@ is_usr_pkg (){                    # return true if pkg is user installed, else f
   local usr_pkg=''
   local pkg_name_only=''
 
-  usr_pkg="`cat ${HOME}/.packages/user-installed-packages 2>/dev/null\
-    | cut -f1,2,8 -d '|' \
+  usr_pkg="`cut -f1,2,8 -d '|' ${HOME}/.packages/user-installed-packages 2>/dev/null\
     | sed -e 's@^@|@' -e 's@$@|@' \
     | grep -m1 "|$1|"`"
 
@@ -725,8 +720,7 @@ is_usr_pkg (){                    # return true if pkg is user installed, else f
 
     # so search for pkg_name* AND |pkg_name_only| (exact match, should be in field 2)
     if [ "$pkg_name_only" != '' ];then
-      usr_pkg="`cat ${HOME}/.packages/user-installed-packages 2>/dev/null\
-        | cut -f1,2,8 -d '|' \
+      usr_pkg="`cut -f1,2,8 -d '|' ${HOME}/.packages/user-installed-packages 2>/dev/null\
         | sed -e 's@^@|@' -e 's@$@|@' \
         | grep "|$1" \
         | grep -m1 "|$pkg_name_only|"`"
@@ -755,15 +749,13 @@ is_repo_pkg (){                   # return true if pkg is in supported repo, els
   all_supported_repofiles=`repo_file_list | sed "s#^#$HOME/.packages/#" | tr '\n' ' '`
 
   # search all repo files for the $1
-  repo_pkg="`cat $all_supported_repofiles 2>/dev/null\
-    | cut -f1,2,8 -d '|' \
+  repo_pkg="`cut -f1,2,8 -d '|' $all_supported_repofiles 2>/dev/null\
     | sed -e 's/ //g' -e 's@^@|@' -e 's@$@|@' \
     | grep -m1 "|${1}|"`"
 
   # search all repo files for the $1*
   [ "$repo_pkg" = '' ] \
-    && repo_pkg="`cat $all_supported_repofiles 2>/dev/null\
-    | cut -f1,2,8 -d '|' \
+    && repo_pkg="`cut -f1,2,8 -d '|' $all_supported_repofiles 2>/dev/null\
     | sed -e 's/ //g' -e 's@^@|@' -e 's@$@|@' \
     | grep -m1 "|${1}-\?_\?[0-9.a-zA-Z]*|"`"
 
@@ -773,8 +765,7 @@ is_repo_pkg (){                   # return true if pkg is in supported repo, els
 
     # so search for pkg_name* AND |pkg_name_only| (exact match, should be in field 2)
     if [ "$pkg_name_only" != '' ];then
-      repo_pkg="`cat $all_supported_repofiles 2>/dev/null\
-        | cut -f1,2,8 -d '|' \
+      repo_pkg="`cut -f1,2,8 -d '|' $all_supported_repofiles 2>/dev/null\
         | sed -e 's@^@|@' -e 's@$@|@' \
         | grep "|$1" \
         | grep -m1 "|$pkg_name_only|"`"
@@ -5102,7 +5093,7 @@ list_deps(){                     # list all deps of PKG, space separated on one 
 
     if [ -f $TMPDIR/all_deps_1 -a ! -z $TMPDIR/all_deps_1 ];then
       # recursive search deps of deps
-      for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+      for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
       do
         deps_list_file="${TMPDIR}all_deps_${i}"
 
