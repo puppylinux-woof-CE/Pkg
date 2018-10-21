@@ -5101,13 +5101,13 @@ list_deps(){                     # list all deps of PKG, space separated on one 
         if [ -f $deps_list_file ];then
 
           # remove all blacklisted packages from the list
-          grep -vE "'$blacklisted_pkgs_list'" "$deps_list_file" > ${TMPDIR}deps_list_file_without_blacklisted_pkgs
-          mv ${TMPDIR}deps_list_file_without_blacklisted_pkgs ${TMPDIR}deps_list_file
+#          grep -vE "'$blacklisted_pkgs_list'" "$deps_list_file" > ${TMPDIR}deps_list_file_without_blacklisted_pkgs
+#          mv ${TMPDIR}deps_list_file_without_blacklisted_pkgs ${TMPDIR}deps_list_file
 
           next_deps_list_file="${TMPDIR}all_deps_$(($i + 1))"
 
           # for each dep in $deps, get their deps too
-          for subdep in `sort -u $deps_list_file | grep -v ^$`
+          for subdep in `sort -u $deps_list_file| grep -v ^$`
           do
             [ "$subdep" = '' -o "$subdep" = ' ' ] && continue
 
@@ -5115,16 +5115,16 @@ list_deps(){                     # list all deps of PKG, space separated on one 
             local subdeps=''
             local subdeps_list=''
 
-            subdep="`get_pkg_name_only $subdep`"
+            #subdep="`get_pkg_name_only $subdep`"
 
-            local is_blacklisted=`is_blacklisted_pkg "$subdep"`
-            [ "$is_blacklisted" = true ] && continue
+            local is_builtin=`is_builtin_pkg "$subdep"`
+            [ "$HIDE_BUILTINS" = true -a "$is_builtin" = true ] && continue
 
             local already_done=`grep -m1 "^${subdep}\$" ${TMPDIR}DEP_DONE 2>/dev/null`
             [ "$already_done" != '' ] && continue
 
-            local is_builtin=`is_builtin_pkg "$subdep"`
-            [ "$HIDE_BUILTINS" = true -a "$is_builtin" = true ] && continue
+            local is_blacklisted=`is_blacklisted_pkg "$subdep"`
+            [ "$is_blacklisted" = true ] && continue
 
             local is_in_devx=`is_devx_pkg "$subdep"`
             [ "$HIDE_BUILTINS" = true -a "$is_in_devx" = true ] && continue
