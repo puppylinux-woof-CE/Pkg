@@ -5043,6 +5043,9 @@ list_deps(){                     # list all deps of PKG, space separated on one 
 
   echo true > /tmp/pkg/list_deps_busy
 
+  # create list of installed pkgs ($TMPDIR/installed_pkgs) for later
+  list_all_installed_pkgs &
+
   # get current $REPOFILE, $DEPSEARCH
   #. ${PKGRC}
 
@@ -5064,9 +5067,6 @@ list_deps(){                     # list all deps of PKG, space separated on one 
   PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
 
   blacklisted_pkgs_list="$(echo $PKG_NAME_IGNORE | sed -e 's/ /|/g')"
-
-  # create list of installed pkgs ($TMPDIR/installed_pkgs) for later
-  list_all_installed_pkgs &
 
   # get the deps of the pkg, note, in the repo deps are NOT listed by proper pkg names, .. they are +dbus,+glib,+SDL
 
@@ -5136,7 +5136,7 @@ list_deps(){                     # list all deps of PKG, space separated on one 
 
             if [ "$subdeps" != '' ] && [ "$subdeps" != ' ' ];then
               # remove everything after the + (if the + is followed by alphanumeric chars), then add to tmp files
-              subdeps_list="`echo "${subdeps}" | tr ' ' '\n' | grep -v ^$ | sed -e 's/++/+++/g' -e 's/+[a-z0-9].*//g'`"
+              subdeps_list="`echo "${subdeps}" | tr ' ' '\n' | grep -v ^$ | sed -e 's/++/+++/g' -e 's/+[a-z0-9].*//g' | sort -u`"
               echo "$subdeps_list" >> ${TMPDIR}DEP_DONE
               echo "$subdeps_list" >> $next_deps_list_file
             fi
@@ -5160,19 +5160,19 @@ list_deps(){                     # list all deps of PKG, space separated on one 
   fi
 
   # remove all blacklisted packages from the list
-  grep -vE "'$blacklisted_pkgs_list'" ${TMPDIR}missing_deps 2>/dev/null > ${TMPDIR}missing_deps_without_blacklisted_pkgs
+  grep -vE "'$blacklisted_pkgs_list'" ${TMPDIR}missing_deps 2>/dev/null | sort -u > ${TMPDIR}missing_deps_without_blacklisted_pkgs
   mv ${TMPDIR}missing_deps_without_blacklisted_pkgs ${TMPDIR}missing_deps
 
   [ ! -f ${TMPDIR}missing_deps -o -z ${TMPDIR}missing_deps ] && rm /tmp/pkg/list_deps_busy 2>/dev/null && return 1
   [ ! -f ${TMPDIR}missing_deps ] && return 1
 
   # get fixed deps list
-  deps="`LANG=C cat ${TMPDIR}missing_deps 2>/dev/null | tr ' ' '\n' | while read dep
+  deps="`LANG=C sort -u ${TMPDIR}missing_deps 2>/dev/null | tr ' ' '\n' | while read dep
   do
     echo $(get_pkg_name_only "$dep")
-  done | sort -u | tr '\n' ' '`"
+  done`"
 
-  [ "$deps" != "" ] && echo "$deps" | sed -e 's/^ //g'
+  [ "$deps" != "" ] && echo "$deps" | sed -e 's/^ //g' | tr ' ' '\n' | sort -u | tr '\n' ' '
 
   # clean up
   rm ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE /tmp/pkg/list_deps_busy 2>/dev/null
