@@ -5121,15 +5121,18 @@ list_deps(){                     # list all deps of PKG, space separated on one 
             local subdeps_entry=''
             local subdeps=''
             local subdeps_list=''
-
-            local is_builtin=`is_builtin_pkg "$subdep"`
-            [ "$HIDE_BUILTINS" = true -a "$is_builtin" = true ] && continue
+            local is_builtin
+            local is_in_devx
 
             local already_done=`grep -m1 "^${subdep}\$" ${TMPDIR}DEP_DONE 2>/dev/null`
             [ "$already_done" != '' ] && continue
 
-            local is_in_devx=`is_devx_pkg "$subdep"`
-            [ "$HIDE_BUILTINS" = true -a "$is_in_devx" = true ] && continue
+            if [ "$HIDE_BUILTINS" = true ];then
+              is_builtin=`is_builtin_pkg "$subdep"`
+              [ "$is_builtin" = true ] && continue
+              is_in_devx=`is_devx_pkg "$subdep"`
+              [ "$is_in_devx" = true ] && continue
+            fi
 
             subdeps_entry="`get_deps_entry "$subdep"`"
             subdeps="${subdeps_entry/+/}" # remove first + at start of line
