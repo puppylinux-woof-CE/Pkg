@@ -4427,7 +4427,7 @@ $PKGS"
   [ "$PKGEX" = 'deb' ] && sort='sort -r' || sort='sort'
 
   # go through each actual pkg that matches the pkgname search, make it a numbered list
-  echo "$PKGS" | $sort | while read LINE
+  echo "$PKGS" | $sort -u | while read LINE
   do
     if [ "$LINE" != "" -a "$LINE" != "," -a "$LINE" != " " ];then
       [ "$ASK" = true ] && echo "${INT}. $LINE"
@@ -5040,7 +5040,7 @@ list_deps(){                     # list all deps of PKG, space separated on one 
   echo true > /tmp/pkg/list_deps_busy
 
   # create list of installed pkgs ($TMPDIR/installed_pkgs) for later
-  list_all_installed_pkgs &
+  list_all_installed_pkgs
 
   # get current $REPOFILE, $DEPSEARCH
   #. ${PKGRC}
@@ -5085,6 +5085,10 @@ list_deps(){                     # list all deps of PKG, space separated on one 
     # remove any deps in installed pkgs list from all deps.. to leave only missing deps
     comm -23 ${TMPDIR}all_deps_0 ${TMPDIR}installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}all_deps_1
 
+    # remove all blacklisted packages from the list
+    grep -vE "'$blacklisted_pkgs_list'" ${TMPDIR}all_deps_1 2>/dev/null | sort -u > ${TMPDIR}all_deps_1_without_blacklisted_packages
+    mv ${TMPDIR}all_deps_1_without_blacklisted_packages ${TMPDIR}all_deps_1
+
     rm -f ${TMPDIR}DEP_DONE 2>/dev/null
 
     if [ -f $TMPDIR/all_deps_1 -a ! -z $TMPDIR/all_deps_1 ];then
@@ -5097,13 +5101,20 @@ list_deps(){                     # list all deps of PKG, space separated on one 
         if [ -f $deps_list_file ];then
 
           # remove all blacklisted packages from the list
-#          grep -vE "'$blacklisted_pkgs_list'" "$deps_list_file" > ${TMPDIR}deps_list_file_without_blacklisted_pkgs
-#          mv ${TMPDIR}deps_list_file_without_blacklisted_pkgs ${TMPDIR}deps_list_file
+          grep -vE "'$blacklisted_pkgs_list'" "$deps_list_file" > ${TMPDIR}deps_list_file_without_blacklisted_pkgs
+          mv ${TMPDIR}deps_list_file_without_blacklisted_pkgs  $deps_list_file
+
+          # remove done packages from the list
+          if [ -f ${TMPDIR}DEP_DONE ];then
+            deps_done_list="$(cat ${TMPDIR}DEP_DONE | tr '\n' '|' | grep -v ^$)"
+            grep -vE "'$deps_done_list'" $deps_list_file > ${TMPDIR}deps_list_file_without_completed_pkgs
+            mv ${TMPDIR}deps_list_file_without_completed_pkgs $deps_list_file
+          fi
 
           next_deps_list_file="${TMPDIR}all_deps_$(($i + 1))"
 
           # for each dep in $deps, get their deps too
-          for subdep in `sort -u $deps_list_file| grep -v ^$`
+          for subdep in `sort -u $deps_list_file | grep -v ^$`
           do
             [ "$subdep" = '' -o "$subdep" = ' ' ] && continue
 
@@ -5111,16 +5122,11 @@ list_deps(){                     # list all deps of PKG, space separated on one 
             local subdeps=''
             local subdeps_list=''
 
-            #subdep="`get_pkg_name_only $subdep`"
-
             local is_builtin=`is_builtin_pkg "$subdep"`
             [ "$HIDE_BUILTINS" = true -a "$is_builtin" = true ] && continue
 
             local already_done=`grep -m1 "^${subdep}\$" ${TMPDIR}DEP_DONE 2>/dev/null`
             [ "$already_done" != '' ] && continue
-
-            local is_blacklisted=`is_blacklisted_pkg "$subdep"`
-            [ "$is_blacklisted" = true ] && continue
 
             local is_in_devx=`is_devx_pkg "$subdep"`
             [ "$HIDE_BUILTINS" = true -a "$is_in_devx" = true ] && continue
@@ -5132,15 +5138,15 @@ list_deps(){                     # list all deps of PKG, space separated on one 
 
             if [ "$subdeps" != '' ] && [ "$subdeps" != ' ' ];then
               # remove everything after the + (if the + is followed by alphanumeric chars), then add to tmp files
+              echo "$subdep" >> ${TMPDIR}DEP_DONE
+
+              # create the next deps list file to parse, containing the deps of this $subdep
               subdeps_list="`echo "${subdeps}" | tr ' ' '\n' | grep -v ^$ | sed -e 's/++/+++/g' -e 's/+[a-z0-9].*//g' | sort -u`"
-              echo "$subdeps_list" >> ${TMPDIR}DEP_DONE
               echo "$subdeps_list" >> $next_deps_list_file
             fi
           done
-          rm -f ${TMPDIR}DEP_DONE 2>/dev/null
         fi
       done
-      rm -f ${TMPDIR}DEP_DONE 2>/dev/null
 
       # add all deps together, sorted, duplicated removed
       sort -u ${TMPDIR}all_deps_* | grep -v ^$ > ${TMPDIR}all_deps_sorted
