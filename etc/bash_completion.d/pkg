@@ -53,6 +53,10 @@ _pkg() {
   # thi is the word/option yet to be completed
   prev="${COMP_WORDS[COMP_CWORD-1]}"
 
+	# convert commas to spaces
+	cur="${cur//,/ }"
+	prev="${prev//,/ }"
+
 	# avoid argument list too long error
 	rm /tmp/pkg_tab_opts &>/dev/null
 
@@ -62,13 +66,11 @@ _pkg() {
 		all) PKGSEARCH='pkg -na' ;;
 	esac
 
-	cur="${cur//,/ }"
-	prev="${prev//,/ }"
-
 	# context sensitive file/dir/pkg completion here
 	# ...go through the options the user has typed (so far..),
 	# and present these completions first
 	case "${prev//,/ }" in
+
 		--deb2*|deb2*|--dir2*|dir2*|--pet2*|pet2*|--sfs2*|sfs2*|--tgz2*|tgz2*|--txz2*|txz2*)
 
 			opts="`echo *;`" ;;
@@ -202,9 +204,6 @@ _pkg() {
 	return $?
 }
 
-
-
 complete -o default -o nospace -F _pkg pkg
-complete -F _pkg pkg
 
 return $?
