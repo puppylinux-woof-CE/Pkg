@@ -6507,15 +6507,15 @@ while [ $# != 0 ]; do # get all options ($# means all options)
 
       # package search
       --all-pkgs|--all)                 [ ! "$2" ] && cat ${HOME}/.packages/${REPOFILE} || cat ${HOME}/.packages/${REPOFILE} | grep "$2"; exit 0;;
-      --search|-s|search|s)             [ ! "$2" ] && search_pkgs          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_pkgs "$x";          done; exit 0 ;;
-      -ss)                              [ ! "$2" ] && search_fast          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_fast "$x";          done; exit 0 ;;
-      --search-all|-sa|search-all|sa)   [ ! "$2" ] && search_all_pkgs      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_pkgs "$x";      done; exit 0 ;;
-      -ssa)                             [ ! "$2" ] && search_all_fast      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_fast "$x";      done; exit 0 ;;
-      --names|-n|names|n)               [ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x";         done; exit 0 ;;
-      --names-exact|-ne|names-exact|ne) [ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x\$";       done; exit 0 ;;
-      --names-all|-na|names-all|na)     [ ! "$2" ] && list_all_pkg_names   || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x";     done; exit 0 ;;
-    --list-installed|-li|li)            [ ! "$2" ] && list_installed_pkgs  || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_installed_pkgs "$x";    done; exit 0 ;;
-   --list-downloaded|-ld|ld)            [ ! "$2" ] && list_downloaded_pkgs || list_downloaded_pkgs "$2"; exit 0 ;;
+      --search|-s|search|s)             [ ! "$2" ] && search_pkgs          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_pkgs "$x";          done; ;;
+      -ss)                              [ ! "$2" ] && search_fast          || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_fast "$x";          done; ;;
+      --search-all|-sa|search-all|sa)   [ ! "$2" ] && search_all_pkgs      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_pkgs "$x";      done; ;;
+      -ssa|ssa)                         [ ! "$2" ] && search_all_fast      || for x in "$opt"; do [ "$x" -a "$x" != "-" ] && search_all_fast "$x";      done; ;;
+      --names|-n|names|n)               [ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x";         done; ;;
+      --names-exact|-ne|names-exact|ne) [ ! "$2" ] && list_pkg_names       || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_pkg_names "$x\$";       done; ;;
+      --names-all|-na|names-all|na)     [ ! "$2" ] && list_all_pkg_names   || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x";     done; ;;
+--list-installed|list-installed|-li|li) [ ! "$2" ] && list_installed_pkgs  || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_installed_pkgs "$x";    done; exit 0 ;;
+--list-downloaded|list-downloaded|-ld|ld) [ ! "$2" ] && list_downloaded_pkgs || list_downloaded_pkgs "$2"; exit 0 ;;
       -LI|LI)                           [ ! "$2" ] && HIDE_BUILTINS=false list_installed_pkgs || HIDE_BUILTINS=false list_installed_pkgs "$2"; exit 0 ;; # list all installed pkgs inc builtins
   --names-exact-all|-nea|names-exact-all|nea) [ ! "$2" ] && list_all_pkg_names || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_all_pkg_names "$x\$"; done; exit 0 ;;
 
