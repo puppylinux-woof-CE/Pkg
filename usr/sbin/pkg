@@ -2566,8 +2566,8 @@ pkg_status(){                    # print package name, status, deps, etc FUNCLIS
       set_current_repo $prev_repo 1>/dev/null
 
       # create a nicely formatted, coloured list of deps, green for installed, yellow for missing
-      INSTALLED_DEPS_MSG="${green}`echo "${DEPS_INSTALLED}"|grep -v "^\$"| tr '\n' ','| sed -e "s#,\\$##" -e 's#,#, #g' 2>/dev/null| fold -w 60 -s | sed -e "s#\\n#\\t\\t\\n#g" 2>/dev/null`${endcolour}"
-      MISSING_DEPS_MSG="${yellow}`echo "${DEPS_MISSING}"   |grep -v "^\$"| tr '\n' ','| sed -e "s#,\\$##" -e 's#,#, #g' 2>/dev/null| fold -w 60 -s`${endcolour}"
+      INSTALLED_DEPS_MSG="${green}`echo "${DEPS_INSTALLED}"|grep -v "^\$"| tr '\n' ','| sed -e "s#,\\$##" -e 's#,#, #g' 2>/dev/null| fold -w 50 -s | sed '2,10 s/^/                /g' 2>/dev/null`${endcolour}"
+      MISSING_DEPS_MSG="${yellow}`echo "${DEPS_MISSING}"   |grep -v "^\$"| tr '\n' ','| sed -e "s#,\\$##" -e 's#,#, #g' 2>/dev/null| fold -w 50 -s | sed '2,10 s/^/                /g'`${endcolour}"
 
       DEPS_ENTRY="Installed deps: ${INSTALLED_DEPS_MSG:-None}
 Missing deps:   ${MISSING_DEPS_MSG:-None}"
@@ -2581,7 +2581,7 @@ Missing deps:   ${MISSING_DEPS_MSG:-None}"
     #250613 added desc
     MSG="
 Name:           ${PKGNAME}
-Description:    `echo ${pkg_desc:-No description}|head -c 58`..
+Description:    `echo ${pkg_desc:-No description} | fold -w 50 -s | sed '2,10 s/^/                /g'`
 Size:           ${pkg_size:-Unknown}
 Status:         ${install_status:-Unknown}
 In Repo:        ${pkg_repo:-Not in any repos}
