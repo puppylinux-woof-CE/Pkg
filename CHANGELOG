@@ -1,3 +1,99 @@
+1.9.22
+
+* (HEAD -> master, tag: v1.9.22, origin/master, origin/HEAD) bumped version to 1.9.22
+* updated README
+* fix TAB completion: use default behaviour, PLUS the custom `_pkg` func: * this fixes TAB completion for things like: `pkg contents ../[TAB]` * in other words, TAB completion of files and dirs now fixes :)
+* better spacing in `pkg status <pkgname>` output for descriptions and deps: * align with first line if deps/desc spans multiple lines
+* fixes to search commands: Users can now pass multiple searches at once - simple pass them on a new line, inside doulb quote:
+* fix for "command_not_found_handle" failing to initialise peroperl
+* small clean up and speed up in list_deps(): * cleaner checking of builtins and devs packages
+* speed ups in list_deps: * properly use the "deps_done" file to skip deps already checked * other fixes
+* suppress sed errors from list_deps() in pkg_status().. also remove useless cats in which_pkg()
+* fixed: list_deps() was listing duplicates
+* speed up in list_deps(): * removed a call to `get_pkg_name_only` * check package is builtin before blacklisted
+* small cleanups: removed some useless cats
+* small fixes: remove useless `cat`s from list_deps(): * and a few other small speed ups as well (dont make much difference, but...)
+* fix pkg_entry() failure to process multiples packages from stdin: * was using exit 0 instead of return 0 in pkg_entry() func after successfully printing 1st repo entry..fixed
+* fixes in pkg_download(): use wget to check server, not ping, better skipping of invalid URLs: These changes fix downloading URLs from http://bear.alienbase.nl/mirrors/slackware/slackware-current/
+* updated first_run info to show `pkg add` command, not the older (but still supported) `pkg get`
+* fixes in pkg_status() and list_deps() commands: * fix pkg_status not finding category, deps and repo file of packages in "other" repos * fix list_deps() listing duplicates packages
+* updates to bash completion script: * fixes `pkg status <pkgname`: get pkg names to complete from all repos * add "rm" command to completions.. do `pkg rm[TAB]` to see all installed packages
+* fixes package repo entry command (`pkg pe <pkgname>`): * always match full package name before trying to match PKGNAME_ONLY * only sohw first match
+* fix in TAB completion: `pkg usage na[TAB]` will list only pkg commands starting with "na"
+* fixes in TAB completion: * if completing a Pkg command (install/add/rm/search/etc), dont include package names * fix `pkg usa[TAB]` not giving `pkg usage`
+* fix previous commit:
+* fix list all available repos.. improves `names-all`, `which-repo`, more..
+* added patch to stay up-to-date with Woof2/petget: - added support for new var $NO_MULTIARCH_SYMLINK in /etc/DISTRO_SPECS
+* added a little more help info to the installer
+* Fixes for installing local.deb packages when they are not in $WORKDIR
+* fixes in `pkg --contents` output: - supress sed errors - remove "/" from list (unneeded)
+* fixes in command not found handle: fixes output, safer, avoids using aliases
+* updated installre.sh
+* minor updates in menu entries and READMEs...   and added .sh extension to /usr/share/pkg/command_not_found_handle.sh
+* Fixed: set --prefix through `pkg build` command: - use `pkg build PKGNAME --configure="--prefix=/usr/local"` and the --prefix option will now work with all (?) buildscripts. - note, must be using BUILDTOOL=buildpet in ~/.pkg/pkgrc for this to work
+* Fixes in Petbuild init, and updates in Buildpet (better --config parsing, package naming supports more recent pups)
+* fixed `pkg LI <pkgname>` not filtering results
+* fixed READMEs (removed "$SELF" references)
+* fixes and improvements for command_not_found_handle
+* New feature: show package suggestions on missing commands: - new file: /usr/share/pkg/command_not_found_handle - enable with `source /usr/share/pkg/command_not_found_handle` - disable with `unset command_not_found_handle` - ...also updated READMEs
+* updated env vars help output to include PKGRC
+* fix: dont RE-add bashrc TAB completion stuff if already added
+* fixes in Examples help output
+* clean up of ENV vars stuff in the help output
+* fixed pkg_update() listing the wrong separator between pkg name and version
+* fixes in README.md
+* small fix in README.md
+* Updated help info: - small fix in usage info for "add" command - added ENVIRONMENT VARIABLE info to help output - small cleanup in the given examples - updated README.md files
+* updated buildpet build scripts: - all build scripts now support passing custom options at build time:
+* fixes in pkg_contents()
+* moved /usr/lib/pkg to /usr/share/pkg, other small fixes
+* moved /usr/lib/pkg to /usr/share/pkg
+* fixes in artful and bionic repo sources: - removed extra pipe, had 1 too many after the URLs - was causing fallback to be missed
+* Improve Buildpet package compiling: You can now set the following environment variables to override the `configure` and `make` options: - PKG_CONFIGURE="--prefix=/usr/local" pkg build xarchiver - PKG_CFLAGS="-02" pkg build xarchiver
+* fix indentation in code
+* added extra text for pkg URLs, quit earlier if there is an error
+* extra checks for pkg URL, show URL in console output
+* fixes to sources-all for ubuntu pups: - re-ordered the mirror URLs, added extra mirror to zesty, precise, trusty
+* fixes for Xenial repos in `sources-all`: - use noarch common as first fallbacks
+* added Puppy Artful and Bionic support: - added new repos to /etc/sources-all and ~/.pkg/sources-all - added common32 and common64 repos as well - fixed ubuntu repo downloads (changed mirrors from filearena.net to archive.ubuntu.com)
+* fixes in [X]pkgdialog: - choosing multiple pkgs works again - using --quiet for nicer output/logging
+* small cleanup in TAB autocomplete script
+* fixes in listing all installed pkgs inc builtins: `pkg LI [pkgname]` now much faster, no pkg sorting, no calling twice
+* added --quiet, --no-colour to autocomplete script - previous commit also fixes rdep-check option complete, BTW
+* fixes in TAB auto completion: - faster - now supports dashless commands like `pkg status <pkgname>` - added some missing options and cmds
+* fix for previous commit
+* improvements in pkg_combine(): - use pkg_unpack() - get each post-install script, append to a new pinstall.sh script - this makes the combined packages more reliable and correct - as the post install routines of the package and its deps gets included in the combined package
+* fixes previous commit
+* fixes and clean up in get_pkg_ext(), get_pkg_version(), set_config() and pkg_update(): - this improves `pkg update <pkgname` and `pkg update` commands - also improves grabbing package version from $PKGNAME - only tested on a .deb based Puppy so far!
+* more readable console output for `pkg update [pkgname]`
+ * prevents align-1.7.5 returning its name twice - pkg_update() now installs the new package, and its new deps - builtin packages cannot be updated:   * user gest a messa
+ge saying the builtin will be skipped
+* efa5961 - fix in dir2pet for no arch packages
+* improvements in dir2pet(): - if no pet.specs in the package dir, build one - asks user for category, description and deps (all optional) - ..but if pet.specs
+does exist in the package dir, just build PET, no questions - also now using get_pkg_version, which supports more package types
+* improvements to `pkg ldd <pkgname>`: - search package and its deps - search /sbin/ and /games/ too - nicer output - cleaner code - now works as advertised
+* fixes in `pkg --deps-check <pkgname>`: - fixed calling without -- - fixed finding *.files in ~/.packages if partial pkg name given - added alias ldd for deps-
+check - so can now do this: `pkg ldd <pkgname>` - will report any bins or libs in pkgname that have missing libs
+* very small code clean ups
+* fixes in `pkg update <pkgname>`: - moved getting package version into its own func - has better support for different package types - fix `pkg update` (withou
+t passing $1), checks all installed packages - fix `pkg update PKGNAME` checks only given package name
+* fix, exit quicker in pkg_remove() when package not installed
+* fixed for previous commit
+* code clean up
+* small fix: updated usage menu
+* added new commands: `pkg add` and `pkg remove`: - `pkg add PKGNAME` is just an alias for `pkg get`, and works the same - `pkg remove PKGNAME` uninstalls a pac
+kage, and its unused, left over deps - can also use `pkg rm PKGNAME` too - updated help info, usage docs and example commands to match - added some advanced example comma
+nds too
+* fixes for --ask and --force options: - only ask user once at start to install/download a pkg - only ask user once at start to get a pkg and its deps - only as
+k user once at start to get pkg deps - fixed --force option with download command - so using --force to download will re-download a pkg, not skip it
+* a couple of tiny code clean ups
+* added support for blacklisted packages: - get PKG_NAME_IGNORE from /root/.packages/PKGS_MANAGEMENT - skip/ignore pkgd and deps in various places if found in $
+PKG_NAME_IGNORE
+* fixes and updates to Gpkgdialog: - fixes pkgs not installing properly if not in WORKDIR - fixes output and logging of installs, uninstalls etc - uses new --qu
+iet option added to Pkg - added option to force (re-)install of package - added option to install pkg at bottom of package status window
+* Add LICENSE
+
+
 1.9.18
 - fixed: syntax error in /etc/bash_completion.d/pkg
 - fixed: 'what-needs' option was missing from list of cmds in --usage output
@@ -5,21 +101,21 @@
 
 
 1.9.17
-- new: allow override default rc file location (~/.pkg/pkgrc) with $PKGRC env var 
+- new: allow override default rc file location (~/.pkg/pkgrc) with $PKGRC env var
 - new: `pkg --what-needs PKGNAME`, list the pkgs that depend on PKGNAME .. (reverse dep lookup)
 - fixed pkg_install(): clean up .csh files post install, silence output of 'glib-compile-schemas' and 'gio-querymodules'
 - fixed pkg_build(): add error message when trying to build pkg that doesn't exist (using petbuild)
 - fixed list_build_scripts(): dont output empty lines
 - fixed list_dependants(): also list builtins if HIDE_BUILTINS=false
 - fixed find_deps(): remove builtins from list unless HIDE_BUILTINS=false
-- fixed list_deps(): 
+- fixed list_deps():
 	- (some code moved to find_deps(), see above)
-	- by default --list-deps will list installed deps too, as in earlier versions 
+	- by default --list-deps will list installed deps too, as in earlier versions
 	- sometimes pkg was listed as it's own dep, now fixed
 - fixed get_pkg_name_only(), more accurate
 - fixed get_deps(): fixed failure to install some already downloaded packages
 - fixed pkg_entry(): can now get pkg repo entries from any repo, not only current, also doesn't need full pkg name
-- fixed print_usage(): 
+- fixed print_usage():
 	`pkg --usage <option>`
 	- added support for short options (-li,-pi,-ps,-ld,-le, etc)
 	- added usage info for the various supported environment vars
@@ -38,8 +134,8 @@
 - fixed: create layers-installed [inc devx pkgs if devx loaded] on Pkg load
     * this also helps removes PetGet as a dependency of Pkg
 - cleanup: always use $HOME not '/root' (except when trying to fix missing repo files on first run)
-    * Pkg should work better when users $HOME dir not /root 
-- fixed list_installed_pkgs(): 
+    * Pkg should work better when users $HOME dir not /root
+- fixed list_installed_pkgs():
     * if called with -li, list only user installed pkgs (same as PetGet)
     * if called with -LI, list all installed pkgs inc builtins [and devx pkgs]
 - cleanup: replace all `expr 2 + 2` with $((2 + 2)) (ash supports it going way back, I think)
@@ -76,11 +172,11 @@
 	example: `echo geany vlc | pkg -PS -` will print status of both pkgs
     * if piping stuff, use -ss and -ssa for pipe-able search output (-s and -s produce fancy ouput)
 - fixed: include devx pkgs in `pkg -LI`, which should list ALL installed pkgs
-- fixes in finding where pkg comes from: 
+- fixes in finding where pkg comes from:
     * same fixes applied to: is_usr_pkg(), is_devx_pkg(), is_builtin_pkg(), is_repo_pkg(), is_installed_pkg()
 - fixed repo_file_list(): takes repo name returns name of its repo file,
     * fixed a failure to return the correct, matching repo file in some cases
-- fixes in pkg_status(): 
+- fixes in pkg_status():
     * show correct install status (user,devx,builtin,layers)
     * fixed missing repo filenames (see repo_file_list)
     * standardise output: add 'K' to end of $pkg_size, if not already there
@@ -111,7 +207,7 @@
 - added entries for Zesty repos to sources-all (not tested)
 - added --autoclean option: auto-delete pkg files after they've been installed
 	# use  `pkg --autoclean [yes|no]` (defaut is no)
-- cleanup, renamed some funcs, 
+- cleanup, renamed some funcs,
 - fixes in various funcs to better support Pkgs ENV vars
 - fixed download_pkg() not finding the pkg to download in current repo
 - fixed call get_pkg() with full pkgname from get_deps()
@@ -124,7 +220,7 @@
     # --force will not install or uninstall builtins (that is coming soon..)
 
 1.9.12
-- fixes in searches using pkg aliases 
+- fixes in searches using pkg aliases
 - fixes in is_local_pkg(), more reliable
 - fixes in pkg_contents(), better at looking for WORKDIR/PKGNAME when not in WORKDIR
 - fixes in pkg_contents(), removed error from output when pkgname comes from stdin (`pkg opts | pkg --contents -`)
@@ -136,10 +232,10 @@
 - fixes in RC files: use noarch repo on first run. See /etc/pkg/* and in ~/.pkg/*
 - added new URLs for Trusty, Lucid and Precise repos: http://old-releases.ubuntu.com/ubuntu/
 - added `pkg -pkg-entry PKGNAME`: list repo entry of pkg, each field on new line
-- updated --list-deps,--list-installed: 
+- updated --list-deps,--list-installed:
     # --list-deps default behaviour is still to "list all deps of pkg (not inc builtins)"
     # --list-installed default behaviour is still to "list all installed pkgs (not inc builtins)"
-    # but they now support the env vars: HIDE_USER_PKGS, HIDE_BUILTINS [true or false] .. 
+    # but they now support the env vars: HIDE_USER_PKGS, HIDE_BUILTINS [true or false] ..
     # Pkg users can use these in combination to show all, only missing, already builtin, etc
     # EG:
      HIDE_USER_PKGS=true  HIDE_BUILTINS=true  pkg -le PKGNAME	# list only deps not yet installed:
@@ -159,8 +255,8 @@
 - updated `pkg -i file.sfs` to install SFS like pkgs (uses sfs_loadr)
 - updated `pkg -c file.sfs` lists SFS file contents too
 - updated `pkg -u file.sfs` to uninstall SFS file (uses sfs_loadr)
-- updated gpkgdialog to 0.3: cleaned up tailbox output 
-- fixed check bad pkg URLs (404s), dont download 
+- updated gpkgdialog to 0.3: cleaned up tailbox output
+- fixed check bad pkg URLs (404s), dont download
 - fixed typo preventing .deb pkg install in install_pkg()
 - fixed typo preventing parse correct pkg extension in pkg_unpack()
 - fixes in get_pkg(), only install if pkg contents can be listed by pkg_contents()
@@ -236,7 +332,7 @@
 	# cleaned up dep name validation, simpler, faster, less code in find_deps()
 	# small cleanup in get_deps()
 	# small cleanup in list_deps()
-	
+
 - fixes in /etc/bash_completion.d/pkg
 	# fixed context sensitive TAB auto-complete results for
 		--names-all(-na), --search-all(-sa), --names-exact-all(-nea)
@@ -244,12 +340,12 @@
 
 1.9.3
 
-- fixed default settings in rc file: 
-   # fix prevent correct dep search in first run 
-   # updated, DEPSEARCH='list_all_pkg_names' by default 
-    
-- fixes in dep resolution: 
-   # much faster, less looping, checks fewer deps, more reliable: 
-   # now filtering out installed pkgs in find_deps() and list_deps() all in one go 
-   # so `pkg --list-deps PKGNAME` now lists missing deps, not all deps. 
-   # the same for `pkg --pkg-status PKGNAME` .. only lists missing deps 
+- fixed default settings in rc file:
+   # fix prevent correct dep search in first run
+   # updated, DEPSEARCH='list_all_pkg_names' by default
+
+- fixes in dep resolution:
+   # much faster, less looping, checks fewer deps, more reliable:
+   # now filtering out installed pkgs in find_deps() and list_deps() all in one go
+   # so `pkg --list-deps PKGNAME` now lists missing deps, not all deps.
+   # the same for `pkg --pkg-status PKGNAME` .. only lists missing deps
