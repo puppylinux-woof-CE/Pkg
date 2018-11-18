@@ -4646,6 +4646,9 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
         sync
 
         # copy extracted contents (only the stuff inside the extracted folders)
+        if [ ! -d "${i/.pet/}/" ];then
+          error "Dir '${i/.pet/}/' does not exist"
+        fi
         cp -a --preserve=all -f -r "${i/.pet/}/"* "${PARENTPKG}-${SUFFIX}/"
 
         if [ -f "${i/.pet/}/pinstall.sh" ];then
@@ -4664,16 +4667,25 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
         pkg_unpack "$i" 2>$TMPDIR/$SELF-cp-errlog
         dpkg-deb -e "$i" "$BUILD_DIR/${PARENTPKG}-${SUFFIX}/DEBIAN"
 
+        local pkg_dir="${i/.deb/}/"
+        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_all/}"
+        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_i386/}"
+        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_amd64/}"
+        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_x64/}"
         # copy extracted contents (only the stuff inside the extracted folders)
-        cp -a --preserve=all -f -r "${i/.deb/}/"* "${PARENTPKG}-${SUFFIX}/"
+        if [ ! -d "$pkg_dir" ];then
+          error "Dir '$pkg_dir' does not exist!"
+        fi
+        # copy extracted contents (only the stuff inside the extracted folders)
+        cp -a --preserve=all -f -r "$pkg_dir"* "${PARENTPKG}-${SUFFIX}/"
 
-        if [ -f "${i/.deb/}/DEBIAN/postinst" ];then
-          mv "${i/.deb/}/DEBIAN/postinst" "${PARENTPKG}-${SUFFIX}/DEBIAN/postinst_${count}"
+        if [ -f "$pkg_dirDEBIAN/postinst" ];then
+          mv "$pkg_dirDEBIAN/postinst" "${PARENTPKG}-${SUFFIX}/DEBIAN/postinst_${count}"
         fi
 
         # now remove the deb and extract folder
         rm "$i"
-        rm -rf "${i/.deb/}/"
+        rm -rf "$pkg_dir"
         sync
         ;;
 
@@ -4682,7 +4694,7 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
         pkg_unpack "$i" 1>/dev/null
 
         # now copy $BUILD_DIR/$PKGNAME/* into our output (combined pkg) dir
-        cp -a --preserve=all -f -r "${name_only}/"* "${PARENTPKG}-${SUFFIX}/"
+        cp -a --preserve=all -f -r "${name_only}/"* "${PARENTPKG}-${SUFFIX}/" || error "Dir '${name_only}/' does not exist!"
 
         if [ -f "${PARENTPKG}-${SUFFIX}/install/doinst.sh" ];then
           mv "${PARENTPKG}-${SUFFIX}/install/doinst.sh" "${PARENTPKG}-${SUFFIX}/install/doinst_${count}.sh"
