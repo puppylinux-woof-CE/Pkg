@@ -133,11 +133,11 @@ esac
 # now create 'layers-installed': will contain builtins (and devx packages, if devx is loaded)
 #130511 need to include devx-only-installed-packages, if loaded...
 if which gcc &>/dev/null;then
-  cp -f $HOME/.packages/woof-installed-packages /tmp/ppm-layers-installed-packages
-  cat $HOME/.packages/devx-only-installed-packages >> /tmp/ppm-layers-installed-packages
-  sort -u /tmp/ppm-layers-installed-packages > $HOME/.packages/layers-installed-packages
+  [ ! -f /tmp/ppm-layers-installed-packages ] && cp -f $HOME/.packages/woof-installed-packages /tmp/ppm-layers-installed-packages &>/dev/null
+  cat $HOME/.packages/devx-only-installed-packages >> /tmp/ppm-layers-installed-packages &>/dev/null
+  sort -u /tmp/ppm-layers-installed-packages > $HOME/.packages/layers-installed-packages &>/dev/null
 else
-  cp -f $HOME/.packages/woof-installed-packages $HOME/.packages/layers-installed-packages
+  cp -f $HOME/.packages/woof-installed-packages $HOME/.packages/layers-installed-packages &>/dev/null
 fi
 
 # set $DIRECTSAVEPATH (where we want to install pkgs)
@@ -4672,10 +4672,14 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
         [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_i386/}"
         [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_amd64/}"
         [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_x64/}"
+        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/~dfsg-[0-9]/}"
+        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/~dsfg-[0-9]/}"
+
         # copy extracted contents (only the stuff inside the extracted folders)
         if [ ! -d "$pkg_dir" ];then
           error "Dir '$pkg_dir' does not exist!"
         fi
+
         # copy extracted contents (only the stuff inside the extracted folders)
         cp -a --preserve=all -f -r "$pkg_dir"* "${PARENTPKG}-${SUFFIX}/"
 
