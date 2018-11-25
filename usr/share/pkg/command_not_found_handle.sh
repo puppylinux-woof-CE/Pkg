@@ -99,6 +99,15 @@ if [ "${BASH_VERSINFO[0]}" = '4' ];then
       echo >&2
       echo "You can install it with the following command:" >&2
       echo "  pkg add ${pkgname_example:-<package-name>}"   >&2
+
+      # also any list matching local package files
+      local_files="$(ls /root/pkg/ 2>/dev/null | grep "^$cmd")"
+      if [ "$local_files" != "" ];then
+        echo >&2
+        echo "These local packages may also be a match: "   >&2
+        echo >&2
+        echo "$local_files" | sed 's/^/  /g'                >&2
+      fi
     else
       # Pkg found no packages, show standard message
       echo "Error: command '${cmd}' not found." >&2
