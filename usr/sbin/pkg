@@ -38,7 +38,6 @@ EDITOR=${EDITOR:-vi}       # just in case
 PAGER=${PAGER:-less}       # just in case
 CURDIR="${PWD}"            # get current dir, before cd to WORKDIR
 TMPDIR=/tmp/pkg/${whoami}  # set the tmp dir
-CP_SUFFIX=PLUSDEPS         # appended to combined pkgs (pkg+deps)
 
 # set colours true by default
 green="\e[32m"; red="\e[91m"; magenta="\e[95m"; lightblue="\e[36m"; yellow="\e[93m"; bold="\e[1m"; endcolour="\e[0m"
@@ -117,6 +116,9 @@ fi
 [ -f /etc/xdg/menus/hierarchy ]           && . /etc/xdg/menus/hierarchy          #w478 has PUPHIERARCHY variable.
 [ -f $HOME/.packages/DISTRO_PKGS_SPECS ]  && . $HOME/.packages/DISTRO_PKGS_SPECS #has lot sof essential info
 [ -f $HOME/.packages/PKGS_MANAGEMENT ]    && . $HOME/.packages/PKGS_MANAGEMENT   #has PKG_NAME_IGNORE, PKG_PET_THEN_BLACKLIST_COMPAT_KIDS, PKG_REPOS_ENABLED
+
+# set the package name suffix appended to combined pkgs (pkg+deps)
+CP_SUFFIX="WITHDEPS_${DISTRO_FILE_PREFIX}"
 
 # set correct arch for repo URLs
 case "$DISTRO_TARGETARCH" in
@@ -4498,7 +4500,7 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
   local PKG_FILE=''
   local ALL_DEPS=''
   local PKG_DEPLIST=''
-  local SUFFIX=${CP_SUFFIX}
+  local SUFFIX="${CP_SUFFIX}"
   local BUILD_DIR=$TMPDIR/build_pkg
   local SFS_FILE
   local please_wait=false
@@ -4703,13 +4705,17 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
         [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/~dfsg-[0-9]/}"
         [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/~dsfg-[0-9]/}"
 
-        # copy extracted contents (only the stuff inside the extracted folders)
+        if [ ! -d "$pkg_dir" ];then
+          needle="$(get_pkg_name "$i")"
+          pkg_dir="$(find "${BUILD_DIR}" -type d -iname "$needle" | head -1)"
+        fi
+
         if [ ! -d "$pkg_dir" ];then
           error "Dir '$pkg_dir' does not exist!"
         fi
 
         # copy extracted contents (only the stuff inside the extracted folders)
-        cp -a --preserve=all -fr -L "$pkg_dir"* "${PARENTPKG}-${SUFFIX}/"
+        cp -a --preserve=all -fr -L "${pkg_dir}/"* "${PARENTPKG}-${SUFFIX}/"
 
         if [ -f "${pkg_dir}DEBIAN/postinst" ];then
           mv "${pkg_dir}DEBIAN/postinst" "${PARENTPKG}-${SUFFIX}/DEBIAN/postinst_${count}"
