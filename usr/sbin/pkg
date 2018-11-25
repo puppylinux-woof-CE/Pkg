@@ -70,6 +70,7 @@ error(){
 # for correct error output, trap commands early
 cleanup(){
   rm -f ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE /tmp/pkg/list_deps_busy ${TMPDIR}pkg_file_list ${TMPDIR}/dependents_list ${TMPDIR}DEP_DONE ${TMPDIR}ldd_file_list &>/dev/null
+  rm -rf /tmp/pkg/build_pkg/
 
   # prevent double msg output if error=130 (user Ctrl-C)
   [ -f /tmp/pkg/error130 -a "$2" = '130' ] && exit "$2"
@@ -3308,10 +3309,13 @@ pkg_install(){                   # install a downloaded package FUNCLIST
         ;;
 
         sfs)
-          sfs_loadr -q --cli +"${CURDIR}/${PKGNAME}.${pkg_ext}" #2>/dev/null
+          PKGFILE="`find ${CURDIR} -type f -name "${PKGNAME}*.sfs"`"
+          [ ! -f "$PKGFILE" ] && PKGFILE="`find ${WORKDIR} -type f -name "${PKGNAME}*.sfs"`"
+          echo sfs_loadr -q --cli +"$PKGFILE" #2>/dev/null
+          sfs_loadr -q --cli +"$PKGFILE" #2>/dev/null
           rm -f $HOME/.packages/${PKGNAME}.files 2>/dev/null
           # create $HOME/.packages/$PKGNAME.files
-          pkg_contents "${CURDIR}/${PKGNAME}.${pkg_ext}" | while read line
+          pkg_contents "$PKGFILE" | while read line
           do
             [ -f "$line" ] && echo "$line" >> $HOME/.packages/${PKGNAME}.files
           done
@@ -3966,6 +3970,13 @@ pkg_uninstall(){                 # remove an installed package FUNCLIST
 
   #get pkg name with version, but no extension or path
   PKGNAME="$(basename "$1" .$pkg_ext)"
+  PKGNAME="$(basename "$PKGNAME" .pet)"
+  PKGNAME="$(basename "$PKGNAME" .deb)"
+  PKGNAME="$(basename "$PKGNAME" .sfs)"
+  PKGNAME="$(basename "$PKGNAME" .tar.gz)"
+  PKGNAME="$(basename "$PKGNAME" .tar.xz)"
+  PKGNAME="$(basename "$PKGNAME" .tgz)"
+  PKGNAME="$(basename "$PKGNAME" .txz)"
   PKGNAME=`get_pkg_name "$PKGNAME"`
 
   # get pkg name only .. without versions or suffix
@@ -4276,7 +4287,7 @@ pkg_get(){                       # find, download and install packages and deps 
         # skip if package is already installed, unless --force given
         if [ "$FORCE" = false -a "`is_installed_pkg $pkg_name`" = true ];then
           echo -e "Package ${magenta}${pkg_name_only}${endcolour} already installed."
-          echo -e "Use the -f option to force installation: $SELF -f -g $pkg_name_only"
+          echo -e "Use the -f option to force installation: $SELF add $pkg_name_only -f"
           continue
         fi
       fi
@@ -4543,6 +4554,7 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
     FORCE=$force_opt find_deps "$PKGNAME"
     ALL_DEPS="`cat $TMPDIR/deps_installed $TMPDIR/deps_missing 2>/dev/null | sort | uniq`"
 
+    # download the needed package
     if [ ! -f "$PKG_FILE" -o "$FORCE" = true ];then
       ASK=false pkg_download "$PKGNAME"
     fi
@@ -4551,8 +4563,14 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
     mkdir -p "$BUILD_DIR/"
     mkdir -p "$BUILD_DIR/${PKGNAME}-${SUFFIX}"
 
-    # copy the main pkg to the tmp dir
-    cp "$PKG_FILE" "$BUILD_DIR/" 2>/dev/null || error "Could not add the main package '$PKGNAME_ONLY'"
+    if [ -f "$PKG_FILE" ];then
+      # copy the main pkg to the tmp dir
+      # and remove the downloade file, we no longer need it
+      cp "$PKG_FILE" "$BUILD_DIR/" 2>/dev/null && rm "$PKG_FILE"
+    else
+       error "Could not add the main package '$PKGNAME_ONLY'"
+    fi
+
 
     # make a cleaned list to go over (sanity check)
     ALL_DEPS_LIST="`echo "$ALL_DEPS" | tr ',' '\n' | grep -v "^\$" | sort | uniq`"
@@ -4569,13 +4587,13 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
       # only include devx pkgs if user gave the -f option
       [ "`is_devx_pkg "$LINE"`" = true -a "$force_opt" = false ] && continue
 
-      # find the matching package(s)
+      # download the matching package(s)
       [ "`list_downloaded_pkgs "$LINE"`" = "" ] && ASK=false pkg_download "$LINE"
 
       # get the downloaded file
       PKGDEP="`find "$WORKDIR" -maxdepth 1 -type f -name "${LINE}*" | grep -v ".sfs\$" | grep -v "${SUFFIX}" | head -1`"
 
-      # if we didn't get it, try other repos
+      # re-try download in other repos if needed
       if [ ! -f "$PKGDEP" ];then
         PKGREPO=''; PKGREPO="`LANG=C which_repo $LINE | cut -f2 -d' ' | head -1`"
         [ "$PKGREPO" != "" ] && ASK=false pkg_download "$LINE"
@@ -4585,7 +4603,11 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
       if [ -f "$PKGDEP" -o "$FORCE" = true ];then
 
         # copy dep to the tmp dir, with the main pkg
-        [ ! -f "$BUILD_DIR/$PKGDEP" ] && cp "$PKGDEP" "$BUILD_DIR/$(basename $PKGDEP)" || error "Cannot copy $PKGDEP to $BUILD_DIR/$(basename $PKGDEP)"
+        if [ ! -f "$BUILD_DIR/$PKGDEP" ];then
+          cp "$PKGDEP" "$BUILD_DIR/$(basename $PKGDEP)" && rm "$PKGDEP"
+        else
+          error "Cannot copy $PKGDEP to $BUILD_DIR/$(basename $PKGDEP)"
+        fi
 
       else # dep not found, may be missing, or in another repo
         echo -e "${yellow}Warning:${endcolour} $LINE not downloaded to $WORKDIR.. Cannot add $LINE.."
@@ -4602,6 +4624,7 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
     TMP_PKGS="`find "$BUILD_DIR/" -maxdepth 1 -type f -name "*" | grep -v $SUFFIX | grep -v ^$ | grep -v ' ' | sort | uniq`"
 
     local count=1
+
     for i in $TMP_PKGS
     do
 
@@ -4649,7 +4672,7 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
         if [ ! -d "${i/.pet/}/" ];then
           error "Dir '${i/.pet/}/' does not exist"
         fi
-        cp -a --preserve=all -f -r "${i/.pet/}/"* "${PARENTPKG}-${SUFFIX}/"
+        cp -a --preserve=all -fr -L "${i/.pet/}/"* "${PARENTPKG}-${SUFFIX}/"
 
         if [ -f "${i/.pet/}/pinstall.sh" ];then
           mv "${i/.pet/}/pinstall.sh" "${PARENTPKG}-${SUFFIX}/pinstall_${count}.sh"
@@ -4667,6 +4690,10 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
         pkg_unpack "$i" 2>$TMPDIR/$SELF-cp-errlog
         dpkg-deb -e "$i" "$BUILD_DIR/${PARENTPKG}-${SUFFIX}/DEBIAN"
 
+        # .deb package names often have extra stuff at the end of the file name
+        # that does not exist in the root folder name, inside the package.. so
+        # we need to strip off that extra stuff to get the correct unpacked
+        # package dir
         local pkg_dir="${i/.deb/}/"
         [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_all/}"
         [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_i386/}"
@@ -4681,13 +4708,17 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
         fi
 
         # copy extracted contents (only the stuff inside the extracted folders)
-        cp -a --preserve=all -f -r "$pkg_dir"* "${PARENTPKG}-${SUFFIX}/"
+        cp -a --preserve=all -fr -L "$pkg_dir"* "${PARENTPKG}-${SUFFIX}/"
 
-        if [ -f "$pkg_dirDEBIAN/postinst" ];then
-          mv "$pkg_dirDEBIAN/postinst" "${PARENTPKG}-${SUFFIX}/DEBIAN/postinst_${count}"
+        if [ -f "${pkg_dir}DEBIAN/postinst" ];then
+          mv "${pkg_dir}DEBIAN/postinst" "${PARENTPKG}-${SUFFIX}/DEBIAN/postinst_${count}"
         fi
 
-        # now remove the deb and extract folder
+        if [ -f "${pkg_dir}DEBIAN/preinst" ];then
+          mv "${pkg_dir}DEBIAN/preinst" "${PARENTPKG}-${SUFFIX}/DEBIAN/preinst_${count}"
+        fi
+
+        # now remove the deb and extracted folder
         rm "$i"
         rm -rf "$pkg_dir"
         sync
@@ -4698,7 +4729,7 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
         pkg_unpack "$i" 1>/dev/null
 
         # now copy $BUILD_DIR/$PKGNAME/* into our output (combined pkg) dir
-        cp -a --preserve=all -f -r "${name_only}/"* "${PARENTPKG}-${SUFFIX}/" || error "Dir '${name_only}/' does not exist!"
+        cp -a --preserve=all -fr -L "${name_only}/"* "${PARENTPKG}-${SUFFIX}/" || error "Dir '${name_only}/' does not exist!"
 
         if [ -f "${PARENTPKG}-${SUFFIX}/install/doinst.sh" ];then
           mv "${PARENTPKG}-${SUFFIX}/install/doinst.sh" "${PARENTPKG}-${SUFFIX}/install/doinst_${count}.sh"
@@ -4714,7 +4745,7 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
         pkg_unpack "$i" 1>/dev/null
 
         # now copy $BUILD_DIR/$PKGNAME/* into our output (combined pkg) dir
-        cp -a --preserve=all -f -r "${name_only}/"* "${PARENTPKG}-${SUFFIX}/"
+        cp -a --preserve=all -fr -L "${name_only}/"* "${PARENTPKG}-${SUFFIX}/"
 
         if [ -f "${PARENTPKG}-${SUFFIX}/install/doinst.sh" ];then
           mv "${PARENTPKG}-${SUFFIX}/install/doinst.sh" "${PARENTPKG}-${SUFFIX}/install/doinst_${count}.sh"
@@ -4729,35 +4760,61 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
       count=$(($count + 1))
     done
 
+    # we have now unpacked the package, lets combine the pre/post install scripts
+    # into one pinstall.sh script
+
+    local pinstall_file="$BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall.sh"
+
+    # append this pinstall/postinst/doinst script to a new pinstall.sh
+    echo '#!/bin/sh' > "$pinstall_file"
+
     # concat the post install scripts (for puppy, slackware, arch, debian/ubuntu, etc) into 'pinstall.sh'
-    for i in ${PARENTPKG}-${SUFFIX}/pinstall_ ${PARENTPKG}-${SUFFIX}/install/doinst_ ${PARENTPKG}-${SUFFIX}/DEBIAN/postinst_
+    for i in ${PARENTPKG}-${SUFFIX}/pinstall_* ${PARENTPKG}-${SUFFIX}/install/doinst_* ${PARENTPKG}-${SUFFIX}/DEBIAN/postinst_*
     do
-
       [ -z ${PARENTPKG}-${SUFFIX}/${i} ] && continue
-
       cd ${PARENTPKG}-${SUFFIX}/ 2>/dev/null
 
-      file=`find . -type f -iname "$(basename $i)*"`
+      files=`find . -type f -iname "$(basename $i)"`
 
-      if [ -f "$file" ];then
-        echo "Appending ${file} to pinstall.sh"
-        # append this pinstall/postinst/doinst script to a new pinstall.sh
-        echo '#!/bin/sh' > pinstall.sh
-        cat ${file} | grep -v '^#!' >> pinstall.sh
-        echo '' >> pinstall.sh
-      fi
-
+      for file in $files
+      do
+        if [ -f "$file" ];then
+          echo "Appending ${file} to $pinstall_file"
+          cat ${file} | grep -vE '^#!|^exit|exit 0|exit 1' >> "$pinstall_file"
+          echo '' >> "$pinstall_file"
+        fi
+      done
+      # we have combined the pre/post install stuff in $i into a new, combined file,
+      # so remove the original
       rm -f ${PARENTPKG}-${SUFFIX}/${i}
     done
 
     chmod +x $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall.sh 2>/dev/null
 
+    #xmessage "$(cat $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall.sh)"
+
+    # remove any debian/ubuntu/slackware pre/post install stuff left in the package
     rm -rf $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall_*
     rm -rf $BUILD_DIR/${PARENTPKG}-${SUFFIX}/install
     rm -rf $BUILD_DIR/${PARENTPKG}-${SUFFIX}/DEBIAN
 
+    # fix the symlinks to lib dirs - the linux-gnu-* dirs are symlinks in puppy,
+    # so make sure we dont replace them with dirs (or programs won't load)
+    for libdir in i386-linux-gnu i486-linux-gnu i586-linux-gnu i686-linux-gnu amd64-linux-gnu
+    do
+      if [ -d $BUILD_DIR/${PARENTPKG}-${SUFFIX}/usr/lib/${libdir}/ ];then
+        mv -n -u $BUILD_DIR/${PARENTPKG}-${SUFFIX}/usr/lib/${libdir}/* $BUILD_DIR/${PARENTPKG}-${SUFFIX}/usr/lib/
+        cd $BUILD_DIR/${PARENTPKG}-${SUFFIX}/usr/lib
+        rmdir ${libdir}/
+        ln -s ${libdir}/ .
+        cd -
+      fi
+    done
+
+
     # now we are ready to build our combined pkg
     [ "`pwd`" != "$BUILD_DIR" ] && cd "$BUILD_DIR/"
+
 
     # if not building SFS, build a .pet
     if [ "$COMBINE2SFS" = false ];then #240613
@@ -4803,7 +4860,7 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
       dir2sfs "${PKGNAME}-${SUFFIX}" 1>/dev/null
 
       # get the full file name, it may (or not) have been appended with '-DISTRO_VERSION'
-      SFS_FILE=`find . -maxdepth 1 -type f -name "*${PKGNAME}-${SUFFIX}*.sfs"`
+      SFS_FILE=`find . -maxdepth 1 -type f -name "*${PKGNAME}-${SUFFIX}*.sfs" | head -1`
 
       s=`LANG=C du -m "${SFS_FILE}" | sed "s/\s.*//"`
       MD5SUM=`md5sum "$SFS_FILE" | cut -f1 -d ' '`
@@ -4817,10 +4874,10 @@ pkg_combine(){                   # combine a pkg and deps into one single pkg FU
     # create install command
     if [ "$COMBINE2SFS" = false ];then
       PKGEXT=pet
-      PKGCMD="Install command: $SELF -i ${PKGNAME}-${SUFFIX}"
+      PKGCMD="Install command: $SELF install ${WORKDIR}/${PKGNAME}-${SUFFIX}"
     else
       PKGEXT=sfs
-      PKGCMD="Install command: sfs_installer ${WORKDIR}/${PKGNAME}-${SUFFIX}.sfs"
+      PKGCMD="Install command: sfs_loadr ${WORKDIR}/$(basename $SFS_FILE)"
     fi
 
     #226013 updated output
@@ -6497,7 +6554,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
     ## main options
     case $1 in
 
-      -) # accept from stdin, pkg -i (defaults to pkg -g $1 or pkg -u $1)
+      -) # accept from stdin, pkg -i (defaults to pkg add $1 or pkg -u $1)
         if [ "$2" = "" ];then
           while true; do
             read ALINE
