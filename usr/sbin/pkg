@@ -3076,7 +3076,7 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
             #  remember the new one
             if [ "$OLDURL" != "$DOWNLOAD_URL" ];then
               OLDURL="$DOWNLOAD_URL";
-              echo -e "URL: ${lightblue}${DOWNLOAD_URL}${endcolour}";
+              #echo -e "URL: ${lightblue}${DOWNLOAD_URL}${endcolour}";
             fi
 
             # if --force, remove the package if it already exists
