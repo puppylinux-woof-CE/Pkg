@@ -221,8 +221,8 @@ print_usage(){                    # print usage text. Requires $1, a valid Pkg c
     echo -e "Usage: ${bold}$SELF --usage CMD${endcolour}"
     echo
     echo "Commands:"
-    echo -e "add-source     get-only         repo-convert
-all            help             repo-dep-scope
+    echo -e "add-repo     get-only         repo-convert
+add-source     help             repo-dep-scope
 all-pkgs       help-all         repo-file-list
 add            remove           repo-info
 ask            install          repo-list
@@ -244,7 +244,7 @@ download       installed        which
 examples       repack           which-repo
 extract        status           rdep-check
 force          update           what-needs
-func-list      workdir
+func-list      workdir          rm-repo
 Usage: ${bold}$SELF --usage CMD${endcolour}"
     #cd /usr/share/pkg/docs/usage/; echo `ls` | fold -w 70 -s
   fi
@@ -1095,7 +1095,7 @@ get_repo_info(){                  # return details of given repo name FUNCLIST
 set_current_repo(){               # set the current default repo FUNCLIST
 
   # print usage if no valid options
-  [ ! "$1" -o "$1" = "-" ] && print_usage repo && exit 1
+  [ ! "$1" -o "$1" = "-" -o "$1" = "-h" -o "$1" = "--help" ] && print_usage repo && exit 1
 
   # get repo details from rc file
   . ${PKGRC}
@@ -1214,10 +1214,104 @@ list_all_sources(){               # return all (or matching) repos (~/.pkg/sourc
   grep -m1 "^$1" ${HOME}/.pkg/sources-all #160213
 }
 
+add_repo(){                      # easy way to add Ubuntu/Debian/Slackware third-party repos
+
+  local slack_repo_url
+
+  if [ ! "$1" -o "$1" = "-" -o "$1" = "-h" -o "$1" = "--help" ];then
+    print_usage add_repo && exit 1
+  fi
+
+  # work out which kind of repo we are processing
+  case "$1" in
+    'http'*'/PACKAGES.TXT.gz'|'http'*'/PACKAGES.TXT')
+      mkdir -p /etc/slackpkg/
+      touch /etc/slackpkg/mirrors
+      # strip trailing /PACKAGES.TXT[.gz]
+      slack_repo_url="${1//PACKAGES.TXT.gz/}"
+      slack_repo_url="${slack_repo_url//\/.gz/}"
+      slack_repo_url="${slack_repo_url//.gz\//}"
+      slack_repo_url="${slack_repo_url//PACKAGES.TXT/}"
+      # add trailing slash, if needed
+      if [ "$(echo $slack_repo_url | grep '/$')" = '' ];then
+        slack_repo_url="${slack_repo_url}/"
+      fi
+      # register repo, so we know to update it in update_sources()
+      echo "$slack_repo_url" >> /etc/slackpkg/mirrors
+      local slack_repos="$(sort -u /etc/slackpkg/mirrors | uniq)"
+      echo "$slack_repos" > /etc/slackpkg/mirrors
+      slack2pup "$@"
+      ;;
+
+    'ppa:'*|'http://'*|'https://'*)
+      mkdir -p /etc/apt/
+      touch /etc/apt/sources.list
+      # register repo, so we know to update it in update_sources()
+      echo "deb $@" >> /etc/apt/sources.list
+      local deb_repos="$(sort -u /etc/apt/sources.list | uniq)"
+      echo "$deb_repos" > /etc/apt/sources.list
+      ppa2pup "$@"
+      ;;
+
+    *)
+      print_usage add_repo && exit 1
+      ;;
+
+  esac
+
+}
+
+rm_repo(){                       # remove an installed repo
+  if [ ! "$1" -o "$1" = "-" -o "$1" = "-h" -o "$1" = "--help" ];then
+    print_usage rm_repo
+    exit 1
+  fi
+
+  # $1 must be a valid, installed repo name
+  if [ "$(repo_list | grep -m1 "^${1}$")" = "" ];then
+    print_usage rm-repo
+    exit 1
+  fi
+
+  # get the repo file and URL of the given repo
+  local repo_file="$(grep "^$1" ~/.pkg/sources-all | cut -f3 -d'|' )"
+  local repo_url="$(grep "^$1" ~/.pkg/sources-all | cut -f4 -d'|')"
+
+  # dont allow removal of 'built in' repos, only user-added repos
+  local matching_user_added_repos="$(grep -m1 "$repo_url" /etc/apt/sources.list /etc/slackpkg/mirrors 2>/dev/null)"
+  if [ "${matching_user_added_repos}" = "" ];then
+    echo "You can only remove the repositories that you installed yourself."
+    echo -e "Use the command  ${bold}pkg repo-list${endcolour}  to see which repos are installed."
+    exit 1
+  fi
+
+  # remove the repo file
+  echo "Removing '$1'"
+  [ -f "$repo_file" ] && rm -v "$repo_file"
+
+  # remove from sources
+  grep -v "^$1|" ~/.pkg/sources > /tmp/pkg/sources
+  grep -v "^$1|" ~/.pkg/sources-all > /tmp/pkg/sources-all
+  [ -f /tmp/pkg/sources-all ] && mv /tmp/pkg/sources-all ~/.pkg/sources-all
+  [ -f /tmp/pkg/sources     ] && mv /tmp/pkg/sources ~/.pkg/sources
+
+  # remove from third-party lists
+  grep -v "$repo_url" /etc/apt/sources.list > /tmp/pkg/sources.list
+  grep -v "$repo_url" /etc/slackpkg/mirrors > /tmp/pkg/mirrors
+  [ -f /tmp/pkg/sources.list ] && mv /tmp/pkg/sources.list /etc/apt/sources.list
+  [ -f /tmp/pkg/mirrors ] && mv /tmp/pkg/mirrors /etc/slackpkg/mirrors
+
+  if [ "$(repo_list | grep -m1 "^${1}$")" = "" ];then
+    echo -e "${green}Success${endcolour}: Repo removed."
+  fi
+
+}
 
 add_source(){                     # add a new repo to your repo 'sources' list FUNCLIST
   [ ! "$1" \
     -o "$1" = "-" \
+    -o "$1" = "-h" \
+    -o "$1" = "--help" \
     -o "`echo "$1" |  grep '|'`" = "" \
     -o "`echo "$1" | cut -f2 -d'|'`" = "" \
     -o "`echo "$1" | cut -f4 -d'|'`" = "" \
@@ -1341,13 +1435,47 @@ update_repo(){                    # update the current repo from a file stored o
     grep ^Processing $TMPDIR/update_repo_results | cut -f2 -d' '
     # remove the repo update tmp file
     rm -f $TMPDIR/update_repo_results 2>/dev/null
-    exit 0
   else
     # repo did not update ok
     error "Repos NOT updated."
     cat $TMPDIR/update_repo_results | tail -20
     exit 2
   fi
+
+  # also update the third-party repos.. These repos comes 'from source',
+  # and are not in native Puppy format - they need to be downloaded, converted
+  # into the Puppy format, then installed... so this will be slow..
+  if [ -f /etc/apt/sources.list ] || [ ! -d /etc/apt/sources.list.d/ ];then
+    echo
+    echo "Updating third-party repos.. This may take a while, and "
+    echo "you may be asked to confirm the update."
+    echo
+
+    # update third-party Ubuntu/Debian repos
+    [ -x /usr/sbin/apt2pup ] && apt2pup
+
+    # update third-party Slackware repos
+    if [ -f /etc/slackpkg/mirrors ];then
+      local slack_repos="$(sort -u /etc/slackpkg/mirrors | uniq)"
+      local slack_repo_url=""
+
+      for slack_repo in $slack_repos
+      do
+        slack_repo_url="${slack_repo//PACKAGES.TXT.gz/}"
+        slack_repo_url="${slack_repo_url//\/.gz/}"
+        slack_repo_url="${slack_repo_url//.gz\//}"
+        slack_repo_url="${slack_repo_url//PACKAGES.TXT/}"
+
+        # add trailing slash, if needed
+        if [ "$(echo $slack_repo_url | grep '/$')" = '' ];then
+          slack_repo_url="${slack_repo_url}/"
+        fi
+        slack2pup "${slack_repo_url}/PACKAGES.TXT"
+      done
+    fi
+  fi
+  exit 0
+
 }
 
 
@@ -6655,6 +6783,8 @@ while [ $# != 0 ]; do # get all options ($# means all options)
   --repo-file-list|-rfl|repo-file-list|rfl) [ "$2" != "-" ] && repo_file_list "$2" ;;
       --repo-update|-ru|repo-update|ru)     update_repo "$2";;
       --add-source|add-source)              [ "`echo $2|grep '|'`" = '' -o "$2" = '-' ] && print_usage add-source || add_source "$2";;
+      --add-repo|add-repo)                  [ ! "$2" -o "$2" = '-'  ] && print_usage add-repo || shift; add_repo "$@"; exit 0;;
+      --rm-repo|rm-repo)                    [ ! "$2" -o "$2" = '-'  ] && print_usage rm-repo  || rm_repo "$2"; exit 0;;
       --update-sources|update-sources)      update_sources ;;
 
       # set repo settings

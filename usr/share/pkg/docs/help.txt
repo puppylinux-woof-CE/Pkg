@@ -3,7 +3,7 @@ HELP="Usage: ${bold}$SELF [OPTION(S)] COMMAND PKGNAME|SEARCH|FILE|-${endcolour}
 OPTIONS:
 
 These options MUST go before (or after) all other commands:
-  
+
  --ask|-a                   ask before doing stuff (give as 1st option)
  --quiet|-q                 suppress some output, like download progress
  --force |-f                force downloading, installing and uninstalling
@@ -12,16 +12,16 @@ These options MUST go before (or after) all other commands:
 COMMANDS:
 
 These commands can be used with the options above, but not each other:
-  
+
  search|s [SEARCH]          search all package info in CURRENT repo
  search-all|sa [SEARCH]     search all package info in ALL repos
- 
+
  names|n [PKGNAME]          list package name matches in the CURRENT repo
  names-all|na [PKGNAME]     list package name matches in ALL repos
 
  add|a PKGNAME              download & install matching package and deps
  remove|rm PKGNAME          uninstall a package and any left over deps
- 
+
  get|g PKGNAME              alias of add (see the command above)
  get-only|go PKGNAME        same as get, but don't install
  download|d PKGNAME         download a package from CURRENT repo
@@ -33,7 +33,7 @@ These commands can be used with the options above, but not each other:
  deps|e PKGNAME             install dependencies of matching package
  deps-download|ed PKGNAME   only download dependencies, no install
  deps-all|ea                install dependencies of all installed packages
- deps-check|ldd             prints message about missing dependencies 
+ deps-check|ldd             prints message about missing dependencies
 
  uninstall|u PKGNAME        uninstall a package
  uninstall-all|ua           uninstall all installed packages
@@ -41,12 +41,12 @@ These commands can be used with the options above, but not each other:
  delete-all|la              delete ALL downloaded packages
  clean [PKGNAME]            delete downloaded pkg files of installed pkgs
  autoclean [yes|no]         auto delete pkg files after download+install
-  
+
  list-downloaded|ld [PKG]   list downloaded packages, PKGNAME is a filter
  list-installed|li|LI [PKG] list installed packages, PKGNAME is a filter
  list-deps|le|LE PKGNAME    list the dependencies of PKGNAME
 
- build-list|pbl [PKG]       list all build scripts, PKGNAME is optional 
+ build-list|pbl [PKG]       list all build scripts, PKGNAME is optional
  build|pb PKG               build a PET package from source and install it
  pkg-combine|pc PKG         build a new package containing PKGNAME + deps
  sfs-combine|sc PKG         build a new SFS file containing PKGNAME + deps
@@ -61,25 +61,27 @@ These commands can be used with the options above, but not each other:
  names-exact|ne [PKG]       list EXACT package name matches in CURRENT repo
  names-exact-all|nea [PKG]  list EXACT package name matches in ALL repos
 
- what-needs|wn PKGNAME      lists pkgs that depend on PKGNAME 
+ what-needs|wn PKGNAME      lists pkgs that depend on PKGNAME
  which|w FILENAME           find out which pkg FILENAME comes from
  which-repo|wr PKG          find out which repo PKG comes from
 
  repo|r [REPONAME]          set repo to use, show current repo if none given
  repo-info|ri REPONAME      display the name, and other info of CURRENT repo
  repo-update|ru [REPONAME]  update the current repo package list
- repo-list|rl               list names of all available repositories 
+ repo-list|rl               list names of all available repositories
  repo-file-list|rfl         list all available repository files
  repo-convert|rc FILE       convert repo files to pre/post Woof format
 
- add-source                 add new repo (needs repo file in ~/.packages/)
+ add-repo                   add a PPA, Ubuntu, Debian or Slackware repo
+ rm-repo                    remove an installed repo
+ add-source                 add a Puppy repo (needs repo file in ~/.packages/)
  update-sources             update the list of available repos
 
  repo-pkg-scope one|all     search pkgs in current repo (one), or all (all)
  repo-dep-scope one|all     search deps in current repo (one), or all (all)
  bleeding-edge no|yes       if yes, get latest pkg versions, from ANY repo
  rdep-check no|yes          get deps recursively (yes), or not (no)
-  
+
  dir2pet DIR                create a pet package from a directory
  dir2sfs DIR                create an sfs package from a directory
  dir2tgz DIR                create a tar.gz file from a directory
@@ -102,6 +104,5 @@ These commands can be used with the options above, but not each other:
  usage [CMD]                show usage of CMD, or list available cmds
  examples|ex                show example command line usage of $SELF
  func-list                  list all functions used in this program
- 
+
 ${ENV_VAR_HELP}"
- 
