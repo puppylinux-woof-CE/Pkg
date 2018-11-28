@@ -1294,7 +1294,7 @@ rm_repo(){                       # remove an installed repo
 
   # remove the repo file
   echo "Removing '$1'"
-  [ -f "$repo_file" ] && rm -v "$repo_file"
+  [ -f "/root/.packages/$repo_file" ] && rm -v "/root/.packages/$repo_file"
 
   # remove from sources
   grep -v "^$1|" ~/.pkg/sources > /tmp/pkg/sources
