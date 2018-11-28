@@ -214,7 +214,7 @@ repo_url="${repo_url//.gz\//}"
 repo_url="${repo_url//PACKAGES.TXT/}"
 
 # add trailing slash, if needed
-if [ "$(echo $repo_url | grep '/$')" = '' ];then
+if [ "$(echo "$repo_url" | grep -m1 "/$")" = '' ];then
   repo_url="${repo_url}/"
 fi
 # create the repo entry for ~/.pkg/sources
