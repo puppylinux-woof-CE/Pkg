@@ -1445,7 +1445,7 @@ update_repo(){                    # update the current repo from a file stored o
   # also update the third-party repos.. These repos comes 'from source',
   # and are not in native Puppy format - they need to be downloaded, converted
   # into the Puppy format, then installed... so this will be slow..
-  if [ -f /etc/apt/sources.list ] || [ ! -d /etc/apt/sources.list.d/ ];then
+  if [ -f /etc/apt/sources.list ] || [ -f /etc/slackpkg/mirrors ];then
     echo
     echo "Updating third-party repos.. This may take a while, and "
     echo "you may be asked to confirm the update."
