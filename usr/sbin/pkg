@@ -1285,6 +1285,13 @@ rm_repo(){                       # remove an installed repo
     exit 1
   fi
 
+  # dont allow removal of current repo
+  if [ "$REPONAME" = "$1" ];then
+    echo "Can't remove current repo."
+    echo -e "Switch to another repo first using:  ${bold}pkg repo REPONAME${endcolour}"
+    exit 1
+  fi
+
   # remove the repo file
   echo "Removing '$1'"
   [ -f "$repo_file" ] && rm -v "$repo_file"
