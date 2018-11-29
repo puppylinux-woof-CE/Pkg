@@ -5,20 +5,25 @@ a command line package manager for Puppy Linux
 ## Features
 
 - powerful command line interface, lots of options
-- context-sensitive TAB completion of package, file, dir and repo names
 - automatically find best matching packages or let the user choose
+- supports packages: .pet, tar.gz, .txz, .deb, .sfs
+- easily add more repos, direct from Ubuntu, PPA, Debian & Slackware sources
+- context-sensitive TAB completion of package, file, dir and repo names
 - search for packages in individual or all repos
-- easily compile packages from source
-- supports buildtools: petbuild, src2pkg, sbopkg, buildpet
-- supports packages: .pet, tar.gz, .txz, .deb, .sfs, .rpm, more
-- install/uninstall SFS files just like regular packages
+- easily compile packages from source (supports petbuild, src2pkg, sbopkg, buildpet)
 - combine packages and dependencies into SFS files
 - convert packages between supported filetypes
 - find out which package a file belongs to
 - find out which repo a package belongs to
-- compatible with Puppy Package Manager (petget)
-- includes a console frontend (dialog) menu called Pkgdialog
-- includes a GTK frontend (GTKdialog) called Gpkgdialog
+- compatible with Puppy Package Manager
+- includes a console frontend (dialog) menu, called Pkgdialog
+- includes a GTK frontend (GTKdialog), called Gpkgdialog
+
+### Dependencies
+
+- Bash & Busybox (ash, wget, find, which, grep, sed, tar, du, sync, etc)
+- coreutils (cp, mv, rm, wc, uniq, chmod, cut, cat, sort, etc)
+- Puppy Package Manager (for `pkg repo-update` only)
 
 ### Quick Start
 
@@ -60,7 +65,7 @@ Or manually download and install packages without dependencies:
 Choose from a selection of matching packages, and decide which  
 ones to download, install, which dependencies to get, as you go:
 
-`pkg --ask get "firefox mplayer"`
+`pkg --ask add "firefox mplayer"`
 
 Ask to uninstall each '\_DEV' package you have installed:
 
@@ -118,15 +123,18 @@ Disable package suggestions on missing command with:
     │   ├── splitpkg
     │   └── strippkg
     ├── sbin/
+    │   ├── apt2pup
     │   ├── download_file_old
     │   ├── download_progress
     │   ├── exploderpm
     │   ├── gpkg -> pkg
     │   ├── gpkgdialog
+    │   ├── ppa2pup
     │   ├── pkg
     │   ├── pkgdialog
     │   ├── sfs_loadr
     │   ├── sfs_optimise
+    │   ├── slack2pup
     │   └── Xpkgdialog -> pkgdialog
     └── share/
         ├── applications/
@@ -243,7 +251,9 @@ These commands can be used with the options above, but not each other:
  repo-file-list|rfl         list all available repository files
  repo-convert|rc FILE       convert repo files to pre/post Woof format
 
- add-source                 add new repo (needs repo file in ~/.packages/)
+ add-repo                   add a native Ubuntu/PPA, Debian or Slackware repo
+ rm-repo                    delete/uninstall a user-added repo
+ add-source                 add Puppy repo (needs repo file in ~/.packages/)
  update-sources             update the list of available repos
 
  repo-pkg-scope one|all     search pkgs in current repo (one), or all (all)
@@ -278,65 +288,65 @@ These commands can be used with the options above, but not each other:
 ## Example commands:
 
 ```
- pkg s SEARCH			# list pkgs in current repo matching SEARCH
+ pkg s SEARCH               # list pkgs in current repo matching SEARCH
 
- pkg sa SEARCH			# list pkgs in all repos matching SEARCH
+ pkg sa SEARCH              # list pkgs in all repos matching SEARCH
 
- pkg n SEARCH			# search names only, list all matching pkgs
+ pkg n SEARCH               # search names only, list all matching pkgs
 
- pkg na SEARCH			# search name only, all repos, list matching pkgs
+ pkg na SEARCH              # search name only, all repos, list matching pkgs
 
- pkg add blender  # install Blender and it dependencies
+ pkg add blender            # install Blender and it dependencies
 
- pkg rm blender   # remove Blender and any left-over dependencies
+ pkg rm blender             # remove Blender and any left-over dependencies
 
- pkg la			  # ask to delete all downloaded packages
+ pkg la                     # ask to delete all downloaded packages
 
- pkg -a e PKGNAME		# install deps of PKGNAME, ask each time
+ pkg -a e PKGNAME           # install deps of PKGNAME, ask each time
 
- pkg -a d qupzilla-1.2.0	# ask to download qupzilla-1.2.0
+ pkg -a d qupzilla-1.2.0    # ask to download qupzilla-1.2.0
 
- pkg go filezilla		# download filezilla & deps, don't install
+ pkg go filezilla           # download filezilla & deps, don't install
 
- pkg e PKGNAME			# install all deps of PKGNAME, dont ask
+ pkg e PKGNAME              # install all deps of PKGNAME, dont ask
 
- pkg d qupzilla-1.3.1		# download qupzilla-1.3.1 no questions
+ pkg d qupzilla-1.3.1       # download qupzilla-1.3.1 no questions
 
- pkg l qupzilla-1.3.1		# delete the downloaded qupzilla-1.3.1
+ pkg l qupzilla-1.3.1       # delete the downloaded qupzilla-1.3.1
 
- pkg build jwm		# compile, build & install the 'jwm' package
+ pkg build jwm              # compile, build & install the 'jwm' package
 
- pkg la			# delete all downloaded packages without asking
+ pkg la                     # delete all downloaded packages without asking
 
- pkg li vim | pkg status -	# Get info on all installed Vim pkgs
+ pkg li vim | pkg status -  # Get info on all installed Vim pkgs
 
- pkg li vim | pkg wr -	# Get repo of an installed Vim pkg
+ pkg li vim | pkg wr -      # Get repo of an installed Vim pkg
 
- pkg li | pkg -a u -		# Ask to uninstall installed pkgs one by one
+ pkg li | pkg -a u -        # Ask to uninstall installed pkgs one by one
 
- pkg dir2sfs /path/to/dir/	# convert a local dir to a .sfs package
+ pkg dir2sfs /path/to/dir/  # convert a local dir to a .sfs package
 
- pkg i /path/to/file.pet	# install PET, include the extension!
+ pkg i /path/to/file.pet    # install PET, include the extension!
 
- pkg tgz2pet /path/to/file	# convert a local .tar.gz file to PET
+ pkg tgz2pet /path/to/file  # convert a local .tar.gz file to PET
 
- pkg unpack /path/to/file	# extract the given package file
+ pkg unpack /path/to/file   # extract the given package file
 ```
 
 ## Environment Variables:
 
 ```
- HIDE_INSTALLED [=false]  if true, ignore/hide installed packages
- HIDE_BUILTINS  [=true]   if true, ignore/hide builtin packages
- HIDE_USER_PKGS [=true]   if true, ignore/hide user installed packages
- NO_ALIASES   [=false]    if true, ignore package name aliases in searches
- NO_INSTALL   [=false]    if true, skip installing of packages
- PKG_NO_COLOURS [=false]  if true, disable coloured output
+ HIDE_INSTALLED [=false]    if true, ignore/hide installed packages
+ HIDE_BUILTINS  [=true]     if true, ignore/hide builtin packages
+ HIDE_USER_PKGS [=true]     if true, ignore/hide user installed packages
+ NO_ALIASES     [=false]    if true, ignore package name aliases in searches
+ NO_INSTALL     [=false]    if true, skip installing of packages
+ PKG_NO_COLOURS [=false]    if true, disable coloured output
 ```
 
 When BUILDTOOL=buildpet in ~/.pkg/pkgrc (use with `pkg build` command):
 
 ```
  PKG_CONFIGURE  [='']       custom configure options fpr building packages
- PKG_CFLAGS   [='']       custom CFLAG options for buiding packages
+ PKG_CFLAGS     [='']       custom CFLAG options for buiding packages
 ```
