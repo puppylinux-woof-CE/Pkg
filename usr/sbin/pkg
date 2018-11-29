@@ -1304,8 +1304,8 @@ rm_repo(){                       # remove an installed repo
   [ -f /tmp/pkg/sources     ] && mv /tmp/pkg/sources ~/.pkg/sources
 
   # remove from third-party lists
-  grep -v "$repo_url" /etc/apt/sources.list > /tmp/pkg/sources.list
-  grep -v "$repo_url" /etc/slackpkg/mirrors > /tmp/pkg/mirrors
+  grep -vE "$repo_url|${repo_name//*-/}" /etc/apt/sources.list > /tmp/pkg/sources.list
+  grep -v  "$repo_url" /etc/slackpkg/mirrors > /tmp/pkg/mirrors
   [ -f /tmp/pkg/sources.list ] && mv /tmp/pkg/sources.list /etc/apt/sources.list
   [ -f /tmp/pkg/mirrors ] && mv /tmp/pkg/mirrors /etc/slackpkg/mirrors
 
