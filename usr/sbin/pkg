@@ -245,7 +245,8 @@ examples       repack           which-repo
 extract        status           rdep-check
 force          update           what-needs
 func-list      workdir          rm-repo
-Usage: ${bold}$SELF --usage CMD${endcolour}"
+
+Usage: ${bold}$SELF usage CMD${endcolour}"
     #cd /usr/share/pkg/docs/usage/; echo `ls` | fold -w 70 -s
   fi
   exit 1
