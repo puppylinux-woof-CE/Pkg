@@ -5,104 +5,95 @@ a command line package manager
 ## Features:
 
 - powerful command line interface, lots of options
+- supports packages: .pet, tar.gz, .txz, .deb, .sfs
 - context-sensitive TAB completion of package, file, dir and repo names
 - automatically find best matching packages or let the user choose
 - search for packages in individual or all repos
-- easily compile packages from source 
-- supports buildtools: petbuild, src2pkg, sbopkg, buildpet
-- supports packages: .pet, tar.gz, .txz, .deb, .sfs
+- easily add more repos, direct from Ubuntu, PPA, Debian & Slackware sources
+- easily compile packages from source (supports petbuild, src2pkg, sbopkg, buildpet)
 - combine packages and dependencies into SFS files
 - convert packages between supported filetypes
 - find out which package a file belongs to
 - find out which repo a package belongs to
 - compatible with Puppy Package Manager
-- includes a console frontend (dialog) menu called Pkgdialog
-- includes a GTK frontend (GTKdialog) called Gpkgdialog
-  
+- includes a console frontend (dialog) menu, called Pkgdialog
+- includes a GTK frontend (GTKdialog), called Gpkgdialog
+
 ### Dependencies
 
-* Busybox   (ash, wget, find, which, grep, sed, tar, du, sync, etc)
-* coreutils (cp, mv, rm, wc, uniq, chmod, cut, cat, sort, etc)
-* Puppy Package Manager (for `pkg --repo-update` only)  
-  
-### Quick Start
-  
-Install Pkg:
-  * clone this repo: `cd ~; mkdir -pv Gitlab; git clone https://gitlab.com/sc0ttj/Pkg Gitlab/Pkg`
-  * install (and register with PetGet): `cd ~/Gitlab/Pkg; ./installer.sh`
-  
-Get started:
-  1. View useful welcome message: `pkg welcome`
-  2. Update all repo files: `pkg update-sources`
-  3. List available repos: `pkg repo-list`
-  4. Change repo: `pkg repo <REPONAME>`
-  5. Search current repo for packages by name: `pkg n <PKGNAME>`
-  6. Search ALL repos for package name: `pkg na <PKGNAME>`
-  7. Get package info: `pkg status <PKGNAME>`
-  8. Download and install a package (and its dependencies): `pkg add <PKGNAME>`
-  8. Remove a package (and any left-over dependencies): `pkg rm <PKGNAME>`
-  
+- Bash & Busybox (ash, wget, find, which, grep, sed, tar, du, sync, etc)
+- coreutils (cp, mv, rm, wc, uniq, chmod, cut, cat, sort, etc)
+- Puppy Package Manager (for `pkg repo-update` only)
 
-## 
+### Quick Start
+
+Install Pkg:
+
+- clone this repo: `cd ~; mkdir -pv Gitlab; git clone https://gitlab.com/sc0ttj/Pkg Gitlab/Pkg`
+- install (and register with PetGet): `cd ~/Gitlab/Pkg; ./installer.sh`
+
+Get started:
+
+1. View useful welcome message: `pkg welcome`
+2. Update all repo files: `pkg update-sources`
+3. List available repos: `pkg repo-list`
+4. Change repo: `pkg repo <REPONAME>`
+5. Search current repo for packages by name: `pkg n <PKGNAME>`
+6. Search ALL repos for package name: `pkg na <PKGNAME>`
+7. Get package info: `pkg status <PKGNAME>`
+8. Download and install a package (and its dependencies): `pkg add <PKGNAME>`
+9. Remove a package (and any left-over dependencies): `pkg rm <PKGNAME>`
+
+##
+
 ### More advanced usage
 
-Search all package info in a repo:  
+Search all package info in a repo:
 
 `pkg search WORDS`
-  
-  
-Search all package info in all repos:  
+
+Search all package info in all repos:
 
 `pkg search-all WORDS`
-  
-  
+
+Choose from a selection of matching packages, and decide which
+ones to download, install, which dependencies to get, as you go:
+
+`pkg --ask add "firefox mplayer"`
+
 Download a package, plus its dependencies, but don't install:
 
 `pkg get-only PKGNAME`
 
-  
 Or manually download and install packages without dependencies:
 
 `pkg download PKGNAME; pkg install PKGNAME`
 
-  
-Choose from a selection of matching packages, and decide which 
-ones to download, install, which dependencies to get, as you go:
-
-`pkg --ask get "firefox mplayer"`
-
-  
-Ask to uninstall each '_DEV' package you have installed:
+Ask to uninstall each '\_DEV' package you have installed:
 
 `pkg list-installed | grep _DEV | pkg --ask uninstall -`
 
-  
 Display busybox package status, and package contents:
 
-`pkg -ps busybox -c busybox`
-  
-  
+`pkg ps busybox -c busybox`
+
 Download and unzip all repo packages matching 'freeciv':
 
 `cd /root/pkg; pkg na freeciv | pkg d -; pkg ld freeciv | pkg unpack -`
 
-  
 Build (compile) packages from source:
 
 `pkg build emelfm`
-  
-  
+
 Build (compile) packages from source, with custom build options:  
 (requires BUILDTOOL=buildpet in ~/.pkg/pkgrc)
 
 `pkg build xarchiver --configure='--prefix=/usr/local --other-opts' --cflags='-D -02 -whatever'`
-  
-  
+
 Set a different config file:
 
 `PKGRC=/path/to/your/pkgrc <pkg command>`
-  
-  
+
 Let Pkg suggest packages on missing commands:
 
 `source /usr/share/pkg/command_not_found_handle.sh`
@@ -111,7 +102,6 @@ Disable package suggestions on missing command with:
 
 `unset command_not_found_handle`
 
-  
 ## Environment Variables:
 
 ```
@@ -122,14 +112,14 @@ Disable package suggestions on missing command with:
  NO_INSTALL   [=false]    if true, skip installing of packages
  PKG_NO_COLOURS [=false]  if true, disable coloured output
 ```
-  
+
 When BUILDTOOL=buildpet in ~/.pkg/pkgrc (use with `pkg build` command):
+
 ```
  PKG_CONFIGURE  [='']       custom configure options fpr building packages
  PKG_CFLAGS   [='']       custom CFLAG options for buiding packages
 ```
-  
-  
+
 ## Config files used:
 
 ```
@@ -146,10 +136,10 @@ When BUILDTOOL=buildpet in ~/.pkg/pkgrc (use with `pkg build` command):
 /root/.packages/woof-installed-packages		# built-in packages
 /root/.packages/devx-installed-packages		# built-in devx packages
 /root/.packages/<pkgname>.files			# package file lists
-
 ```
 
-## 
+##
+
 ### Example /etc/pkg/pkgrc
 
 ```
@@ -178,30 +168,32 @@ RDCHECK="yes"		# recursive dep check
 BUILDTOOL=petbuild	# the tools used for compiling pkgs (petbuild|buildpet|src2pkg|sbopkg)
 ```
 
-## 
+##
+
 ### Example /etc/pkg/sources-all:
 
 Syntax:
 
 `repo_name|pkg_ext|repo_filename|url1|url2|url3|url4|fallback_list`
 
-Description:  
-  
-* repo_name - the name of the repository
-* pkg_ext - the file extension of the packages in the repo
-* repo_filename - the file name of the repository (in /root/.packages)
-* url1 - the URL of the repository, where the packages live
-* url2 - additional mirror of the repository (optional)
-* url3 - additional mirror of the repository (optional)
-* url4 - additional mirror of the repository (optional)
-* fallback_list - a list of repos to search if pkg not in current repo
+Description:
+
+- repo_name - the name of the repository
+- pkg_ext - the file extension of the packages in the repo
+- repo_filename - the file name of the repository (in /root/.packages)
+- url1 - the URL of the repository, where the packages live
+- url2 - additional mirror of the repository (optional)
+- url3 - additional mirror of the repository (optional)
+- url4 - additional mirror of the repository (optional)
+- fallback_list - a list of repos to search if pkg not in current repo
 
 Example:
+
 ```
 # some Puppy repos
 noarch|pet|Packages-puppy-noarch-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-noarch/|http://distro.ibiblio.org/puppylinux/pet_packages-noarch/|||common quirky wary53x wary51x lucid dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14
 
-common|pet|Packages-puppy-common-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-common/|http://distro.ibiblio.org/puppylinux/pet_packages-common/|||noarch quirky wary53x wary51x lucid dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14 saluki 
+common|pet|Packages-puppy-common-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-common/|http://distro.ibiblio.org/puppylinux/pet_packages-common/|||noarch quirky wary53x wary51x lucid dpup akita puppy5 puppy4 puppy3 puppy2 slacko slacko14 saluki
 
 # some Slackware 14.2 repos
 slacko14.2|pet|Packages-puppy-slacko14.2-official|http://distro.ibiblio.org/puppylinux/pet_packages-slacko14.2/|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-slacko14.2/|||slackware14.2 slackware14.2-salix slackware14.2-extra slacko14.1 slacko14 slacko noarch common wary53x wary51x akita dpup quirky puppy4 puppy3 puppy2
@@ -219,11 +211,13 @@ raring-universe|deb|Packages-ubuntu-raring-universe|http://ftp.filearena.net/pub
 ```
 
 The `sources` file is generated from `sources-all` using the command:
+
 ```
 pkg --update-sources`
 ```
 
-## 
+##
+
 ### All Options:
 
 ```
@@ -236,33 +230,35 @@ Usage: ${bold}pkg [OPTION(S)] COMMAND SEARCH|PKGNAME|BUILDSCRIPT|FILE|-${endcolo
 OPTIONS:
 
 These options can be used together and MUST precede all others:
-  
+
  --ask|-a 			ask before doing stuff (give as 1st option)
  --force |-f			force downloading, installing and uninstalling
  --no-colour|-nc		disable ANSI colours in Pkg output
 
 COMMANDS:
 
-The commaands below can be used with the options above, but they can't be 
+The commaands below can be used with the options above, but they can't be
 used with each other:
-  
- get|g PKGNAME			download & install matching package and deps
- get-only|go PKGNAME		same as get, but don't install
+
+ add PKGNAME  			download & install matching package and dependencies
+ rm PKGNAME   			uninstall a package and any left-over dependencies
+ get|g PKGNAME			alias for 'add'
+ get-only|go PKGNAME		same as add/get, but don't install
  download|d PKGNAME		download a package from CURRENT repo
  install|i PKGNAME		install a downloaded package
  install-all|ia			install all downloaded packages
  deps|e PKGNAME			install dependencies of matching package
  deps-download|ed PKGNAME	only download dependencies, no install
  deps-all|ea			install dependencies of all installed packages
- deps-check|ec			prints message about missing dependencies 
- what-needs|wn PKGNAME       	lists pkgs that depend on PKGNAME 
+ deps-check|ec			prints message about missing dependencies
+ what-needs|wn PKGNAME       	lists pkgs that depend on PKGNAME
  update|pu [PKGNAME]		update all matching installed packages
  uninstall|u PKGNAME		uninstall a pet package
  uninstall-all|ua		uninstall all installed packages
  delete|l PKGNAME		delete a downloaded package
  delete-all|la 			delete ALL downloaded pet packages!
  clean [PKGNAME] 		delete downloaded pkg files of installed pkgs
-  
+
  names|n [PKG]			list package name matches in the CURRENT repo
  names-all|na [PKG]		list package name matches in ALL repos
  names-exact|ne [PKG]		list EXACT package name matches in CURRENT repo
@@ -272,7 +268,7 @@ used with each other:
  list-deps|le|LE		PKGNAME	list the dependencies of PKGNAME
 
  build|pb PKG			build a PET package from source and install it
- build-list|pbl [PKG]		list all build scripts, PKGNAME is optional 
+ build-list|pbl [PKG]		list all build scripts, PKGNAME is optional
  status|ps|PS PKG		show package status (name, size, deps, etc)
  entry|pe PKG			show package repo entry (if in current repo)
  installed|pi PKG		return true if package installed, false if not
@@ -285,24 +281,28 @@ used with each other:
  which-repo|wr PKG		find out which repo PKG comes from
 
 These options cannot be used with any other options:
-  
+
  all-pkgs			list details of all packages in CURRENT repo
  search|s [SEARCH]		search all package info in CURRENT repo
  search-all|sa [SEARCH]		search all package info in ALL repos
 
  repo|r [REPONAME]		set repo to use, show current repo if none given
  repo-info|ri REPONAME		display the name, and other info of CURRENT repo
- repo-list|rl			list names of all available repositories 
+ repo-list|rl			list names of all available repositories
  repo-file-list|rfl		list all available repository files
  repo-update|ru [REPONAME]	update the current repo package list
  repo-convert|rc FILE		convert repo files to pre/post Woof format
+
+ add-repo 			add a third-party Ubuntu/Debian/Slackware repo
+ rm-repo  			remove a user-installed repo
  add-source			add new repo (needs repo file in ~/.packages/)
  update-sources			update the list of available repos
+
  repo-pkg-scope one|all		search pkgs in current repo (one), or all (all)
  repo-dep-scope one|all		search deps in current repo (one), or all (all)
  bleeding-edge no|yes		if yes, get latest pkg versions, from ANY repo
  recursive-dep-check no|yes	get deps recursively (yes), or not (no)
-  
+
  dir2pet DIR			create a pet package from a directory
  dir2sfs DIR			create an sfs package from a directory
  dir2tgz DIR			create a tar.gz file from a directory
@@ -326,7 +326,8 @@ These options cannot be used with any other options:
  help-all|H			show a full description, with added info
 ```
 
-## 
+##
+
 ### Example Commands:
 
 ```
@@ -360,9 +361,9 @@ These options cannot be used with any other options:
 
  pkg li vim | pkg status -	# Get info on all installed Vim pkgs
 
- pkg li vim | pkg wr -	# Get repo of an installed Vim pkg 
+ pkg li vim | pkg wr -	# Get repo of an installed Vim pkg
 
- pkg li | pkg -a u -		# Ask to uninstall installed pkgs one by one 
+ pkg li | pkg -a u -		# Ask to uninstall installed pkgs one by one
 
  pkg dir2sfs /path/to/dir/	# convert a local dir to a .sfs package
 
@@ -373,7 +374,8 @@ These options cannot be used with any other options:
  pkg unpack /path/to/file	# extract the given package file
 ```
 
-## 
+##
+
 ### How it works
 
 Pkg searches repo files for the given package name(s).
@@ -382,7 +384,7 @@ If no exact package name was given, package can offer a choice.
 
 If `--ask` was given, users must choose from the on screen options.
 
-When a package name is given, `--get` can automatically find the 
+When a package name is given, `--get` can automatically find the
 best match.
 
 It can then download it, install it, and also its dependencies.
