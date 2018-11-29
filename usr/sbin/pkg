@@ -218,7 +218,7 @@ print_usage(){                    # print usage text. Requires $1, a valid Pkg c
       echo -e "$EXAMPLES" | grep "$SELF" | grep "\-$1"
     fi
   else
-    echo -e "Usage: ${bold}$SELF --usage CMD${endcolour}"
+    echo -e "Usage: ${bold}$SELF usage CMD${endcolour}"
     echo
     echo "Commands:"
     echo -e "add-repo     get-only         repo-convert
@@ -6577,9 +6577,10 @@ first_run (){                    # welome message on first run
   echo
   echo " You can run the commands below to learn more about Pkg:"
   echo
-  echo "  pkg examples         # show lots more example Pkg commands"
   echo "  pkg help             # help info, all options and some tips"
   echo "  pkg help-all         # full help info, including advanced usage"
+  echo "  pkg usage [cmd]      # show every command, or info on the given one"
+  echo "  pkg examples         # show lots more example Pkg commands"
   echo
   echo " HINT: Use TAB to auto-complete package and repo names (and more).."
   echo
