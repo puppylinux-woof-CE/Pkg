@@ -1226,8 +1226,6 @@ add_repo(){                      # easy way to add Ubuntu/Debian/Slackware third
   # work out which kind of repo we are processing
   case "$1" in
     'http'*'/PACKAGES.TXT.gz'|'http'*'/PACKAGES.TXT')
-      mkdir -p /etc/slackpkg/
-      touch /etc/slackpkg/mirrors
       # strip trailing /PACKAGES.TXT[.gz]
       slack_repo_url="${1//PACKAGES.TXT.gz/}"
       slack_repo_url="${slack_repo_url//\/.gz/}"
@@ -1237,21 +1235,29 @@ add_repo(){                      # easy way to add Ubuntu/Debian/Slackware third
       if [ "$(echo $slack_repo_url | grep '/$')" = '' ];then
         slack_repo_url="${slack_repo_url}/"
       fi
-      # register repo, so we know to update it in update_sources()
-      echo "$slack_repo_url" >> /etc/slackpkg/mirrors
-      local slack_repos="$(sort -u /etc/slackpkg/mirrors | uniq)"
-      echo "$slack_repos" > /etc/slackpkg/mirrors
       slack2pup "$@"
+      retval=$?
+      if [ $retval -eq 0 ];then
+        # register repo, so we know to update it in update_sources()
+        mkdir -p /etc/slackpkg/
+        touch /etc/slackpkg/mirrors
+        echo "$slack_repo_url" >> /etc/slackpkg/mirrors
+        local slack_repos="$(sort -u /etc/slackpkg/mirrors | uniq)"
+        echo "$slack_repos" > /etc/slackpkg/mirrors
+      fi
       ;;
 
     'ppa:'*|'http://'*|'https://'*)
-      mkdir -p /etc/apt/
-      touch /etc/apt/sources.list
-      # register repo, so we know to update it in update_sources()
-      echo "deb $@" >> /etc/apt/sources.list
-      local deb_repos="$(sort -u /etc/apt/sources.list | uniq)"
-      echo "$deb_repos" > /etc/apt/sources.list
       ppa2pup "$@"
+      retval=$?
+      if [ $retval -eq 0 ];then
+        # register repo, so we know to update it in update_sources()
+        mkdir -p /etc/apt/
+        touch /etc/apt/sources.list
+        echo "deb $@" >> /etc/apt/sources.list
+        local deb_repos="$(sort -u /etc/apt/sources.list | uniq)"
+        echo "$deb_repos" > /etc/apt/sources.list
+      fi
       ;;
 
     *)
