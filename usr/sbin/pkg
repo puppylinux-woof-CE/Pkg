@@ -1279,7 +1279,7 @@ rm_repo(){                       # remove an installed repo
   local repo_url="$(grep "^$1" ~/.pkg/sources-all | cut -f4 -d'|')"
 
   # dont allow removal of 'built in' repos, only user-added repos
-  local matching_user_added_repos="$(grep -m1 "$repo_url" /etc/apt/sources.list /etc/slackpkg/mirrors 2>/dev/null)"
+  local matching_user_added_repos="$(grep -m1 -E "$repo_url|${repo_name//*-/}" /etc/apt/sources.list /etc/slackpkg/mirrors 2>/dev/null)"
   if [ "${matching_user_added_repos}" = "" ];then
     echo "You can only remove the repositories that you installed yourself."
     echo -e "Use the command  ${bold}pkg repo-list${endcolour}  to see which repos are installed."
