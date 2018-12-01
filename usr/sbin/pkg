@@ -6298,6 +6298,7 @@ sfs2pet(){                       # convert sfs to pet, requires $1 as a valid sf
   #[ ! -f "${WORKDIR}/$(basename "${1}")" ] && cp -f "$1" "${WORKDIR}/$(basename "${1}")" 2>/dev/null
 
   SFSNAME="$(basename "$1")"
+  SFSDIR="$(dirname "$1")"
   SFSEXT="${SFSNAME##*.}"
 
   # if DISTRO_VERSION found, the sfs will prob have a suffix
@@ -6307,7 +6308,7 @@ sfs2pet(){                       # convert sfs to pet, requires $1 as a valid sf
   ROOTNAME=`basename "$SFSNAME" ".$SFSEXT"`
 
   # build the file name we will work on
-  SFS="${CURDIR}/${ROOTNAME}.$SFSEXT"
+  SFS="${SFSDIR}/${SFSNAME}"
 
   if [ -f "$SFS" -a "$SFS" != "" ];then
 
