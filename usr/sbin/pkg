@@ -6465,7 +6465,10 @@ split_pkg(){                # split packages into dev, doc, nls packages FUNCLIS
 
   local PKGNAME="`get_pkg_name "$(basename "$1")" 2>/dev/null`"
   local PKGNAME_ONLY="`get_pkg_name_only "$PKGNAME" 2>/dev/null`"
-  local PKGEXT="`get_pkg_ext "$1"`"
+  local PKGEXT="pet"
+
+  # get package extension
+  PKGEXT="`get_pkg_ext "$1"`"
 
   pkg_unpack "$1" &>/dev/null
 
@@ -6487,16 +6490,15 @@ split_pkg(){                # split packages into dev, doc, nls packages FUNCLIS
   # get the parent directory of the package
   local PARENT_DIR="$(dirname "$PKG_PATH")"
 
+  # set the correct package naming style
   local dev_suffix='_DEV'
   local doc_suffix='_DOC'
   local nls_suffix='_NLS'
-
-  case $DISTRO_BINARY_COMPAT in ubuntu|trisquel|debian|devuan)
+  if [ "${PKGEXT:-pet}" = "deb" ];then
     dev_suffix='-dev'
     doc_suffix='-doc'
     nls_suffix='-nls'
-    ;;
-  esac
+  fi
 
   # get the sub-package names
   local EXE_PKG="$PKGNAME"
@@ -6508,7 +6510,7 @@ split_pkg(){                # split packages into dev, doc, nls packages FUNCLIS
   [ -d "$DEV_PKG" ] && rm -rf "$DEV_PKG"
   [ -d "$DOC_PKG" ] && rm -rf "$DOC_PKG"
   [ -d "$NLS_PKG" ] && rm -rf "$NLS_PKG"
-  # now creat them fresh and empty
+  # now create them fresh and empty
   mkdir -p "$DEV_PKG"
   mkdir -p "$DOC_PKG"
   mkdir -p "$NLS_PKG"
