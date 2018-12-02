@@ -6460,12 +6460,8 @@ txz2pet(){                       # convert txz to pet, requires $1 as valid file
 
 split_pkg(){                # split packages into dev, doc, nls packages FUNCLIST
 
-  USAGE="Usage: splitpkg [PKGNAME] [PKG_DIRECTORY]"
-
-  [ ! "$1" ] && echo "$USAGE" && exit 1
-
-   # make sure the package exists
-  [ ! -f "$1" ] && echo "$USAGE" && exit 1
+  # make sure the package exists
+  [ ! "$1" -o ! -f "$1" ] && print_usage split && exit 1
 
   local PKGNAME="`get_pkg_name "$(basename "$1")" 2>/dev/null`"
   local PKGNAME_ONLY="`get_pkg_name_only "$PKGNAME" 2>/dev/null`"
@@ -6523,7 +6519,7 @@ split_pkg(){                # split packages into dev, doc, nls packages FUNCLIS
   		;;
   	*)
   		echo "Error: $(basename "$PKG_PATH") must match $PKG_NAME"
-  		echo "$USAGE"
+  		print_usage split
   		exit 1
   		;;
   esac
