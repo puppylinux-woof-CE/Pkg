@@ -6506,7 +6506,7 @@ split_pkg(){                # split packages into dev, doc, nls packages FUNCLIS
   local DOC_PKG="$(echo "$PKG_DIR_NAME" | sed -e "s/^${PKGNAME_ONLY}/${PKGNAME_ONLY}${doc_suffix}/")"
   local NLS_PKG="$(echo "$PKG_DIR_NAME" | sed -e "s/^${PKGNAME_ONLY}/${PKGNAME_ONLY}${nls_suffix}/")"
 
-  # remove the target package dirs if they alread exist
+  # remove the target package dirs if they already exist
   [ -d "$DEV_PKG" ] && rm -rf "$DEV_PKG"
   [ -d "$DOC_PKG" ] && rm -rf "$DOC_PKG"
   [ -d "$NLS_PKG" ] && rm -rf "$NLS_PKG"
@@ -6607,13 +6607,22 @@ split_pkg(){                # split packages into dev, doc, nls packages FUNCLIS
     fi
   done
 
-  echo
-  echo -e "${green}Success${endcolour}: Package split into these new files:"
+  # get a list of the new packages we created
+  new_pkgs="$(find . -maxdepth 1 -type f -name "${PKGNAME}*.$PKGEXT"
+  find . -maxdepth 1 -type f -name "${DEV_PKG}*.$PKGEXT"
+  find . -maxdepth 1 -type f -name "${DOC_PKG}*.$PKGEXT"
+  find . -maxdepth 1 -type f -name "${NLS_PKG}*.$PKGEXT")"
 
-  for newpkg in "$EXE_PKG.$PKGEXT" "$DEV_PKG.$PKGEXT" "$DOC_PKG.$PKGEXT" "$NLS_PKG.$PKGEXT"
-  do
-    [ -f "$newpkg" ] && echo " $newpkg"
-  done
+  if [ "$new_pkgs" != "" ];then
+    echo
+    echo -e "${green}Success${endcolour}: Package split into these new files:"
+    echo "$new_pkgs" | sed 's/^.\// /'
+  fi
+
+  # cleanup
+  [ -d "$DEV_PKG" ] && rm -rf "$DEV_PKG"
+  [ -d "$DOC_PKG" ] && rm -rf "$DOC_PKG"
+  [ -d "$NLS_PKG" ] && rm -rf "$NLS_PKG"
 
   return 0
 }
