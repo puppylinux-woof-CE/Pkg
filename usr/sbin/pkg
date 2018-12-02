@@ -6598,15 +6598,20 @@ split_pkg(){                # split packages into dev, doc, nls packages FUNCLIS
   is_empty="$(find "$PKG_PATH" -maxdepth 2 -type f 2>/dev/null)"
   [ -z "$is_empty" ] && rm -rf "$PKG_PATH"
 
+  # go back to where we started (where the main package lives)
   [ -d "$CURDIR" ] && cd "$CURDIR" &>/dev/null
 
-
+  # build each package from the package dir
   for dir in "$EXE_PKG" "$DEV_PKG" "$DOC_PKG" "$NLS_PKG"
   do
-    dir2${PKGEXT//./} $dir
+    if [ -d "$dir" ];then
+      dir2${PKGEXT//./} "$dir" && rm -rf "$dir"
+    fi
   done
 
+  echo
   echo -e "${green}Success${endcolour}: Package split into these new files:"
+
   for newpkg in "$EXE_PKG.$PKGEXT" "$DEV_PKG.$PKGEXT" "$DOC_PKG.$PKGEXT" "$NLS_PKG.$PKGEXT"
   do
     [ -f "$newpkg" ] && echo " $newpkg"
