@@ -29,6 +29,7 @@ These commands can be used with the options above, but not each other:
  install-all|ia             install all downloaded packages
  update|pu [PKGNAME]        update all matching installed packages
  extract|unpack PKGFILE     extract package contents into folder
+ split PKGFILE              split a package into DEV, DOC, NLS packages
 
  deps|e PKGNAME             install dependencies of matching package
  deps-download|ed PKGNAME   only download dependencies, no install

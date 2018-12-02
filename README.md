@@ -331,6 +331,8 @@ These commands can be used with the options above, but not each other:
  pkg tgz2pet /path/to/file  # convert a local .tar.gz file to PET
 
  pkg unpack /path/to/file   # extract the given package file
+
+ pkg split /path/to/file    # split a single package into DEV, DOC and NLS packages
 ```
 
 ## Environment Variables:

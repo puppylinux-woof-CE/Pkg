@@ -276,6 +276,7 @@ used with each other:
  pkg-combine|pc PKG		build a new package containing PKGNAME + deps
  sfs-combine|sc PKG		build a new SFS file containing PKGNAME + deps
  extract|unpack PKGFILE		extract package contents into folder
+ split PKGFILE		  split a package into DEV, DOC, NLS packages
  contents|c PKG			list the contents of a downloaded package
  which|w FILENAME		find out which pkg FILENAME comes from
  which-repo|wr PKG		find out which repo PKG comes from

@@ -1,4 +1,4 @@
-#!/bin/ash
+#!/bin/bash
 #
 #  pkg - a command line package manager for Puppy Linux
 #
@@ -69,7 +69,7 @@ error(){
 # for correct error output, trap commands early
 cleanup(){
   rm -f ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE /tmp/pkg/list_deps_busy ${TMPDIR}pkg_file_list ${TMPDIR}/dependents_list ${TMPDIR}DEP_DONE ${TMPDIR}ldd_file_list &>/dev/null
-  rm -rf /tmp/pkg/build_pkg/
+  rm -rf /tmp/pkg/build_pkg/ &>/dev/null
 
   # prevent double msg output if error=130 (user Ctrl-C)
   [ -f /tmp/pkg/error130 -a "$2" = '130' ] && exit "$2"
@@ -233,8 +233,8 @@ contents       list-installed   search-all
 deb2pet        names            sfs2pet
 delete         names-all        sfs-combine
 delete-all     names-exact      show-config
-deps           names-exact-all  tgz2pet
-deps-all       pet2sfs          txz2pet
+deps           names-exact-all  split
+deps-all       pet2sfs          tgz2pet
 deps-check     pet2tgz          uninstall
 deps-download  pet2txz          uninstall-all
 dir2pet        build            unpack
@@ -245,6 +245,7 @@ examples       repack           which-repo
 extract        status           rdep-check
 force          update           what-needs
 func-list      workdir          rm-repo
+txz2pet
 
 Usage: ${bold}$SELF usage CMD${endcolour}"
     #cd /usr/share/pkg/docs/usage/; echo `ls` | fold -w 70 -s
@@ -6457,6 +6458,164 @@ txz2pet(){                       # convert txz to pet, requires $1 as valid file
 
 # other
 
+split_pkg(){                # split packages into dev, doc, nls packages FUNCLIST
+
+  USAGE="Usage: splitpkg [PKGNAME] [PKG_DIRECTORY]"
+
+  [ ! "$1" ] && echo "$USAGE" && exit 1
+
+   # make sure the package exists
+  [ ! -f "$1" ] && echo "$USAGE" && exit 1
+
+  local PKGNAME="`get_pkg_name "$(basename "$1")" 2>/dev/null`"
+  local PKGNAME_ONLY="`get_pkg_name_only "$PKGNAME" 2>/dev/null`"
+  local PKGEXT="`get_pkg_ext "$1"`"
+
+  pkg_unpack "$1" &>/dev/null
+
+  # get the package directory we just extracted
+  local PKG_PATH="$(find $(dirname "$PKGNAME") -maxdepth 1 -type d -iname "$PKGNAME" | head -1)"
+
+  # get the full path to the package dir (dir with contents of pkg to be split)
+  PKG_PATH="$(realpath "$PKG_PATH")"
+
+  # make sure we have the right package dir
+  [ ! -d "$PKG_PATH" ] && PKG_PATH="$(realpath "$PKGNAME")"
+
+  # get the base name of the package directory
+  local PKG_DIR_NAME=$(basename "$PKG_PATH")
+
+  # get the package name
+  local PKG_NAME="$PKGNAME_ONLY"
+
+  # get the parent directory of the package
+  local PARENT_DIR="$(dirname "$PKG_PATH")"
+
+  local dev_suffix='_DEV'
+  local doc_suffix='_DOC'
+  local nls_suffix='_NLS'
+
+  case $DISTRO_BINARY_COMPAT in ubuntu|trisquel|debian|devuan)
+    dev_suffix='-dev'
+    doc_suffix='-doc'
+    nls_suffix='-nls'
+    ;;
+  esac
+
+  # get the sub-package names
+  local EXE_PKG="$PKGNAME"
+  local DEV_PKG="$(echo "$PKG_DIR_NAME" | sed -e "s/^${PKGNAME_ONLY}/${PKGNAME_ONLY}${dev_suffix}/")"
+  local DOC_PKG="$(echo "$PKG_DIR_NAME" | sed -e "s/^${PKGNAME_ONLY}/${PKGNAME_ONLY}${doc_suffix}/")"
+  local NLS_PKG="$(echo "$PKG_DIR_NAME" | sed -e "s/^${PKGNAME_ONLY}/${PKGNAME_ONLY}${nls_suffix}/")"
+
+  # remove the target package dirs if they alread exist
+  [ -d "$DEV_PKG" ] && rm -rf "$DEV_PKG"
+  [ -d "$DOC_PKG" ] && rm -rf "$DOC_PKG"
+  [ -d "$NLS_PKG" ] && rm -rf "$NLS_PKG"
+  # now creat them fresh and empty
+  mkdir -p "$DEV_PKG"
+  mkdir -p "$DOC_PKG"
+  mkdir -p "$NLS_PKG"
+
+  # make sure the package directory begins with the given package name
+  case $(basename "$PKG_PATH") in
+  	$PKG_NAME*)
+  		;;
+  	*)
+  		echo "Error: $(basename "$PKG_PATH") must match $PKG_NAME"
+  		echo "$USAGE"
+  		exit 1
+  		;;
+  esac
+
+  cd "$PKG_PATH" &>/dev/null || { echo "Not found: $PKG_PATH"; return 1; }
+
+  for i in $(find -mindepth 1)
+  do
+  	# if the file no longer exists, skip this iteration
+  	[ ! -e "$i" ] && continue
+
+  	local FILE_NAME=$(basename "$i")
+
+  	case "$FILE_NAME" in
+  		*.la|*.a|*.o|*.prl|pkgconfig|include|*.m4|*.h|*.c|*.cpp)
+  			PKGNAME="$DEV_PKG"
+  			;;
+  		gdb)
+  			[ -d "$i" ] && PKGNAME="$DEV_PKG"
+  			;;
+  		dir)
+  			[ -f "$i" ] && PKGNAME="$DOC_PKG"
+  			;;
+  		doc|*-doc|gtk-doc|Help|HELP|readme.*|README.*|ABOUT|about.txt|ABOUT.TXT|readme|README|manual|MANUAL|faq|FAQ|todo|TODO|examples|EXAMPLES|LessTif|man-html|E-docs)
+  			PKGNAME="$DOC_PKG"
+  			;;
+  		help)
+  			[ -d "$i" ] && PKGNAME="$DOC_PKG"
+  			;;
+  		man|info) # if it's a directory named "man" or "info", move to doc
+  			[ -d "$i" ] && PKGNAME="$DOC_PKG"
+  			 ;;
+  		locale|locales|lang|strings) # if it's a directory named "locale", move to nls
+  			[ -d "$i" ] && PKGNAME="$NLS_PKG"
+  			;;
+  		i18n|nls)
+  			PKGNAME="$NLS_PKG"
+  			;;
+  		system.profile-*|*.strings|normal.awt-*) # AbiWord stores its locale information in those files
+  			[ "$PKGNAME_ONLY" = "abiword" ] && PKGNAME="$NLS_PKG"
+  			;;
+  		*)
+  			PKGNAME="$EXE_PKG"
+  			;;
+  	esac
+
+  	# verbosity, output the redirection for each redirected file
+  	case "$PKGNAME" in
+  		$DEV_PKG|$DOC_PKG|$NLS_PKG)
+  			#local SUFFIX="$(echo $SUFFIX | tr [:lower:] [:upper:])"
+
+  			#echo "$FILE_NAME -> $PKG"
+
+  			# detect the sub_directory inside the package
+  			local SUB_DIR="${i%/$FILE_NAME}"
+  			SUB_DIR="${SUB_DIR:2}"
+
+  			# create the directory under the sub-package directory
+  			mkdir -p "$PARENT_DIR/$PKGNAME/$SUB_DIR"
+
+  			# move the file to the sub-package
+  			mv "$i" "$PARENT_DIR/$PKGNAME/$SUB_DIR"
+
+  			# get rid of empty directories in the EXE package
+  			rmdir "$SUB_DIR" &>/dev/null
+  			;;
+  	esac
+
+  done
+
+  # if the EXE package is empty, remove it
+  is_empty="$(find "$PKG_PATH" -maxdepth 2 -type f 2>/dev/null)"
+  [ -z "$is_empty" ] && rm -rf "$PKG_PATH"
+
+  [ -d "$CURDIR" ] && cd "$CURDIR" &>/dev/null
+
+
+  for dir in "$EXE_PKG" "$DEV_PKG" "$DOC_PKG" "$NLS_PKG"
+  do
+    dir2${PKGEXT//./} $dir
+  done
+
+  echo -e "${green}Success${endcolour}: Package split into these new files:"
+  for newpkg in "$EXE_PKG.$PKGEXT" "$DEV_PKG.$PKGEXT" "$DOC_PKG.$PKGEXT" "$NLS_PKG.$PKGEXT"
+  do
+    [ -f "$newpkg" ] && echo " $newpkg"
+  done
+
+  return 0
+}
+
+
 menu_entry_msg(){                # show menu entry details of installed pkg FUNCLIST
 
   # exit if not valid usage
@@ -6669,6 +6828,7 @@ first_run
 {
 #====================  main interface  ======================#
 
+
 while [ $# != 0 ]; do # get all options ($# means all options)
    I=1
    while [ ! -z $# -a $I -le `echo $# | wc -c` ]; do
@@ -6774,6 +6934,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --pkg-repack|-pr|repack|pr)         [ ! "$2" ] && pkg_repack  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_repack "$x";   done;;
       --pkg-update|-pu|update|pu)         [ ! "$2" ] && pkg_update  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_update "$x";   done;;
       --pkg-combine|-pc|pkg-combine|pc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" -a "$x" != "-" ] && COMBINE2SFS=false pkg_combine "$x"; done;;
+      --pkg-split|split)                  [ ! "$2" ] && split_pkg   || for x in $opt; do [ "$x" -a "$x" != "-" ] && split_pkg "$x"; done;;
       --sfs-combine|-sc|sfs-combine|sc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" -a "$x" != "-" ] && COMBINE2SFS=true  pkg_combine "$x"; done;;
       -PS|PS)                             [ ! "$2" ] && pkg_status  || for x in $opt; do [ "$x" -a "$x" != "-" ] && HIDE_USER_PKGS=false FULL_PKG_STATUS=true pkg_status "$x"; done;; # full pkg status, with sorted deps
 
@@ -6880,6 +7041,8 @@ code=$?
 if [ "$AUTOCLEAN" = 'yes' -a "`HIDE_BUILTINS=true list_installed_pkgs`" != '' ];then
   clean_pkgs &>/dev/null
 fi
+
+
 
 # remove tmp dir used by pkg_get and get_deps
 rm $TMPDIR/PKGSDONE 2>/dev/null
