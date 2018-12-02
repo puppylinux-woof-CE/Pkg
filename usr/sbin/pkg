@@ -6131,17 +6131,18 @@ dir2sfs(){                       # $1 must be dir of pkg contents FUNCLIST
     rm "${SFS_DIR}/"*pet*specs 2>/dev/null #240613
     #start building the sfs file
     echo "Please wait... building SFS file.."
-    LANG=C mksquashfs "$SFS_DIR" "${SFS_DIR}${SFS_SUFFIX}.sfs" -noappend &>/dev/null && SUCCESS="y" || SUCCESS=""
+    local SFS_NAME="${SFS_DIR/$SFS_SUFFIX/}${SFS_SUFFIX}.sfs"
+    LANG=C mksquashfs "$SFS_DIR" "$SFS_NAME" -noappend &>/dev/null && SUCCESS="y" || SUCCESS=""
     if [ -z "$SUCCESS" -a ! -f "${SFS_DIR}${SFS_SUFFIX}.sfs" ]; then
-      echo "Failed to create ${SFS_DIR}${SFS_SUFFIX}.sfs."
+      echo "Failed to create $SFS_NAME."
       exit 1
     fi
-    chmod 644 "${SFS_DIR}${SFS_SUFFIX}.sfs" #shinobar
+    chmod 644 "$SFS_NAME" #shinobar
     sync
     #get size, and output msg
-    s=`LANG=C du -m "${SFS_DIR}${SFS_SUFFIX}.sfs" | sed "s/\s.*//"`
-    MD5SUM=`md5sum "${SFS_DIR}${SFS_SUFFIX}.sfs" | cut -f1 -d ' '`
-    echo -e "Created ${magenta}${SFS_DIR}${SFS_SUFFIX}.sfs${endcolour} ( $s MB )"
+    s=`LANG=C du -m "$SFS_NAME" | sed "s/\s.*//"`
+    MD5SUM=`md5sum "$SFS_NAME" | cut -f1 -d ' '`
+    echo -e "Created ${magenta}$SFS_NAME${endcolour} ( $s MB )"
     echo -e "The md5 checksum: $MD5SUM"
   else
     echo "Cannot create SFS:  '${SFS_DIR}' is not a directory."
