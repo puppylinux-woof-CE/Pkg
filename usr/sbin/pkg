@@ -245,7 +245,7 @@ examples       repack           which-repo
 extract        status           rdep-check
 force          update           what-needs
 func-list      workdir          rm-repo
-txz2pet
+txz2pet        dir2repo
 
 Usage: ${bold}$SELF usage CMD${endcolour}"
     #cd /usr/share/pkg/docs/usage/; echo `ls` | fold -w 70 -s
@@ -348,6 +348,8 @@ get_pkg_version(){                # returns version of given package ($1) FUNCLI
     -e "s/-x[86].*//g" \
     -e "s/-pup.*//g" \
     -e "s/-q[0-9].*//g" \
+    -e "s/-WITHDEPS.*//g" \
+    -e "s/-PLUSDEPS.*//g" \
     -e 's@\\\@@g'`
 
   # get $REPONAME and $EX
@@ -6347,7 +6349,7 @@ sfs2pet(){                       # convert sfs to pet, requires $1 as a valid sf
 
 tgz2pet(){                       # convert $1 (a tar.gz or tgz) to .pet FUNCLIST
 
-  [ ! -f "$1" ] && print_usage tgz2pet TARFILE && exit 1
+  [ ! -f "$1" ] && print_usage tgz2pet && exit 1
   sync
   TARBALL="$1"
   [ ! -f "$TARBALL" ] && echo "The archive '$TARBALL' could not be found." && exit 1
@@ -6422,7 +6424,7 @@ tgz2pet(){                       # convert $1 (a tar.gz or tgz) to .pet FUNCLIST
 
 
 txz2pet(){                       # convert txz to pet, requires $1 as valid file FUNCLIST
-  [ ! -f "$1" ] && print_usage txz2pet TARFILE && exit 1
+  [ ! -f "$1" ] && print_usage txz2pet && exit 1
   FILE="$1"   # full path, filename and extension
   #keep old file, download it if needed
   #[ -f "$(basename "$1" .txz)" ] || pkg_download "$(basename "$1" .txz)" #  200813 try to download it
@@ -6458,6 +6460,149 @@ txz2pet(){                       # convert txz to pet, requires $1 as valid file
 
 
 # other
+
+dir2repo(){           # create a native-Puppy repo from a dir of packages FUNCLIST
+
+  # exit if not a valid directory
+  if [ ! -d "$1" ];then
+    print_usage dir2repo && exit 1
+  fi
+
+  local filename=''
+  local filepath=''
+  local fileext=''
+  local prevext=''
+  local repo_name
+
+  # get the repo directory
+  local repo_dir="$(realpath "$1")"
+
+  # create a temp repo_file name
+  local repo_file="${repo_dir}/Packages-$DISTRO_BINARY_COMPAT-$DISTRO_COMPAT_VERSION"
+
+  # remove any old files
+  rm "${repo_dir}/install" "${repo_dir}/Packages-"* "$repo_file" &>/dev/null
+
+  echo
+  echo "Creating repo from contents of: $repo_dir"
+  echo
+
+  # exit if we encounter multiple file extensions
+  for file in $(find "$repo_dir" -maxdepth 5 -type f)
+  do
+    filename=$(basename $file)
+    fileext="$(get_pkg_ext $filename)"
+    if [ "$fileext" != "$prevext" ] && [ "$prevext" != "" ];then
+      echo "All packages must have the same extension."
+      echo "Extensions '$fileext' and '$prevext' don't match."
+      echo "Package '$filename' needs to be converted to $prevext or removed."
+      exit 1
+    fi
+    prevext="$fileext"
+  done
+
+
+  # get the packages in $repo_dir
+  local package_list="$(find "$repo_dir" -maxdepth 5 -type f | grep -v ^Packages | grep -v "^install$")"
+
+  if [ "$package_list" = "" ];then
+    echo "No packages found in ${repo_dir}!"
+    exit 1
+  fi
+
+  # for each file in the repo dir
+  for file in $package_list
+  do
+    # skip if not a recognised package type
+    [ "$(is_local_pkg "$file")" != true ] && continue
+
+    # get the package info
+    filename=$(basename $file)
+    fileext="$(get_pkg_ext $filename)"
+    filepath="$(realpath $(dirname $file))"
+    pathname="$(dirname ${filepath})"
+    repopath="$(echo $filepath | sed -e "s#${repo_dir}##" -e "s/^\///")"
+    pkgname=$(basename $filename .$fileext)
+    pkgnameonly="$(get_pkg_name_only $pkgname)"
+    pkgversion="$(get_pkg_version $pkgname)"
+    pkgcat="$(grep -m1 "|$pkgnameonly|" ~/.packages/Packages-* | cut -f5 -d'|')"
+    pkgsize="$(grep -m1 "|$pkgnameonly|" ~/.packages/Packages-* | cut -f6 -d'|')"
+    pkgdeps="$(grep -m1 "|$pkgnameonly|" ~/.packages/Packages-* | cut -f9 -d'|')"
+    # dont include deps if we're adding a combined package + plus deps (they have $CP_SUFFIX in the name)
+    [ "$(echo "$filename" | grep "$CP_SUFFIX")" != "" ] && pkgdeps=''
+    pkgdesc="$(grep -m1 "|$pkgnameonly|" ~/.packages/Packages-* | cut -f10 -d'|')"
+    pkgdistro="$DISTRO_BINARY_COMPAT"
+    pkgdistroversion="$DISTRO_COMPAT_VERSION"
+
+    # if we don't have the required package info, dont add it to the repo file
+    [ "$pkgname" = "" -o "$pkgnameonly" = "" -o "$filename" = "" ] && continue
+
+    # add this package to the repo file
+    echo "$pkgname|$pkgnameonly|$pkgversion||${pkgcat:-BuildingBlock}|$pkgsize|$repopath|$filename|$pkgdeps|${pkgdesc:-No description}|$pkgdistro|$pkgdistroversion|" >> "$repo_file"
+  done
+
+  if [ ! -f "$repo_file" ];then
+    echo "Error: file '$repo_file' not created."
+    exit 1
+  fi
+
+  echo "Step 1 of 3: CHOOSE A REPO NAME"
+  echo "(something like 'username-repo', such as 'bob-main' or 'sc0ttman-games')"
+  echo
+  read -e -r -p "Type a repo name and hit ENTER: " repo_name
+
+  # rename the repo file to the new name
+  mv "$repo_file" "$repo_file-$repo_name"
+  repo_file="$repo_file-$repo_name"
+
+  # build repo entry
+  local repo_entry="$repo_name|$fileext|$repo_file|$repo_url||||$repo_fallbacks"
+
+  # get the URL where the repo file and packages will live
+  echo
+  echo "Step 2 of 3: ADD THE REPO URL"
+  echo "(the full URL where you will upload your repo file and packages)"
+  echo
+  read -e -r -i "http://" -p "Type a repo URL and hit ENTER: " mirror1
+
+  # get fallback repos list
+  echo
+  echo "Step 3 of 3: ADD FALLBACK REPOS"
+  echo "(the other repos to fall back to when looking for dependencies)"
+  echo
+  read  -e -r -i "noarch common32" -p "List fallback repos (separated by a space) and hit ENTER: " fallback_repos
+
+  # add a trailing slash to the URL
+  if [ "$(echo "${mirror1}" | grep "/$")" = "" ];then
+    mirror1="${mirror1}/"
+  fi
+
+  # create repo installer file in $repo_dir
+  echo "REPONAME=$repo_name
+REPOFILE=$(basename $repo_file)
+EX=$fileext
+URL1=${mirror1}
+URL2=''
+URL3=''
+URL4=''
+FALLBACKS='$fallback_repos'" > "${repo_dir}/install"
+
+  # print final message
+  echo
+  echo -e "${green}Success${endcolour}: Repo ${yellow}$repo_name${endcolour} created."
+  echo
+  echo -e "You should upload everything in ${lightblue}$repo_dir${endcolour} to:"
+  echo
+  echo "  $mirror1"
+  echo
+  echo "You (and anyone else) can then install the repo using:"
+  echo
+  echo "  pkg add-repo ${mirror1}"
+  echo
+  echo -e "NOTE: You can edit the ${yellow}install${endcolour} and ${yellow}$(basename $repo_file)${endcolour}"
+  echo "files in a text editor, before you upload your new repo."
+  echo
+}
 
 split_pkg(){                # split packages into dev, doc, nls packages FUNCLIST
 
@@ -6994,6 +7139,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --sfs2pet|sfs2pet) [ ! "$2" ] && sfs2pet || for x in $opt; do sfs2pet "$x"; done ;;
       --tgz2pet|tgz2pet) [ ! "$2" ] && tgz2pet || for x in $opt; do tgz2pet "$x"; done ;;
       --txz2pet|txz2pet) [ ! "$2" ] && txz2pet || for x in $opt; do txz2pet "$x"; done ;;
+    --dir2repo|dir2repo) [ ! "$2" ] && dir2repo|| for x in $opt; do dir2repo "$x"; done ;;
 
       # other
       --func-list|func-list)  [ -f $TMPDIR/func_list ] && cat $TMPDIR/func_list || func_list; exit 0;;
