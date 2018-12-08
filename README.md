@@ -252,8 +252,8 @@ These commands can be used with the options above, but not each other:
  repo-file-list|rfl         list all available repository files
  repo-convert|rc FILE       convert repo files to pre/post Woof format
 
- add-repo                   add a PPA, Ubuntu, Debian or Slackware repo
- rm-repo                    remove an installed repo
+ add-repo                   add a Pkg, PPA, Ubuntu, Debian or Slackware repo
+ rm-repo                    remove a user-installed repo
  dir2repo                   create a Puppy repo from a directory of packages
  add-source                 add a Puppy repo (needs repo file in ~/.packages/)
  update-sources             update the list of available repos
