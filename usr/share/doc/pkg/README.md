@@ -231,100 +231,109 @@ OPTIONS:
 
 These options can be used together and MUST precede all others:
 
- --ask|-a 			ask before doing stuff (give as 1st option)
- --force |-f			force downloading, installing and uninstalling
- --no-colour|-nc		disable ANSI colours in Pkg output
+ --ask|-a                   ask before doing stuff (give as 1st option)
+ --quiet|-q                 suppress some output, like download progress
+ --force |-f                force downloading, installing and uninstalling
+ --no-colour|-nc            disable ANSI colours in $SELF output
 
 COMMANDS:
 
 The commaands below can be used with the options above, but they can't be
 used with each other:
 
- add PKGNAME  			download & install matching package and dependencies
- rm PKGNAME   			uninstall a package and any left-over dependencies
- get|g PKGNAME			alias for 'add'
- get-only|go PKGNAME		same as add/get, but don't install
- download|d PKGNAME		download a package from CURRENT repo
- install|i PKGNAME		install a downloaded package
- install-all|ia			install all downloaded packages
- deps|e PKGNAME			install dependencies of matching package
- deps-download|ed PKGNAME	only download dependencies, no install
- deps-all|ea			install dependencies of all installed packages
- deps-check|ec			prints message about missing dependencies
- what-needs|wn PKGNAME       	lists pkgs that depend on PKGNAME
- update|pu [PKGNAME]		update all matching installed packages
- uninstall|u PKGNAME		uninstall a pet package
- uninstall-all|ua		uninstall all installed packages
- delete|l PKGNAME		delete a downloaded package
- delete-all|la 			delete ALL downloaded pet packages!
- clean [PKGNAME] 		delete downloaded pkg files of installed pkgs
+  search|s [SEARCH]          search all package info in CURRENT repo
+  search-all|sa [SEARCH]     search all package info in ALL repos
 
- names|n [PKG]			list package name matches in the CURRENT repo
- names-all|na [PKG]		list package name matches in ALL repos
- names-exact|ne [PKG]		list EXACT package name matches in CURRENT repo
- names-exact-all|nea [PKG]	list EXACT package name matches in ALL repos
- list-downloaded|ld [PKG]	list downloaded packages, PKGNAME is a filter
- list-installed|li|LI [PKG]	list installed packages, PKGNAME is a filter
- list-deps|le|LE		PKGNAME	list the dependencies of PKGNAME
+  names|n [PKGNAME]          list package name matches in the CURRENT repo
+  names-all|na [PKGNAME]     list package name matches in ALL repos
 
- build|pb PKG			build a PET package from source and install it
- build-list|pbl [PKG]		list all build scripts, PKGNAME is optional
- status|ps|PS PKG		show package status (name, size, deps, etc)
- entry|pe PKG			show package repo entry (if in current repo)
- installed|pi PKG		return true if package installed, false if not
- repack|pr PKG			build a .pet package from an installed package
- pkg-combine|pc PKG		build a new package containing PKGNAME + deps
- sfs-combine|sc PKG		build a new SFS file containing PKGNAME + deps
- extract|unpack PKGFILE		extract package contents into folder
- split PKGFILE		  split a package into DEV, DOC, NLS packages
- contents|c PKG			list the contents of a downloaded package
- which|w FILENAME		find out which pkg FILENAME comes from
- which-repo|wr PKG		find out which repo PKG comes from
+  add|a PKGNAME              download & install matching package and deps
+  remove|rm PKGNAME          uninstall a package and any left over deps
 
-These options cannot be used with any other options:
+  get|g PKGNAME              alias of add (see the command above)
+  get-only|go PKGNAME        same as get, but don't install
+  download|d PKGNAME         download a package from CURRENT repo
+  install|i PKGNAME          install a downloaded package
+  install-all|ia             install all downloaded packages
+  update|pu [PKGNAME]        update all matching installed packages
+  extract|unpack PKGFILE     extract package contents into folder
+  split PKGFILE              split a package into DEV, DOC, NLS packages
 
- all-pkgs			list details of all packages in CURRENT repo
- search|s [SEARCH]		search all package info in CURRENT repo
- search-all|sa [SEARCH]		search all package info in ALL repos
+  deps|e PKGNAME             install dependencies of matching package
+  deps-download|ed PKGNAME   only download dependencies, no install
+  deps-all|ea                install dependencies of all installed packages
+  deps-check|ldd             prints message about missing dependencies
 
- repo|r [REPONAME]		set repo to use, show current repo if none given
- repo-info|ri REPONAME		display the name, and other info of CURRENT repo
- repo-list|rl			list names of all available repositories
- repo-file-list|rfl		list all available repository files
- repo-update|ru [REPONAME]	update the current repo package list
- repo-convert|rc FILE		convert repo files to pre/post Woof format
+  uninstall|u PKGNAME        uninstall a package
+  uninstall-all|ua           uninstall all installed packages
+  delete|l PKGNAME           delete a downloaded package
+  delete-all|la              delete ALL downloaded packages
+  clean [PKGNAME]            delete downloaded pkg files of installed pkgs
+  autoclean [yes|no]         auto delete pkg files after download+install
 
- add-repo 			add a third-party Ubuntu/Debian/Slackware repo
- rm-repo  			remove a user-installed repo
- add-source			add new repo (needs repo file in ~/.packages/)
- update-sources			update the list of available repos
+  list-downloaded|ld [PKG]   list downloaded packages, PKGNAME is a filter
+  list-installed|li|LI [PKG] list installed packages, PKGNAME is a filter
+  list-deps|le|LE PKGNAME    list the dependencies of PKGNAME
 
- repo-pkg-scope one|all		search pkgs in current repo (one), or all (all)
- repo-dep-scope one|all		search deps in current repo (one), or all (all)
- bleeding-edge no|yes		if yes, get latest pkg versions, from ANY repo
- recursive-dep-check no|yes	get deps recursively (yes), or not (no)
+  build-list|pbl [PKG]       list all build scripts, PKGNAME is optional
+  build|pb PKG               build a PET package from source and install it
+  pkg-combine|pc PKG         build a new package containing PKGNAME + deps
+  sfs-combine|sc PKG         build a new SFS file containing PKGNAME + deps
+  repack|pr PKG              build a .pet package from an installed package
 
- dir2pet DIR			create a pet package from a directory
- dir2sfs DIR			create an sfs package from a directory
- dir2tgz DIR			create a tar.gz file from a directory
- deb2pet DEBFILE		convert local deb file to a pet package
- pet2sfs PETFILE		convert local pet file to an sfs package
- pet2tgz PETFILE		convert local pet file to a tar.gz package
- pet2txz PETFILE		convert local pet file to a tar.xz package
- sfs2pet SFSFILE		convert local sfs file to a pet package
- tgz2pet TARFILE		convert local tar.gz|tgz file to PET
- txz2pet TXZFILE		convert local tar.xz|txz file to PET
+  status|ps|PS PKG           show package status (name, size, deps, etc)
+  contents|c PKG             list the contents of a downloaded package
+  entry|pe PKG               show package repo entry (if in current repo)
+  installed|pi PKG           return true if package installed, false if not
 
- workdir			set a new working directory. Default is ~/pkg/
- autoclean			auto delete pkg files after download+install
- show-config			show current config, repo and search settings
- welcome			print some useful cmds to help get started
- func-list			list all functions used in this program
- version|v			show the version of this script
- examples|ex			show example command line usage of Pkg
- usage [CMD]			show usage of CMD, or list available cmds
- help|h				show this help information
- help-all|H			show a full description, with added info
+  all-pkgs                   list details of all packages in CURRENT repo
+  names-exact|ne [PKG]       list EXACT package name matches in CURRENT repo
+  names-exact-all|nea [PKG]  list EXACT package name matches in ALL repos
+
+  what-needs|wn PKGNAME      lists pkgs that depend on PKGNAME
+  which|w FILENAME           find out which pkg FILENAME comes from
+  which-repo|wr PKG          find out which repo PKG comes from
+
+  repo|r [REPONAME]          set repo to use, show current repo if none given
+  repo-info|ri REPONAME      display the name, and other info of CURRENT repo
+  repo-update|ru [REPONAME]  update the current repo package list
+  repo-list|rl               list names of all available repositories
+  repo-file-list|rfl         list all available repository files
+  repo-convert|rc FILE       convert repo files to pre/post Woof format
+
+  add-repo                   add a PPA, Ubuntu, Debian or Slackware repo
+  rm-repo                    remove an installed repo
+  dir2repo                   create a Puppy repo from a directory of packages
+  add-source                 add a Puppy repo (needs repo file in ~/.packages/)
+  update-sources             update the list of available repos
+
+  repo-pkg-scope one|all     search pkgs in current repo (one), or all (all)
+  repo-dep-scope one|all     search deps in current repo (one), or all (all)
+  bleeding-edge no|yes       if yes, get latest pkg versions, from ANY repo
+  rdep-check no|yes          get deps recursively (yes), or not (no)
+
+  dir2pet DIR                create a pet package from a directory
+  dir2sfs DIR                create an sfs package from a directory
+  dir2tgz DIR                create a tar.gz file from a directory
+  deb2pet DEBFILE            convert local deb file to a pet package
+  pet2sfs PETFILE            convert local pet file to an sfs package
+  pet2tgz PETFILE            convert local pet file to a tar.gz package
+  pet2txz PETFILE            convert local pet file to a tar.xz package
+  sfs2pet SFSFILE            convert local sfs file to a pet package
+  tgz2pet TARFILE            convert local tar.gz|tgz file to PET
+  txz2pet TXZFILE            convert local tar.xz|txz file to PET
+
+  welcome                    print some useful cmds to help get started
+  show-config                show current config, repo and search settings
+  workdir                    set a new working directory. Default is ~/pkg/
+
+  version|v                  show the version of this script
+
+  help|h                     show this help information
+  help-all|H                 show a full description, with added info
+  usage [CMD]                show usage of CMD, or list available cmds
+  examples|ex                show example command line usage of $SELF
+  func-list                  list all functions used in this program
 ```
 
 ##

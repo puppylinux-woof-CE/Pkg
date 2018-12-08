@@ -208,6 +208,7 @@ These commands can be used with the options above, but not each other:
  install-all|ia             install all downloaded packages
  update|pu [PKGNAME]        update all matching installed packages
  extract|unpack PKGFILE     extract package contents into folder
+ split PKGFILE              split a package into DEV, DOC, NLS packages
 
  deps|e PKGNAME             install dependencies of matching package
  deps-download|ed PKGNAME   only download dependencies, no install
@@ -251,9 +252,10 @@ These commands can be used with the options above, but not each other:
  repo-file-list|rfl         list all available repository files
  repo-convert|rc FILE       convert repo files to pre/post Woof format
 
- add-repo                   add a native Ubuntu/PPA, Debian or Slackware repo
- rm-repo                    delete/uninstall a user-added repo
- add-source                 add Puppy repo (needs repo file in ~/.packages/)
+ add-repo                   add a PPA, Ubuntu, Debian or Slackware repo
+ rm-repo                    remove an installed repo
+ dir2repo                   create a Puppy repo from a directory of packages
+ add-source                 add a Puppy repo (needs repo file in ~/.packages/)
  update-sources             update the list of available repos
 
  repo-pkg-scope one|all     search pkgs in current repo (one), or all (all)
