@@ -1218,6 +1218,29 @@ list_all_sources(){               # return all (or matching) repos (~/.pkg/sourc
   grep -m1 "^$1" ${HOME}/.pkg/sources-all #160213
 }
 
+add_pkg_repo() {                # add a Pkg-created repo, called by add_repo()
+  [ ! "$1" ] && return 1
+  # this is probably a Pkg created Puppy repo, get info from 'install' file
+  rm /tmp/pkg/repo_info &>/dev/null
+  wget --no-check-certificate -O "/tmp/pkg/repo_info" -4 "$1" &>/dev/null
+  local RETVAL=$?
+  if [ "$(grep -m1 "^REPONAME" /tmp/pkg/repo_info 2>/dev/null)" != "" ];then
+    # we have a valid repo info file, so convert it into a repo entry for the ~/.pkg/sources[-all] files
+    local repo_entry="$(cat /tmp/pkg/repo_info |  sed -e "s/.*=//g" | tr -d '"' | tr -d "'" | tr '\n' '|' | head -c 1)"
+    if [ "$repo_entry" != "" ];then
+      # add the repo entry
+      local repo_name="$(echo "$repo_entry" | cut -f1 -d'|')"
+      echo "$repo_entry" >> ~/.pkg/sources-all
+      echo "$repo_entry" >> ~/.pkg/sources
+      echo
+      echo -e "${green}Success:${endcolour} repo '${repo_name}' added."
+    else
+      return 1
+    fi
+  fi
+  return $RETVAL
+}
+
 add_repo(){                      # easy way to add Ubuntu/Debian/Slackware third-party repos
 
   local slack_repo_url
@@ -1250,7 +1273,19 @@ add_repo(){                      # easy way to add Ubuntu/Debian/Slackware third
       fi
       ;;
 
+    'http'*'/install')
+      add_pkg_repo "$1"
+      ;;
+
     'ppa:'*|'http://'*|'https://'*)
+
+      wget --quiet --timeout=2 --no-parent --spider "${1}/install"
+      REPLY=$?
+      if [ "$REPLY" = 0 ];then
+        add_pkg_repo "${1}/install"
+        exit $?
+      fi
+
       ppa2pup "$@"
       retval=$?
       if [ $retval -eq 0 ];then
@@ -6526,7 +6561,8 @@ dir2repo(){           # create a native-Puppy repo from a dir of packages FUNCLI
     pkgnameonly="$(get_pkg_name_only $pkgname)"
     pkgversion="$(get_pkg_version $pkgname)"
     pkgcat="$(grep -m1 "|$pkgnameonly|" ~/.packages/Packages-* | cut -f5 -d'|')"
-    pkgsize="$(grep -m1 "|$pkgnameonly|" ~/.packages/Packages-* | cut -f6 -d'|')"
+    pkgsize="$(du "$file" 2>/dev/null | cut -f1)K"
+    [ "$pkgsize" = "" ] && pkgsize="$(grep -m1 "|$pkgnameonly|" ~/.packages/Packages-* | cut -f6 -d'|')"
     pkgdeps="$(grep -m1 "|$pkgnameonly|" ~/.packages/Packages-* | cut -f9 -d'|')"
     # dont include deps if we're adding a combined package + plus deps (they have $CP_SUFFIX in the name)
     [ "$(echo "$filename" | grep "$CP_SUFFIX")" != "" ] && pkgdeps=''
