@@ -1218,30 +1218,91 @@ list_all_sources(){               # return all (or matching) repos (~/.pkg/sourc
   grep -m1 "^$1" ${HOME}/.pkg/sources-all #160213
 }
 
-add_pkg_repo() {                # add a Pkg-created repo, called by add_repo()
+add_pkg_repo() {                  # add a Pkg-created repo, called by add_repo()
   [ ! "$1" ] && return 1
+  mkdir -p /tmp/pkg/
   # this is probably a Pkg created Puppy repo, get info from 'install' file
   rm /tmp/pkg/repo_info &>/dev/null
+
+  # check if the 'install' file we need exists
   wget --no-check-certificate -O "/tmp/pkg/repo_info" -4 "$1" &>/dev/null
-  local RETVAL=$?
-  if [ "$(grep -m1 "^REPONAME" /tmp/pkg/repo_info 2>/dev/null)" != "" ];then
-    # we have a valid repo info file, so convert it into a repo entry for the ~/.pkg/sources[-all] files
-    local repo_entry="$(cat /tmp/pkg/repo_info |  sed -e "s/.*=//g" | tr -d '"' | tr -d "'" | tr '\n' '|' | head -c 1)"
-    if [ "$repo_entry" != "" ];then
-      # add the repo entry
-      local repo_name="$(echo "$repo_entry" | cut -f1 -d'|')"
-      echo "$repo_entry" >> ~/.pkg/sources-all
-      echo "$repo_entry" >> ~/.pkg/sources
-      echo
-      echo -e "${green}Success:${endcolour} repo '${repo_name}' added."
-    else
-      return 1
-    fi
+  if [ ! -f /tmp/pkg/repo_info ];then
+    echo "Error: Repo installer file not downloaded!"
+    return 1
+  elif [ "$(grep -m1 "^REPONAME" /tmp/pkg/repo_info 2>/dev/null)" = "" ];then
+    echo "Error: invalid repo installer file"
+    return 1
   fi
+
+  # build a valid repo entry for the ~/.pkg/sources* files
+  local repo_entry="$(cat /tmp/pkg/repo_info \
+    | sed -e "s/FALLBACKS=''/FALLBACKS='noarch common32'/" -e 's/.*=//g' \
+    | tr -d '"' \
+    | tr -d "'" \
+    | tr '\n' '|' \
+    | head -c -1)"
+
+  if [ "$repo_entry" = "" ];then
+    echo "Error: repo entry not created."
+    return 1
+  fi
+
+  # get repo info
+  local repo_name="$(echo "$repo_entry" | cut -f1 -d'|')"
+  local repo_filename="$(echo "$repo_entry" | cut -f3 -d'|')"
+  local repo_file_url="${1//\/install/}/${repo_filename}"
+
+  # download the repo file
+  wget --no-check-certificate -O "/tmp/pkg/$repo_filename" -4 "$repo_file_url" &>/dev/null
+  if [ ! -f /tmp/pkg/$repo_filename ];then
+    echo "Error: Repo file $repo_filename not downloaded!"
+    return 1
+  fi
+
+  # install the repo file
+  mv /tmp/pkg/$repo_filename ~/.packages/$repo_filename
+  RETVAL=$?
+
+  # if already added to ~/.pkg/sources[-all], remove it
+  if [ "$(cat ~/.pkg/sources     | grep -m1 "^$repo_name|")" != "" ] || \
+     [ "$(cat ~/.pkg/sources-all | grep -m1 "^$repo_name|")" != "" ];then
+    cat ~/.pkg/sources | grep -v "^$repo_name|" > /tmp/pkgsources
+    cat ~/.pkg/sources-all | grep -v "^$repo_name|" > /tmp/pkgsources-all
+    mv /tmp/pkgsources ~/.pkg/sources
+    mv /tmp/pkgsources-all ~/.pkg/sources-all
+  fi
+
+  # add repo entry to ~/.pkg/sources
+  echo
+  add_source "${repo_entry}"
+  echo
+
+  # refresh list of available repos
+  update_sources
+  echo
+  echo "Repo info:"
+  print_repo_info $repo_name
+  echo
+
+  if [ "$(cat ~/.pkg/sources 2>/dev/null | grep -m1 "^$repo_name|")" != "" ];then
+    echo "Success! Repo added and available to use."
+    echo
+    echo "To use this repo, simply type the following and hit ENTER:"
+    echo "  pkg repo $repo_name"
+    echo
+
+    # register as a user installed repo, so we can remove it later (using rm_repo)
+    touch ~/.pkg/sources-user
+    echo "$repo_entry" >> ~/.pkg/sources-user
+    local user_repos="$(sort -u ~/.pkg/sources-user | uniq)"
+    echo "$user_repos" > ~/.pkg/sources-user
+
+  fi
+
   return $RETVAL
 }
 
-add_repo(){                      # easy way to add Ubuntu/Debian/Slackware third-party repos
+add_repo(){                      # easy way to add Pkg/Ubuntu/Debian/Slackware third-party repos
 
   local slack_repo_url
 
@@ -1265,6 +1326,12 @@ add_repo(){                      # easy way to add Ubuntu/Debian/Slackware third
       retval=$?
       if [ $retval -eq 0 ];then
         # register repo, so we know to update it in update_sources()
+        touch ~/.pkg/sources-user
+        echo "$repo_entry" >> ~/.pkg/sources-user
+        local user_repos="$(sort -u ~/.pkg/sources-user | uniq)"
+        echo "$user_repos" > ~/.pkg/sources-user
+
+        # register in a slack supported file too
         mkdir -p /etc/slackpkg/
         touch /etc/slackpkg/mirrors
         echo "$slack_repo_url" >> /etc/slackpkg/mirrors
@@ -1278,11 +1345,10 @@ add_repo(){                      # easy way to add Ubuntu/Debian/Slackware third
       ;;
 
     'ppa:'*|'http://'*|'https://'*)
-
-      wget --quiet --timeout=2 --no-parent --spider "${1}/install"
+      wget --quiet --timeout=2 --no-parent --spider "${1}install"
       REPLY=$?
       if [ "$REPLY" = 0 ];then
-        add_pkg_repo "${1}/install"
+        add_pkg_repo "${1}install"
         exit $?
       fi
 
@@ -1290,6 +1356,12 @@ add_repo(){                      # easy way to add Ubuntu/Debian/Slackware third
       retval=$?
       if [ $retval -eq 0 ];then
         # register repo, so we know to update it in update_sources()
+        touch ~/.pkg/sources-user
+        echo "$repo_entry" >> ~/.pkg/sources-user
+        local user_repos="$(sort -u ~/.pkg/sources-user | uniq)"
+        echo "$user_repos" > ~/.pkg/sources-user
+
+        # register in an apt-supported file too
         mkdir -p /etc/apt/
         touch /etc/apt/sources.list
         echo "deb $@" >> /etc/apt/sources.list
@@ -1323,7 +1395,7 @@ rm_repo(){                       # remove an installed repo
   local repo_url="$(grep "^$1" ~/.pkg/sources-all | cut -f4 -d'|')"
 
   # dont allow removal of 'built in' repos, only user-added repos
-  local matching_user_added_repos="$(grep -m1 -E "$repo_url|${repo_name//*-/}" /etc/apt/sources.list /etc/slackpkg/mirrors 2>/dev/null)"
+  local matching_user_added_repos="$(grep -m1 -E "\|$repo_name\||$repo_url|${repo_name//*-/}" ~/.pkg/sources-user /etc/apt/sources.list /etc/slackpkg/mirrors 2>/dev/null)"
   if [ "${matching_user_added_repos}" = "" ];then
     echo "You can only remove the repositories that you installed yourself."
     echo -e "Use the command  ${bold}pkg repo-list${endcolour}  to see which repos are installed."
@@ -1338,8 +1410,8 @@ rm_repo(){                       # remove an installed repo
   fi
 
   # remove the repo file
-  echo "Removing '$1'"
-  [ -f "/root/.packages/$repo_file" ] && rm -v "/root/.packages/$repo_file"
+  echo "Removing '$1'.. Please wait.."
+  [ -f "/root/.packages/$repo_file" ] && rm "/root/.packages/$repo_file"
 
   # remove from sources
   grep -v "^$1|" ~/.pkg/sources > /tmp/pkg/sources
@@ -1348,12 +1420,15 @@ rm_repo(){                       # remove an installed repo
   [ -f /tmp/pkg/sources     ] && mv /tmp/pkg/sources ~/.pkg/sources
 
   # remove from third-party lists
+  grep -v  "|${repo_url}|"  ~/.pkg/sources-user > /tmp/pkg/sources-user
   grep -vE "$repo_url|${repo_name//*-/}" /etc/apt/sources.list > /tmp/pkg/sources.list
   grep -v  "$repo_url" /etc/slackpkg/mirrors > /tmp/pkg/mirrors
+  [ -f /tmp/pkg/sources-user ] && mv /tmp/pkg/sources-user ~/.pkg/sources-user
   [ -f /tmp/pkg/sources.list ] && mv /tmp/pkg/sources.list /etc/apt/sources.list
   [ -f /tmp/pkg/mirrors ] && mv /tmp/pkg/mirrors /etc/slackpkg/mirrors
 
   if [ "$(repo_list | grep -m1 "^${1}$")" = "" ];then
+    update_sources &>/dev/null
     echo -e "${green}Success${endcolour}: Repo removed."
   fi
 
@@ -6583,13 +6658,13 @@ dir2repo(){           # create a native-Puppy repo from a dir of packages FUNCLI
   fi
 
   echo "Step 1 of 3: CHOOSE A REPO NAME"
-  echo "(something like 'username-repo', such as 'bob-main' or 'sc0ttman-games')"
+  echo "(something like 'distroversion-username-repo', such as 'bionic-bob-main' or 'stretch-sc0ttman-games')"
   echo
   read -e -r -p "Type a repo name and hit ENTER: " repo_name
 
   # rename the repo file to the new name
-  mv "$repo_file" "$repo_file-$repo_name"
-  repo_file="$repo_file-$repo_name"
+  mv "$repo_file"   "${repo_dir}/Packages-${DISTRO_BINARY_COMPAT:-puppy}-$repo_name"
+  repo_file="${repo_dir}/Packages-${DISTRO_BINARY_COMPAT:-puppy}-$repo_name"
 
   # build repo entry
   local repo_entry="$repo_name|$fileext|$repo_file|$repo_url||||$repo_fallbacks"
@@ -6615,8 +6690,8 @@ dir2repo(){           # create a native-Puppy repo from a dir of packages FUNCLI
 
   # create repo installer file in $repo_dir
   echo "REPONAME=$repo_name
-REPOFILE=$(basename $repo_file)
 EX=$fileext
+REPOFILE=$(basename $repo_file)
 URL1=${mirror1}
 URL2=''
 URL3=''
