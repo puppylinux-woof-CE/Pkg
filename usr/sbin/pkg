@@ -6660,7 +6660,8 @@ dir2repo(){           # create a native-Puppy repo from a dir of packages FUNCLI
   echo "Step 1 of 3: CHOOSE A REPO NAME"
   echo "(something like 'distroversion-username-repo', such as 'bionic-bob-main' or 'stretch-sc0ttman-games')"
   echo
-  read -e -r -p "Type a repo name and hit ENTER: " repo_name
+  bash -c 'read -e -r -p "Type a repo name and hit ENTER: " repo_name; echo "$repo_name" > /tmp/pkg/repo_name'
+  repo_name="$(cat /tmp/pkg/repo_name)"
 
   # rename the repo file to the new name
   mv "$repo_file"   "${repo_dir}/Packages-${DISTRO_BINARY_COMPAT:-puppy}-$repo_name"
@@ -6674,14 +6675,19 @@ dir2repo(){           # create a native-Puppy repo from a dir of packages FUNCLI
   echo "Step 2 of 3: ADD THE REPO URL"
   echo "(the full URL where you will upload your repo file and packages)"
   echo
-  read -e -r -i "http://" -p "Type a repo URL and hit ENTER: " mirror1
+  bash -c 'read -e -r -i "http://" -p "Type a repo URL and hit ENTER: " mirror1; echo "$mirror1" > /tmp/pkg/mirror1'
+  mirror1="$(cat /tmp/pkg/mirror1)"
 
   # get fallback repos list
   echo
   echo "Step 3 of 3: ADD FALLBACK REPOS"
   echo "(the other repos to fall back to when looking for dependencies)"
   echo
-  read  -e -r -i "noarch common32" -p "List fallback repos (separated by a space) and hit ENTER: " fallback_repos
+  bash -c 'read  -e -r -i "noarch common32" -p "List fallback repos (separated by a space) and hit ENTER: " fallback_repos; echo "$fallback_repos" > /tmp/pkg/fallback_repos'
+  fallback_repos="$(cat /tmp/pkg/fallback_repos)"
+
+  # remove the tmp files which store user input, they're no longer needed
+  rm /tmp/pkg/repo_name /tmp/pkg/mirror1 /tmp/pkg/fallback_repos
 
   # add a trailing slash to the URL
   if [ "$(echo "${mirror1}" | grep "/$")" = "" ];then
