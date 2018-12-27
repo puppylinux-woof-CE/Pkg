@@ -215,13 +215,13 @@ print_usage(){                    # print usage text. Requires $1, a valid Pkg c
     # show examples, taken from $EXAMPLES, if they exist
     if [ "`echo "$EXAMPLES" | grep "$SELF" | grep "\-$1"`" != '' ];then
       echo -e "\n${bold}Usage Examples${endcolour}:\n"
-      echo -e "$EXAMPLES" | grep "$SELF" | grep "\-$1"
+      echo -e "$EXAMPLES" | grep "$SELF " | grep "$1 "
     fi
   else
     echo -e "Usage: ${bold}$SELF usage CMD${endcolour}"
     echo
     echo "Commands:"
-    echo -e "add-repo     get-only         repo-convert
+    echo -e "add-repo       get-only         repo-convert
 add-source     help             repo-dep-scope
 all-pkgs       help-all         repo-file-list
 add            remove           repo-info
