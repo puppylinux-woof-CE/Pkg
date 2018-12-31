@@ -161,13 +161,18 @@ do
     continue
   fi
 
-
   # if we didn't get the name from the ppa:foo/bar style URL
   if [[ ! "$1" =~ 'ppa:' ]]
   then
+
+    # check if this repo is already installed (find its name in Pkg sources files)
+    PPA_NAME="$(grep -m1 "^${distro_ver}-${stream:-main}|" /root/.pkg/sources-all | cut -f1 -d'|' 2>/dev/null)"
+
     # get repo name and filename
-    echo
-    read -e -p "Enter a repo name, such as '${distro_ver}-${stream:-main}':  " -i "${distro_ver}-${stream:-main}" PPA_NAME
+    if [ "$PPA_NAME" = "" ];then
+      echo
+      read -e -p "Enter a repo name, such as '${distro_ver}-${stream:-main}':  " -i "${distro_ver}-${stream:-main}" PPA_NAME
+    fi
     # replace any spaces or underscores with dashes, all lower case
     PPA_NAME="$( echo "${PPA_NAME// /-}" | tr '_' '-' | tr '[:upper:]' '[:lower:]' )"
 
