@@ -1597,7 +1597,20 @@ update_repo(){                    # update the current repo from a file stored o
         if [ "$(echo $slack_repo_url | grep '/$')" = '' ];then
           slack_repo_url="${slack_repo_url}/"
         fi
-        slack2pup "${slack_repo_url}/PACKAGES.TXT"
+
+        local slack_repo_name=$(cat ~/.pkg/sources-all | grep -m1 $slack_repo_url | cut -f1 -d'|')
+
+        echo
+        echo "Processing:  $slack_repo_name"
+
+        # ask user to update repo
+        bash -c 'read -r -N 1 -p "Update repo from '"$slack_repo_url"'? [y/n] " ANSWER; echo $ANSWER > /tmp/pkg/ANSWER'
+
+        ANSWER="$(cat /tmp/pkg/ANSWER)"
+        if [ "$ANSWER" = 'y' ] || [ "$ANSWER" = 'Y' ];then
+          echo
+          slack2pup "${slack_repo_url}/PACKAGES.TXT" $slack_repo_name
+        fi
       done
     fi
   fi

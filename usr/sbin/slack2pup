@@ -51,8 +51,13 @@ fi
 
 echo "Found URL:"
 echo
-echo "  $1"
+echo "  ${1}"
 
+
+# we may have been given as repo name ($2)
+if [ "$2" != "" ];then
+  repo_name="$2"
+fi
 
 while [ "$repo_name" = "" ]
 do
@@ -65,15 +70,24 @@ done
 # replace any spaces or underscores with dashes, all lower case
 repo_name="$( echo "${repo_name// /-}" | tr '_' '-' | tr '[:upper:]' '[:lower:]' )"
 
-echo
-read -e -p 'Enter a repo file name: ' -i "Packages-slackware-$repo_name" repo_filename
-
-# replace any spaces or underscores with dashes, all lower case
-repo_filename="$( echo "${repo_filename// /-}" | tr '_' '-' )"
+# if this repo is already added (its being updated), then we can get the repo filename
+repo_filename="$(cat ~/.pkg/sources-all | grep -m1 "^$repo_name|" | cut -f3 -d'|')"
 
 if [ "$DISTRO_BINARY_COMPAT" = "slackware" ];then
   slackware_version=$DISTRO_FILE_PREFIX
 else
+  slackware_version="$(cat /root/.packages/$repo_filename | head -1 | cut -f12 -d'|')"
+fi
+
+# if we dont have a repo filename in ~/.pkg/sources-all, ask for one
+if [ "$(echo $repo_filename | grep '^Packages')" = "" ];then
+  echo
+  read -e -p 'Enter a repo file name: ' -i "Packages-slackware-$repo_name" repo_filename
+
+  # replace any spaces or underscores with dashes, all lower case
+  repo_filename="$( echo "${repo_filename// /-}" | tr '_' '-' )"
+
+  # also ask for a slackware version
   while [ "$slackware_version" = "" ]
   do
     echo
@@ -211,6 +225,7 @@ mv /tmp/slackrepo /root/.packages/$repo_filename
 repo_url="${1//PACKAGES.TXT.gz/}"
 repo_url="${repo_url//\/.gz/}"
 repo_url="${repo_url//.gz\//}"
+repo_url="${repo_url//\/PACKAGES.TXT/}"
 repo_url="${repo_url//PACKAGES.TXT/}"
 
 # add trailing slash, if needed
