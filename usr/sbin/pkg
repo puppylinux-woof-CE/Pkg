@@ -1235,6 +1235,7 @@ add_pkg_repo() {                  # add a Pkg-created repo, called by add_repo()
   fi
 
   # build a valid repo entry for the ~/.pkg/sources* files
+  # (must have some fallbacks, strip quotes, newlines, no trailing pipes)
   local repo_entry="$(cat /tmp/pkg/repo_info \
     | sed -e "s/FALLBACKS=''/FALLBACKS='noarch common32'/" -e 's/.*=//g' \
     | tr -d '"' \

@@ -312,7 +312,7 @@ do
   echo "Success! File created."
   echo
 
-  fallback_repos="$(pkg repo-list | tr '\n' ' ')"
+  fallback_repos="$(pkg repo-list | grep -v $repo_name | tr '\n' ' ')"
   repo_entry="$repo_name|deb|$repo_filename|$repo_url||||$fallback_repos"
 
 

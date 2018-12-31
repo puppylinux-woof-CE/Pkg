@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/ash
 
 # slack2pup
 # convert a Slackware PACKAGES.TXT repo file, into a Puppy compatible repo file.
@@ -16,10 +16,8 @@
 #fi
 
 
-if [ "$1" = '-h' ] || [ "$1" = '-help' ] || [ "$1" = '--help' ] || [[ ! "$1" =~ 'http' ]]
-
+if [ "$1" = '-h' ] || [ "$1" = '-help' ] || [ "$1" = '--help' ] || [ "$(echo $1 | grep '^http')" = "" ];
 then
-
   echo "slack2pup - convert Slackware repos to Puppy repo files"
   echo ""
   echo "Usage examples:"
@@ -35,7 +33,7 @@ fi
 rm /tmp/PACKAGES.TXT /tmp/PACKAGES.TXT.gz &>/dev/null
 
 output_file="/tmp/PACKAGES.TXT"
-if [[ "$1" =~ "PACKAGES.TXT.gz" ]];then
+if [ "$(echo $1 | grep 'PACKAGES.TXT.gz')" != "" ];then
   output_file="/tmp/PACKAGES.TXT.gz"
 fi
 
@@ -64,7 +62,8 @@ do
   # get repo name and filename
   echo
   echo "Choose a repo name (something like 'fatdog-720', 'alienbob-14.2', etc)"
-  read -e -p 'Enter a repo name: ' -i '' repo_name
+  bash -c 'read -e -p "Enter a repo name: " repo_name; echo $repo_name > /tmp/pkg/repo_name'
+  repo_name=$(cat /tmp/pkg/repo_name)
 done
 
 # replace any spaces or underscores with dashes, all lower case
@@ -82,7 +81,8 @@ fi
 # if we dont have a repo filename in ~/.pkg/sources-all, ask for one
 if [ "$(echo $repo_filename | grep '^Packages')" = "" ];then
   echo
-  read -e -p 'Enter a repo file name: ' -i "Packages-slackware-$repo_name" repo_filename
+  bash -c 'read -e -p "Enter a repo file name: " -i "Packages-slackware-$repo_name" repo_filename; echo $repo_filename > /tmp/pkg/repo_filename'
+  repo_filename=$(cat /tmp/pkg/repo_filename)
 
   # replace any spaces or underscores with dashes, all lower case
   repo_filename="$( echo "${repo_filename// /-}" | tr '_' '-' )"
@@ -91,7 +91,8 @@ if [ "$(echo $repo_filename | grep '^Packages')" = "" ];then
   while [ "$slackware_version" = "" ]
   do
     echo
-    read -e -p 'Enter the compatible Slackware version (14.0, 14.2, etc): ' slackware_version
+    bash -c 'read -e -p "Enter the compatible Slackware version (14.0, 14.2, etc): " slackware_version; echo $slackware_version > /tmp/pkg/slackware_version'
+    slackware_version=$(cat /tmp/pkg/slackware_version)
   done
 fi
 
@@ -233,7 +234,7 @@ if [ "$(echo "$repo_url" | grep -m1 "/$")" = '' ];then
   repo_url="${repo_url}/"
 fi
 # create the repo entry for ~/.pkg/sources
-fallback_repos="$(pkg repo-list | tr '\n' ' ')"
+fallback_repos="$(pkg repo-list | grep -v $repo_name | tr '\n' ' ')"
 
 repo_entry="$repo_name|$pkg_ext|$repo_filename|$repo_url||||$fallback_repos"
 
