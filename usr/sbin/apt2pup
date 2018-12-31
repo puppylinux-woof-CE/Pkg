@@ -45,7 +45,6 @@ apt_sources_list="$(grep -h '^deb ' /etc/apt/sources.list /etc/apt/sources.list.
     -e 's/ /|/g'\
 )"
 
-echo "Repos to process:"
 echo
 echo "${apt_sources_list//|/ }"
 
@@ -57,7 +56,6 @@ do
   [ "$line" = "\n" ] && continue
   echo
   echo "Processing:  ${line//|/ }"
-  echo
 
   # ask user to update repo
   read -r -N 1 -p "Update repo from '$(echo ${line//|/ } | cut -f1 -d' ')'? [y/n] " ANSWER

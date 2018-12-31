@@ -1569,16 +1569,29 @@ update_repo(){                    # update the current repo from a file stored o
     exit 2
   fi
 
-  # also update the third-party repos.. These repos comes 'from source',
+  echo
+  echo "Updating third-party repos.. This may take a while, and "
+  echo "you may be asked to confirm the update."
+  echo
+
+  # update Pkg created, user-added (third-party) repos
+  if [ -f ~/.pkg/sources-user ];then
+    pkg_repos="$(sort -u ~/.pkg/sources-user | grep -v ^$ | uniq | cut -f1 -d'|')"
+    for pkg_repo in $pkg_repos
+    do
+      pkg_repo_url="$(cat ~/.pkg/sources-user | grep -m1 "^$pkg_repo|" | cut -f4 -d'|')"
+      add_pkg_repo ${pkg_repo_url}install 1>/dev/null && echo "Updated '$pkg_repo'"
+      echo
+    done
+  fi
+
+  # Now update third-party non-native repos.. These repos comes 'from source',
   # and are not in native Puppy format - they need to be downloaded, converted
   # into the Puppy format, then installed... so this will be slow..
   if [ -f /etc/apt/sources.list ] || [ -f /etc/slackpkg/mirrors ];then
-    echo
-    echo "Updating third-party repos.. This may take a while, and "
-    echo "you may be asked to confirm the update."
-    echo
 
     # update third-party Ubuntu/Debian repos
+    echo "Debian/Ubuntu/PPA Repos to process:"
     [ -x /usr/sbin/apt2pup ] && apt2pup
 
     # update third-party Slackware repos
@@ -1609,11 +1622,17 @@ update_repo(){                    # update the current repo from a file stored o
         ANSWER="$(cat /tmp/pkg/ANSWER)"
         if [ "$ANSWER" = 'y' ] || [ "$ANSWER" = 'Y' ];then
           echo
-          slack2pup "${slack_repo_url}/PACKAGES.TXT" $slack_repo_name
+          echo "Please wait..."
+          slack2pup "${slack_repo_url}/PACKAGES.TXT" $slack_repo_name 1>/dev/null && echo -e "\nUpdated $slack_repo_name"
         fi
       done
     fi
   fi
+  echo
+  echo
+  echo -------------------------------
+  echo "Repo update(s) successful"
+  echo
   exit 0
 
 }
