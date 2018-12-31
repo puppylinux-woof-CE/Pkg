@@ -386,14 +386,14 @@ get_pkg_name_only_from_ext(){     # for ubuntu/debian/etc pkg naming
      PKGNAME_ONLY="`echo -n "$pkg_name" | cut -f 1 -d '_'`"
      DB_pkgrelease="`echo -n "$pkg_name" | rev | cut -f 2 -d '_' | cut -f 1 -d '-' | rev`"
      prPATTERN="s%\\-${DB_pkgrelease}.*%%"
-     PKGNAME="`echo -n "$pkg_name" | sed -e "$prPATTERN"`"
+     PKGNAME="`echo -n "$pkg_name" | sed -e "$prPATTERN" 2>/dev/null`"
     ;;
     pet)
      PKGNAME="$pkg_name"
      DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\-%%'`"
      xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
      xPATTERN="s%${xDB_version}%%"
-     PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\\-$%%'`"
+     PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\\-$%%' 2>/dev/null`"
     ;;
     tgz|txz)
      #slack ex: xvidtune-1.0.1-i486-1.tgz  printproto-1.0.4-noarch-1.tgz
@@ -401,7 +401,7 @@ get_pkg_name_only_from_ext(){     # for ubuntu/debian/etc pkg naming
      DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\\-%%'`"
      xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
      xPATTERN="s%${xDB_version}%%"
-     PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\-$%%'`"
+     PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\-$%%' 2>/dev/null`"
     ;;
     tar.gz)
      #arch ex: xproto-7.0.14-1-i686.pkg.tar.gz  trapproto-3.4.3-1.pkg.tar.gz
@@ -409,7 +409,7 @@ get_pkg_name_only_from_ext(){     # for ubuntu/debian/etc pkg naming
      DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\\-%%'`"
      xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
      xPATTERN="s%${xDB_version}%%"
-     PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\\-$%%'`"
+     PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\\-$%%' 2>/dev/null`"
     ;;
     rpm) #110523
      #exs: hunspell-fr-3.4-1.1.el6.noarch.rpm
@@ -417,7 +417,7 @@ get_pkg_name_only_from_ext(){     # for ubuntu/debian/etc pkg naming
      DB_version="`echo -n "$PKGNAME" | grep -o '\\-[0-9].*' | sed -e 's%^\-%%'`"
      xDB_version="`echo -n "$DB_version" | sed -e 's%\\-%\\\\-%g' -e 's%\\.%\\\\.%g'`"
      xPATTERN="s%${xDB_version}%%"
-     PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\\-$%%'`"
+     PKGNAME_ONLY="`echo -n "$PKGNAME" | sed -e "$xPATTERN" -e 's%\\-$%%' 2>/dev/null`"
     ;;
   esac
   [ "$PKGNAME_ONLY" != '' ] && echo $PKGNAME_ONLY || echo "$1"
@@ -441,9 +441,9 @@ get_pkg_name_only(){              # return pkg name only, no version or suffix F
   local repo_ext=$EX      # from $PKGRC
 
   # check the repos
-  local pkg_name_only="`grep -m1 "|${1}|" ${HOME}/.packages/Packages-* | cut -f2 -d'|'`"
-  [ "$pkg_name_only" = '' ] && pkg_name_only="`grep -m1 "^${1}|" ${HOME}/.packages/Packages-* | cut -f2 -d'|' | head -1`"
-  [ "$pkg_name_only" = '' ] && pkg_name_only="`grep -m1 "|${1}.${pkg_ext}|" ${HOME}/.packages/Packages-* | cut -f2 -d'|' | head -1`"
+  local pkg_name_only="`grep -m1 "|${1}|" ${HOME}/.packages/Packages-* 2>/dev/null | cut -f2 -d'|'`"
+  [ "$pkg_name_only" = '' ] && pkg_name_only="`grep -m1 "^${1}|" ${HOME}/.packages/Packages-* 2>/dev/null | cut -f2 -d'|' | head -1`"
+  [ "$pkg_name_only" = '' ] && pkg_name_only="`grep -m1 "|${1}.${pkg_ext}|" ${HOME}/.packages/Packages-* 2>/dev/null | cut -f2 -d'|' | head -1`"
 
   pkg_name_only=${pkg_name_only// */}
 
@@ -455,7 +455,7 @@ get_pkg_name_only(){              # return pkg name only, no version or suffix F
 
   # if not, but we have an extension, try  get_pkg_name_only_from_ext()
   case $DISTRO_BINARY_COMPAT in ubuntu|trisquel|debian|devuan)
-    name_only=`get_pkg_name_only_from_ext "$(basename "${1}.${repo_ext}")" | head -1`
+    name_only=`get_pkg_name_only_from_ext "$(basename "${1}.${repo_ext}")"| head -1`
     name_only=${name_only// */}
     [ "$name_only" != '' -a "$name_only" != "$1" ] && echo $name_only && return 0
     ;;
@@ -3446,11 +3446,10 @@ pkg_install(){                   # install a downloaded package FUNCLIST
   pkg_ext=`get_pkg_ext "$1"`
   # get pkg name only, no extension or path
   PKGNAME="$(basename "$1" .$pkg_ext)"
-  # get name without version
-  PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
-
   # exit if no valid option
   [ "$PKGNAME" = '' ] && print_usage install && exit 1
+  # get name without version
+  PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
 
   [ "`is_installed_pkg "$PKGNAME"`" = true -a "$FORCE" = false ] && echo "Already installed: $PKGNAME" && return 1
   [ "`is_blacklisted_pkg "$PKGNAME_ONLY"`" = true ] && echo "Blacklisted package: $PKGNAME" && return 1
@@ -3460,15 +3459,15 @@ pkg_install(){                   # install a downloaded package FUNCLIST
     PKGNAME=`basename "$1" .$pkg_ext`
   else
     # get the real file name (inc path) from the given PKGFILE and pkg_ext (which may be empty)
-    PKGFILE=`find "$CURDIR" -maxdepth 1 -type f -name "${PKGNAME}*${pkg_ext}" | head -1`
-    [ ! -f "$PKGFILE" ] && PKGFILE=`find "$CURDIR" -maxdepth 1 -type f -name "${PKGNAME}*${EX}" | grep -m1 $EX`
+    PKGFILE=`find "$CURDIR" -mount -maxdepth 1 -type f -name "${PKGNAME}*${pkg_ext}" | head -1`
+    [ ! -f "$PKGFILE" ] && PKGFILE=`find "$CURDIR" -mount -maxdepth 1 -type f -name "${PKGNAME}*${EX}" | grep -m1 $EX`
     [ -f "$PKGFILE" ] && PKGNAME=`basename "$1" .$pkg_ext`
   fi
 
   # maybe the file is not in the current dir, but in WORKDIR, so lets look there too
   if [ ! -f "$PKGFILE" ];then
-    PKGFILE=`find "$WORKDIR" -maxdepth 1 -type f -name "${PKGNAME}*${pkg_ext}" | head -1`
-    [ ! -f "$PKGFILE" ] && PKGFILE=`find "$WORKDIR" -maxdepth 1 -type f -name "${PKGNAME}*${EX}" | grep -m1 $EX`
+    PKGFILE=`find "$WORKDIR" -mount -maxdepth 1 -type f -name "${PKGNAME}*${pkg_ext}" | head -1`
+    [ ! -f "$PKGFILE" ] && PKGFILE=`find "$WORKDIR" -mount -maxdepth 1 -type f -name "${PKGNAME}*${EX}" | grep -m1 $EX`
 
     # if we found the file in WORKDIR, make that our CURDIR
     if [ -f "$PKGFILE" ];then
@@ -3477,7 +3476,7 @@ pkg_install(){                   # install a downloaded package FUNCLIST
       cd "$WORKDIR"
     else
       # if we still didn't find it, do a broader check
-      PKGFILE=`find "$WORKDIR" -maxdepth 1 -type f -name "${PKGNAME}*" | head -1`
+      PKGFILE=`find "$WORKDIR" -mount -maxdepth 1 -type f -name "${PKGNAME}*" | head -1`
       if [ -f "$PKGFILE" ];then
         PKGNAME=`basename "$PKGFILE" .$pkg_ext`
         CURDIR="$WORKDIR"
@@ -3535,7 +3534,7 @@ pkg_install(){                   # install a downloaded package FUNCLIST
       case "$pkg_ext" in
 
         pet)
-          PKGFILE="`find ${CURDIR} -type f -name "${PKGNAME}*.pet"`"
+          PKGFILE="`find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.pet"`"
           #determine the compression, extend test to 'XZ'
           file -b "${PKGFILE}" | grep -i -q "^xz" && TAREXT=xz || TAREXT=gz
           [ "$TAREXT" = 'xz' ] && taropts='-xJf' || taropts='-zxf'
@@ -3566,8 +3565,8 @@ pkg_install(){                   # install a downloaded package FUNCLIST
         ;;
 
         sfs)
-          PKGFILE="`find ${CURDIR} -type f -name "${PKGNAME}*.sfs"`"
-          [ ! -f "$PKGFILE" ] && PKGFILE="`find ${WORKDIR} -type f -name "${PKGNAME}*.sfs"`"
+          PKGFILE="`find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.sfs"`"
+          [ ! -f "$PKGFILE" ] && PKGFILE="`find ${WORKDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.sfs"`"
           echo sfs_loadr -q --cli +"$PKGFILE" #2>/dev/null
           sfs_loadr -q --cli +"$PKGFILE" #2>/dev/null
           rm -f $HOME/.packages/${PKGNAME}.files 2>/dev/null
@@ -3584,12 +3583,17 @@ pkg_install(){                   # install a downloaded package FUNCLIST
 
           rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
           mkdir -p "${CURDIR}/${PKGNAME}"
-          [ ! -f "$PKGFILE" ] && PKGFILE="`find ${CURDIR} -type f -name "${PKGNAME}*.deb"`"
+          [ ! -f "$PKGFILE" ] && PKGFILE="`find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.deb"`"
           cp "${PKGFILE}" "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" || exit 4
           cd "${CURDIR}/${PKGNAME}/"
 
           if [ -f "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" ];then
-            dpkg-deb --contents "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" | grep -v '/$' | tr -s ' ' | cut -f6 -d' ' | sed -e 's/^.//g' | grep -v '^$' > $HOME/.packages/${PKGNAME}.files
+            dpkg-deb --contents "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" \
+              | grep -v '/$' \
+              | tr -s ' ' \
+              | cut -f6 -d' ' \
+              | sed -e 's/^.//g' 2>/dev/null \
+              | grep -v '^$' > $HOME/.packages/${PKGNAME}.files
           fi
 
 					# woofce: NO_MULTIARCH_SYMLINK=1 (DISTRO_SPECS)
@@ -3600,18 +3604,18 @@ pkg_install(){                   # install a downloaded package FUNCLIST
 
 						# Workaround to avoid overwriting the $DISTRO_ARCHDIR symlink.
 						if [ "$DISTRO_ARCHDIR" != "" -a -f $HOME/.packages/${PKGNAME}.files -a "$pkg_has_archdir" != "" ]; then
-						   mkdir -p /tmp/$PKGNAME
-						   rm -rf /tmp/$PKGNAME/*
-						   dpkg-deb -x ${CURDIR}/${PKGNAME}.deb /tmp/$PKGNAME/ 2> $TMPDIR/$SELF-cp-errlog
-						   for f in $(find /tmp/$PKGNAME \( -type f -o -type l \))
-						   do
-							 xpath=$(echo "$f" |  cut  -f 4-30 -d "/" | sed "s/$DISTRO_ARCHDIR\///")
-							 mkdir -p ${DIRECTSAVEPATH}/$(dirname "$xpath")
-							 cp -a "$f" ${DIRECTSAVEPATH}/$(dirname "$xpath")/
+						  mkdir -p /tmp/$PKGNAME
+						  rm -rf /tmp/$PKGNAME/*
+						  dpkg-deb -x ${CURDIR}/${PKGNAME}.deb /tmp/$PKGNAME/ 2> $TMPDIR/$SELF-cp-errlog
+						  for f in $(find /tmp/$PKGNAME \( -type f -o -type l \))
+						  do
+							  xpath=$(echo "$f" |  cut  -f 4-30 -d "/" | sed "s/$DISTRO_ARCHDIR\///")
+							  mkdir -p ${DIRECTSAVEPATH}/$(dirname "$xpath")
+							  cp -a "$f" ${DIRECTSAVEPATH}/$(dirname "$xpath")/
 						  done
 						  rm -rf /tmp/$PKGNAME &>/dev/null
 						else
-						   dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
+						  dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
 						fi
  					else
 						dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
@@ -3643,7 +3647,7 @@ pkg_install(){                   # install a downloaded package FUNCLIST
         *tlz|*tar.lzma)
           rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
           mkdir -p "${CURDIR}/${PKGNAME}"
-          PKGFILE="`find ${CURDIR} -type f -name "${PKGNAME}*.${pkg_ext}"`"
+          PKGFILE="`find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.${pkg_ext}"`"
           cp "$PKGFILE" "${CURDIR}/${PKGNAME}/`basename $PKGFILE`" || exit 4
           cd "${CURDIR}/${PKGNAME}/"
 
@@ -3656,7 +3660,7 @@ pkg_install(){                   # install a downloaded package FUNCLIST
         *tgz|*txz|*tar.gz|*tar.xz|*xz|*gz)
           rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
           mkdir -p "${CURDIR}/${PKGNAME}"
-          PKGFILE="`find ${CURDIR} -type f -name "${PKGNAME}*.${pkg_ext}"`"
+          PKGFILE="`find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.${pkg_ext}"`"
           cp "$PKGFILE" "${CURDIR}/${PKGNAME}/`basename $PKGFILE`" || exit 4
           cd "${CURDIR}/${PKGNAME}/"
 
@@ -3727,11 +3731,11 @@ pkg_install(){                   # install a downloaded package FUNCLIST
 
       # move the *.files to $HOME/.packages
       FILES=''
-      FILES="`find "$CURDIR" -iname "*.files" | head -1`"
+      FILES="`find "$CURDIR" -mount -maxdepth 1 -iname "*.files" | head -1`"
       [ -f "`echo $FILES`" ] && mv "$FILES" "${HOME}/.packages/" 2>/dev/null #260713
 
       #pkgname.files may need to be fixed...
-      cat ${HOME}/.packages/${PKGNAME}.files | grep -v '/$' | sed -e 's%^\\.%%' -e 's%^%/%' -e 's%^//%/%' > ${HOME}/.packages/${PKGNAME}.files2
+      cat ${HOME}/.packages/${PKGNAME}.files | grep -v '/$' | sed -e 's%^\\.%%' -e 's%^%/%' -e 's%^//%/%' 2>/dev/null > ${HOME}/.packages/${PKGNAME}.files2
       mv ${HOME}/.packages/${PKGNAME}.files2 ${HOME}/.packages/${PKGNAME}.files
 
       sort -u $HOME/.packages/${PKGNAME}.files > $HOME/.packages/${PKGNAME}.files2
@@ -4032,60 +4036,60 @@ pkg_install(){                   # install a downloaded package FUNCLIST
 
 
 postinstall_hacks(){             # fix pkgs after installation
-local PKGNAME="$1"
-local PKGNAME_ONLY="$2"
+  local PKGNAME="$1"
+  local PKGNAME_ONLY="$2"
 
-# remove %u, %U, %f (etc) from Exec lines
-DESKTOPFILE="`find /usr/share/applications -iname "${PKGNAME_ONLY}*.desktop"`"
-[ -f "$DESKTOPFILE" ] && \
-  sed -i 's/ %u//' $DESKTOPFILE && \
-  sed -i 's/ %U//' $DESKTOPFILE && \
-  sed -i 's/ %f//' $DESKTOPFILE && \
-  sed -i 's/ %F//' $DESKTOPFILE
+  # remove %u, %U, %f (etc) from Exec lines
+  DESKTOPFILE="`find /usr/share/applications -iname "${PKGNAME_ONLY}*.desktop"`"
+  [ -f "$DESKTOPFILE" ] && \
+    sed -i 's/ %u//' $DESKTOPFILE && \
+    sed -i 's/ %U//' $DESKTOPFILE && \
+    sed -i 's/ %f//' $DESKTOPFILE && \
+    sed -i 's/ %F//' $DESKTOPFILE
 
-case $PKGNAME in
- 0ad-*|0ad_*)
-  bbe -e 's/geteuid/getppid/' /usr/games/pyrogenesis > /usr/games/pyrogenesis1 2>/dev/null
-  mv /usr/games/pyrogenesis1 /usr/games/pyrogenesis
-  chmod 755 /usr/games/pyrogenesis
- ;;
- openclonk-*|openclonk_*)
-  bbe -e 's/geteuid/getppid/' /usr/games/openclonk > /usr/games/openclonk1 2>/dev/null
-  mv /usr/games/openclonk1 /usr/games/openclonk
-  chmod 755 /usr/games/openclonk
- ;;
- vlc_*|vlc-*)
-  VLCDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname 'vlc*.desktop'`"
-  [ -f $VLCDESKTOP ] && sed -i 's/ --started-from-file %U//' $VLCDESKTOP
-  [ -f $VLCDESKTOP ] && sed -i 's/ --started-from-file//' $VLCDESKTOP
+  case $PKGNAME in
+   0ad-*|0ad_*)
+    bbe -e 's/geteuid/getppid/' /usr/games/pyrogenesis > /usr/games/pyrogenesis1 2>/dev/null
+    mv /usr/games/pyrogenesis1 /usr/games/pyrogenesis
+    chmod 755 /usr/games/pyrogenesis
+   ;;
+   openclonk-*|openclonk_*)
+    bbe -e 's/geteuid/getppid/' /usr/games/openclonk > /usr/games/openclonk1 2>/dev/null
+    mv /usr/games/openclonk1 /usr/games/openclonk
+    chmod 755 /usr/games/openclonk
+   ;;
+   vlc_*|vlc-*)
+    VLCDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname 'vlc*.desktop'`"
+    [ -f $VLCDESKTOP ] && sed -i 's/ --started-from-file %U//' $VLCDESKTOP
+    [ -f $VLCDESKTOP ] && sed -i 's/ --started-from-file//' $VLCDESKTOP
 
-  #120907 vlc in debian/ubuntu configured to not run as root (it is a pre-compile configure option to enable running as root).
-  #this hack will fix it...
-  #note, this code is also in FIXUPHACK in 'vlc' template.
-  if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
-   if [ -f /usr/bin/vlc  ];then
-     bbe -e 's/geteuid/getppid/' /usr/bin/vlc > /tmp/vlc-temp1
-     mv -f /tmp/vlc-temp1 /usr/bin/vlc
-     chmod 755 /usr/bin/vlc
-   fi
-  fi
- ;;
- google-chrome-*) #130221 pemasu. 130224 pemasu: limit cache size...
-  if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
-   if [ -f /opt/google/chrome/chrome  ];then
-  bbe -e 's/geteuid/getppid/' /opt/google/chrome/chrome > /tmp/chrome-temp1
-  mv -f /tmp/chrome-temp1 /opt/google/chrome/chrome
-  chmod 755 /opt/google/chrome/chrome
-  [ -e /usr/bin/google-chrome ] && rm -f /usr/bin/google-chrome
-  echo '#!/bin/sh
-exec /opt/google/chrome/google-chrome --user-data-dir=/root/.config/chrome --disk-cache-size=10000000 --media-cache-size=10000000 "$@"' > /usr/bin/google-chrome
-  chmod 755 /usr/bin/google-chrome
-  ln -s google-chrome /usr/bin/chrome
-  ln -s /opt/google/chrome/product_logo_48.png /usr/share/pixmaps/google-chrome.png
-  ln -s /opt/google/chrome/product_logo_48.png /usr/share/pixmaps/chrome.png
-  CHROMEDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname '*chrome*.desktop'`"
-  if [ "$CHROMEDESKTOP" = "" ];then #precaution.
-   echo '[Desktop Entry]
+    #120907 vlc in debian/ubuntu configured to not run as root (it is a pre-compile configure option to enable running as root).
+    #this hack will fix it...
+    #note, this code is also in FIXUPHACK in 'vlc' template.
+    if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
+     if [ -f /usr/bin/vlc  ];then
+       bbe -e 's/geteuid/getppid/' /usr/bin/vlc > /tmp/vlc-temp1
+       mv -f /tmp/vlc-temp1 /usr/bin/vlc
+       chmod 755 /usr/bin/vlc
+     fi
+    fi
+   ;;
+   google-chrome-*) #130221 pemasu. 130224 pemasu: limit cache size...
+    if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
+     if [ -f /opt/google/chrome/chrome  ];then
+    bbe -e 's/geteuid/getppid/' /opt/google/chrome/chrome > /tmp/chrome-temp1
+    mv -f /tmp/chrome-temp1 /opt/google/chrome/chrome
+    chmod 755 /opt/google/chrome/chrome
+    [ -e /usr/bin/google-chrome ] && rm -f /usr/bin/google-chrome
+    echo '#!/bin/sh
+  exec /opt/google/chrome/google-chrome --user-data-dir=/root/.config/chrome --disk-cache-size=10000000 --media-cache-size=10000000 "$@"' > /usr/bin/google-chrome
+    chmod 755 /usr/bin/google-chrome
+    ln -s google-chrome /usr/bin/chrome
+    ln -s /opt/google/chrome/product_logo_48.png /usr/share/pixmaps/google-chrome.png
+    ln -s /opt/google/chrome/product_logo_48.png /usr/share/pixmaps/chrome.png
+    CHROMEDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname '*chrome*.desktop'`"
+    if [ "$CHROMEDESKTOP" = "" ];then #precaution.
+     echo '[Desktop Entry]
 Encoding=UTF-8
 Version=1.0
 Name=Google Chrome web browser
@@ -4096,24 +4100,24 @@ Terminal=false
 Type=Application
 Icon=google-chrome.png
 Categories=WebBrowser;' > /usr/share/applications/google-chrome.desktop
-  fi
-   fi
-  fi
- ;;
-chromium*) #130221 pemasu. 130224 pemasu: limit cache size...
-  if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
-   if [ -f /usr/lib/chromium/chromium  ];then
-  bbe -e 's/geteuid/getppid/' /usr/lib/chromium/chromium > /tmp/chrome-temp1
-  mv -f /tmp/chrome-temp1 /usr/lib/chromium/chromium
-  chmod 755 /usr/lib/chromium/chromium
-  [ -e /usr/bin/chromium ] && rm -f /usr/bin/chromium
-  echo '#!/bin/sh
-exec /usr/lib/chromium/chromium --user-data-dir=/root/.config/chrome --disk-cache-size=10000000 --media-cache-size=10000000 --audio-buffer-size=2048 "$@"' > /usr/bin/chromium
-  chmod 755 /usr/bin/chromium
-  ln -s /usr/share/icons/hicolor/48x48/apps/chromium.png /usr/share/pixmaps/chromium.png
-  CHROMEDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname '*chromium-br*.desktop'`"
-  if [ "$CHROMEDESKTOP" = "" ];then #precaution.
-   echo '[Desktop Entry]
+    fi
+     fi
+    fi
+   ;;
+  chromium*) #130221 pemasu. 130224 pemasu: limit cache size...
+    if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
+     if [ -f /usr/lib/chromium/chromium  ];then
+    bbe -e 's/geteuid/getppid/' /usr/lib/chromium/chromium > /tmp/chrome-temp1
+    mv -f /tmp/chrome-temp1 /usr/lib/chromium/chromium
+    chmod 755 /usr/lib/chromium/chromium
+    [ -e /usr/bin/chromium ] && rm -f /usr/bin/chromium
+    echo '#!/bin/sh
+  exec /usr/lib/chromium/chromium --user-data-dir=/root/.config/chrome --disk-cache-size=10000000 --media-cache-size=10000000 --audio-buffer-size=2048 "$@"' > /usr/bin/chromium
+    chmod 755 /usr/bin/chromium
+    ln -s /usr/share/icons/hicolor/48x48/apps/chromium.png /usr/share/pixmaps/chromium.png
+    CHROMEDESKTOP="`find /usr/share/applications -mindepth 1 -maxdepth 1 -iname '*chromium-br*.desktop'`"
+    if [ "$CHROMEDESKTOP" = "" ];then #precaution.
+     echo '[Desktop Entry]
 Encoding=UTF-8
 Version=1.0
 Name=Chromium web browser
@@ -4124,91 +4128,91 @@ Terminal=false
 Type=Application
 Icon=chromium.png
 Categories=WebBrowser;' > /usr/share/applications/chromium.desktop
-  fi
-   fi
-  fi
- ;;
- jwm_theme_*)
-  #120924 DejaVu font no good for non-Latin languages...
-  #see also langpack_* pinstall.sh (template is in /usr/share/doc/langpack-template/pinstall.sh, read by momanager).
-  LANGUSER="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
-  case $LANGUSER in
-   zh*|ja*|ko*) #chinese, japanese, korean
-  sed -i -e 's%DejaVu Sans%Sans%' /etc/xdg/templates/_root_*
-  sed -i -e 's%DejaVu Sans%Sans%' /root/.jwm/themes/*-jwmrc
-  sed -i -e 's%DejaVu Sans%Sans%' /root/.jwm/jwmrc-theme
+    fi
+     fi
+    fi
+   ;;
+   jwm_theme_*)
+    #120924 DejaVu font no good for non-Latin languages...
+    #see also langpack_* pinstall.sh (template is in /usr/share/doc/langpack-template/pinstall.sh, read by momanager).
+    LANGUSER="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
+    case $LANGUSER in
+     zh*|ja*|ko*) #chinese, japanese, korean
+    sed -i -e 's%DejaVu Sans%Sans%' /etc/xdg/templates/_root_*
+    sed -i -e 's%DejaVu Sans%Sans%' /root/.jwm/themes/*-jwmrc
+    sed -i -e 's%DejaVu Sans%Sans%' /root/.jwm/jwmrc-theme
+     ;;
+    esac
+    #130326 font size fix for 96 dpi...
+    if [ "$PKGNAME_ONLY" ];then
+     JWMTHEMEFILE="$(grep '^/root/\.jwm/themes/.*-jwmrc$' /root/.packages/${PKGNAME_ONLY}.files | head -n 1)"
+     [ "$JWMTHEMEFILE" ] && hackfontsize "JWMTHEMES='${JWMTHEMEFILE}'"
+    fi
+   ;;
+   openbox*)
+    #120924 DejaVu font no good for non-Latin languages...
+    #see also langpack_* pinstall.sh (template is in /usr/share/doc/langpack-template/pinstall.sh, read by momanager).
+    LANGUSER="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
+    case $LANGUSER in
+     zh*|ja*|ko*) #chinese, japanese, korean
+    sed -i -e 's%DejaVu Sans%Sans%' /etc/xdg/openbox/*.xml
+    sed -i -e 's%DejaVu Sans%Sans%' /root/.config/openbox/*.xml
+     ;;
+    esac
+   ;;
+   gtk_theme_*)
+    #120924 DejaVu font no good for non-Latin languages...
+    #see also langpack_* pinstall.sh (template is in /usr/share/doc/langpack-template/pinstall.sh, read by momanager).
+    LANGUSER="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
+    case $LANGUSER in
+     zh*|ja*|ko*) #chinese, japanese, korean
+    GTKRCFILE="$(find /usr/share/themes -type f -name gtkrc | tr '\n' ' ')"
+    for ONEGTKRC in $GTKRCFILE
+    do
+     sed -i -e 's%DejaVu Sans%Sans%' $ONEGTKRC
+    done
+     ;;
+    esac
+    #130326 font size fix for 96 dpi...
+    if [ "$PKGNAME_ONLY" ];then
+     GTKTHEMEFILE="$(grep '^/usr/share/themes/.*/gtk-2\.0/gtkrc$' /root/.packages/${PKGNAME_ONLY}.files | head -n 1)"
+     [ "$GTKTHEMEFILE" ] && hackfontsize "GTKRCS='${GTKTHEMEFILE}'"
+    fi
+   ;;
+   seamonkey*|firefox*)
+    #120924 DejaVu font no good for non-Latin languages...
+    #see also langpack_* pinstall.sh (template is in /usr/share/doc/langpack-template/pinstall.sh, read by momanager).
+    LANGUSER="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
+    case $LANGUSER in
+     zh*|ja*|ko*) #chinese, japanese, korean
+    MOZFILE="$(find /root/.mozilla -type f -name prefs.js -o -name '*.css' | tr '\n' ' ')"
+    for ONEMOZ in $MOZFILE
+    do
+     sed -i -e 's%DejaVu Sans%Sans%' $ONEMOZ
+    done
+     ;;
+    esac
+   ;;
+   mc_*) #121206 midnight commander
+    #in ubuntu, won't run from the menu. this fixes it...
+    [ -f /usr/share/applications/mc.desktop ] && sed -i -e 's%^Exec=.*%Exec=TERM=xterm mc%' /usr/share/applications/mc.desktop
+   ;;
+   xsane*) #130122
+    #xsane puts up a warning msg at startup if running as root, remove it...
+    #this code is also in file FIXUPHACK in xsane template (in Woof).
+    #WARNING: this may only work for x86 binary.
+    if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
+     if [ -f /usr/bin/xsane  ];then
+    bbe -e 's/\x6b\x00getuid/\x6b\x00getpid/' /usr/bin/xsane > /tmp/xsane-temp1
+    mv -f /tmp/xsane-temp1 /usr/bin/xsane
+    chmod 755 /usr/bin/xsane
+     fi
+    fi
+   ;;
+   kompozer*) #130507
+    [ -f /usr/bin/kompozer ] && [ -d /usr/lib/kompozer ] && sed -i -e 's%^moz_libdir=%export MOZILLA_FIVE_HOME="/usr/lib/kompozer" #BK\nmoz_libdir=%' /usr/bin/kompozer
    ;;
   esac
-  #130326 font size fix for 96 dpi...
-  if [ "$PKGNAME_ONLY" ];then
-   JWMTHEMEFILE="$(grep '^/root/\.jwm/themes/.*-jwmrc$' /root/.packages/${PKGNAME_ONLY}.files | head -n 1)"
-   [ "$JWMTHEMEFILE" ] && hackfontsize "JWMTHEMES='${JWMTHEMEFILE}'"
-  fi
- ;;
- openbox*)
-  #120924 DejaVu font no good for non-Latin languages...
-  #see also langpack_* pinstall.sh (template is in /usr/share/doc/langpack-template/pinstall.sh, read by momanager).
-  LANGUSER="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
-  case $LANGUSER in
-   zh*|ja*|ko*) #chinese, japanese, korean
-  sed -i -e 's%DejaVu Sans%Sans%' /etc/xdg/openbox/*.xml
-  sed -i -e 's%DejaVu Sans%Sans%' /root/.config/openbox/*.xml
-   ;;
-  esac
- ;;
- gtk_theme_*)
-  #120924 DejaVu font no good for non-Latin languages...
-  #see also langpack_* pinstall.sh (template is in /usr/share/doc/langpack-template/pinstall.sh, read by momanager).
-  LANGUSER="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
-  case $LANGUSER in
-   zh*|ja*|ko*) #chinese, japanese, korean
-  GTKRCFILE="$(find /usr/share/themes -type f -name gtkrc | tr '\n' ' ')"
-  for ONEGTKRC in $GTKRCFILE
-  do
-   sed -i -e 's%DejaVu Sans%Sans%' $ONEGTKRC
-  done
-   ;;
-  esac
-  #130326 font size fix for 96 dpi...
-  if [ "$PKGNAME_ONLY" ];then
-   GTKTHEMEFILE="$(grep '^/usr/share/themes/.*/gtk-2\.0/gtkrc$' /root/.packages/${PKGNAME_ONLY}.files | head -n 1)"
-   [ "$GTKTHEMEFILE" ] && hackfontsize "GTKRCS='${GTKTHEMEFILE}'"
-  fi
- ;;
- seamonkey*|firefox*)
-  #120924 DejaVu font no good for non-Latin languages...
-  #see also langpack_* pinstall.sh (template is in /usr/share/doc/langpack-template/pinstall.sh, read by momanager).
-  LANGUSER="`grep '^LANG=' /etc/profile | cut -f 2 -d '=' | cut -f 1 -d ' '`"
-  case $LANGUSER in
-   zh*|ja*|ko*) #chinese, japanese, korean
-  MOZFILE="$(find /root/.mozilla -type f -name prefs.js -o -name '*.css' | tr '\n' ' ')"
-  for ONEMOZ in $MOZFILE
-  do
-   sed -i -e 's%DejaVu Sans%Sans%' $ONEMOZ
-  done
-   ;;
-  esac
- ;;
- mc_*) #121206 midnight commander
-  #in ubuntu, won't run from the menu. this fixes it...
-  [ -f /usr/share/applications/mc.desktop ] && sed -i -e 's%^Exec=.*%Exec=TERM=xterm mc%' /usr/share/applications/mc.desktop
- ;;
- xsane*) #130122
-  #xsane puts up a warning msg at startup if running as root, remove it...
-  #this code is also in file FIXUPHACK in xsane template (in Woof).
-  #WARNING: this may only work for x86 binary.
-  if [ -f /usr/bin/bbe ];then #bbe is a sed-like utility for binary files.
-   if [ -f /usr/bin/xsane  ];then
-  bbe -e 's/\x6b\x00getuid/\x6b\x00getpid/' /usr/bin/xsane > /tmp/xsane-temp1
-  mv -f /tmp/xsane-temp1 /usr/bin/xsane
-  chmod 755 /usr/bin/xsane
-   fi
-  fi
- ;;
- kompozer*) #130507
-  [ -f /usr/bin/kompozer ] && [ -d /usr/lib/kompozer ] && sed -i -e 's%^moz_libdir=%export MOZILLA_FIVE_HOME="/usr/lib/kompozer" #BK\nmoz_libdir=%' /usr/bin/kompozer
- ;;
-esac
 }
 
 
