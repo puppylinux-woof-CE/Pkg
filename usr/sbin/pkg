@@ -1597,7 +1597,7 @@ update_repo(){                    # update the current repo from a file stored o
 
       if [ "$ANSWER" = 'y' ] || [ "$ANSWER" = 'Y' ];then
         echo "Please wait..."
-        add_pkg_repo ${pkg_repo_url}install 1>/dev/null && echo "Updated repo '$pkg_repo'"
+        add_pkg_repo ${pkg_repo_url}install 1>/dev/null && echo -e "${green}Success${endcolour}: Updated repo '$pkg_repo'"
       fi
     done
   fi
@@ -1648,7 +1648,7 @@ update_repo(){                    # update the current repo from a file stored o
 
       if [ "$ANSWER" = 'y' ] || [ "$ANSWER" = 'Y' ];then
         echo "Please wait..."
-        ppa2pup ${line//|/ } 1>/dev/null && echo "Updated repo '$ppa_repo_name'"
+        ppa2pup ${line//|/ } 1>/dev/null && echo -e "${green}Success${endcolour}: Updated repo '$ppa_repo_name'"
         retval=$?
       fi
     done
@@ -1685,15 +1685,12 @@ update_repo(){                    # update the current repo from a file stored o
 
         if [ "$ANSWER" = 'y' ] || [ "$ANSWER" = 'Y' ];then
           echo "Please wait..."
-          slack2pup "${slack_repo_url}/PACKAGES.TXT" $slack_repo_name 1>/dev/null && echo "Updated repo '$slack_repo_name'"
+          slack2pup "${slack_repo_url}/PACKAGES.TXT" $slack_repo_name 1>/dev/null && echo -e "${green}Success${endcolour}: Updated repo '$slack_repo_name'"
         fi
       done
     fi
   fi
 
-  echo
-  echo -------------------------------
-  echo "Repo update(s) successful!"
   echo
   exit 0
 
