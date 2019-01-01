@@ -2710,6 +2710,11 @@ pkg_unpack(){                    # extract (unpack) $1 to current dir
   [ ! -f "$PKGFILE" ] && error "Cant find $1" && exit 6
   [ "$PKGNAME" = '' ] && error "Cant get PKGNAME" && exit 3
 
+  # support overriding the output dir with $2
+  if [ "$2" != "" ];then
+    PKGNAME="$2"
+  fi
+
   # determine compression utility
   case $PKGEXT in
 
@@ -6311,6 +6316,7 @@ dir2pet(){                       # dir to PET, $1 must be valid dir FUNCLIST
 
     # clean up
     rm -f -R $CURDIR/build_pkg/
+    echo
     echo -e "Package ${magenta}${DIR}.pet${endcolour} created."
     echo "The md5sum is: `md5sum ${DIR}.pet | cut -f1 -d' '`."
   else
@@ -6816,6 +6822,94 @@ FALLBACKS='$fallback_repos'" > "${repo_dir}/install"
   echo
 }
 
+merge_pkg(){                # merge the given comma-separated packages
+  # make sure at least 2 packages exist
+
+  [ ! "$1" ] && print_usage merge && exit 1
+  [ "$(echo "$1" |grep ',')" = "" ] && print_usage merge && exit 1
+
+  cd "$WORKDIR" 1>/dev/null
+
+  local PKG_LIST="$(echo "${1}" | tr ',' '\n' | pkg n -)"
+
+  echo "Merging the following packages:"
+  echo
+  echo "${PKG_LIST}" | sed 's/^/  /g'
+  echo
+
+  # get a new package name for the new, merged package
+  local PKGNAME="`get_pkg_name "$(basename "${1//,*/}")" 2>/dev/null`"
+  bash -c 'read -e -r -p "Enter a package name and hit ENTER: " -i "${PKGNAME}_" NEWPKGNAME; echo $NEWPKGNAME > /tmp/pkg/NEWPKGNAME'
+  echo
+  NEWPKGNAME="$(cat /tmp/pkg/NEWPKGNAME)"
+
+  if [ "$NEWPKGNAME" = "" ];then
+    echo "You must give a new package name!"
+    return 1
+  fi
+
+  rm -rf "${NEWPKGNAME}/" &>/dev/null
+  mkdir "${NEWPKGNAME}"
+
+  # remove any old folders
+  rm -rf ${WORKDIR}${NEWPKGNAME}/ &>/dev/null
+
+  # for each package to merge
+  for package in $PKG_LIST
+  do
+
+    # get the package details
+    local PKGNAME="`get_pkg_name "$(basename "$package")" 2>/dev/null`"
+    local PKGNAME_ONLY="`get_pkg_name_only "$PKGNAME" 2>/dev/null`"
+    local PKGEXT="`get_pkg_ext "$PKGNAME"`"
+    local PKGFILE=''
+
+    # download it
+    pkg_download "$PKGNAME"
+
+    # get the downloaded file
+    PKGFILE="$(find $WORKDIR -maxdepth 1 -type f -name "${PKGNAME}*${PKGEXT}")"
+
+    # unpack the downloaded file
+    pkg_unpack "$PKGFILE"
+    PKGDIR="$(find $WORKDIR -maxdepth 1 -type d -name "${PKGNAME}*")"
+
+    # move the unpacked files into our new package dir
+    cp -R "$PKGDIR"/* "$NEWPKGNAME"
+    rm -rf "${PKGDIR}/"
+    rm "${PKGFILE}"
+
+  done
+
+  if [ ! -d "${WORKDIR}/$NEWPKGNAME" ];then
+    echo -e "${red}Error${endcolour}: Dir ${lightblue}${NEWPKGNAME}${endcolour} NOT created!"
+    return 1
+  fi
+
+  echo
+  echo "Package contents:"
+  find "${NEWPKGNAME}/"
+  echo '--------------------------------'
+  echo
+
+  # create the merged PET package
+  dir2pet "${NEWPKGNAME}/" || error "Could not create $NEWPKGNAME} PET file"
+
+  rm -rf "${NEWPKGNAME}/" &>/dev/null
+
+  # get the filename ofthe new PET package
+  NEWPKGFILENAME="$(find ${WORKDIR} -maxdepth 1 -type f -name "${NEWPKGNAME}*.pet")"
+
+  # output messages
+  if [ ! -f "$NEWPKGFILENAME" ];then
+    echo
+    echo -e "${red}Error${endcolour}: Package ${yellow}${NEWPKGFILENAME}${endcolour} NOT created!"
+    return 1
+  fi
+
+  return 0
+}
+
 split_pkg(){                # split packages into dev, doc, nls packages FUNCLIST
 
   # make sure the package exists
@@ -7305,6 +7399,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --pkg-update|-pu|update|pu)         [ ! "$2" ] && pkg_update  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_update "$x";   done;;
       --pkg-combine|-pc|pkg-combine|pc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" -a "$x" != "-" ] && COMBINE2SFS=false pkg_combine "$x"; done;;
       --pkg-split|split)                  [ ! "$2" ] && split_pkg   || for x in $opt; do [ "$x" -a "$x" != "-" ] && split_pkg "$x"; done;;
+      --pkg-merge|merge)                  [ ! "$2" ] && merge_pkg   || merge_pkg "$2";;
       --sfs-combine|-sc|sfs-combine|sc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" -a "$x" != "-" ] && COMBINE2SFS=true  pkg_combine "$x"; done;;
       -PS|PS)                             [ ! "$2" ] && pkg_status  || for x in $opt; do [ "$x" -a "$x" != "-" ] && HIDE_USER_PKGS=false FULL_PKG_STATUS=true pkg_status "$x"; done;; # full pkg status, with sorted deps
 

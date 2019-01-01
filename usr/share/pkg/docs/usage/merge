@@ -1,0 +1,7 @@
+USAGE="Usage: ${bold}pkg merge PKGFILE1,PKGFILE2,..${endcolour}
+
+Merge multiple package files into a single package. The newly
+created package will a .PET package.
+
+PKGFILE1,PKGFILE2 (etc) must be ${bold}comma separated (no spaces)${endcolour}!
+"
