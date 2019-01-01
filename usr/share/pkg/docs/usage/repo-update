@@ -22,7 +22,7 @@ Pkg will then look in the following files for ${bold}third-party${endcolour} (us
 
   $HOME/.pkg/sources-user   <-- Pkg-created repos (created using 'dir2repo' command)
   /etc/slackpkg/mirrors     <-- Slackware repos
-  /etc/apt/sources.list     <-- Apt repos (Ubuntu or Debian, PPA repos)
+  /etc/apt/sources.list     <-- Apt repos (Ubuntu, Debian or PPA repos)
   $HOME/.pkg/sources        <-- lists the repo names, repo files, etc
 
 "
