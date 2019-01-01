@@ -280,7 +280,7 @@ used with each other:
   pkg-combine|pc PKG         build a new package containing PKGNAME + deps
   sfs-combine|sc PKG         build a new SFS file containing PKGNAME + deps
   repack|pr PKG              build a .pet package from an installed package
-  merge PKGNAME1,PKGNAME2,.. merge multiple packages into a single package
+  merge PKGNAME,PKGNAME,..   merge multiple packages into a single package
 
   status|ps|PS PKG           show package status (name, size, deps, etc)
   contents|c PKG             list the contents of a downloaded package
