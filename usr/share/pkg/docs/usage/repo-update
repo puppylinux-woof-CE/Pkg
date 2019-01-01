@@ -14,7 +14,7 @@ MORE INFO:
 Pkg will look in the following files for system (built-in) repos:
 
   $HOME/.pkg/sources        <-- lists ALL SUPPORTED system repos
-  $HOME/.pkg/sources-all    <-- lists AVAIALABLE system repos
+  $HOME/.pkg/sources-all    <-- lists AVAILABLE system repos
 
 (Pkg uses the script '/usr/local/petget/0setup' to update the system repos.)
 
