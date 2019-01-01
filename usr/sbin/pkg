@@ -6838,10 +6838,11 @@ merge_pkg(){                # merge the given comma-separated packages
   echo
 
   if [ "$2" = "--with-deps" ];then
+    echo "Gathering dependencies to include.."
+    echo
     # add deps of pkgs to list of pkgs to merge
     for package in $PKG_LIST
     do
-      echo "Gathering dependencies to include.."
       PKG_LIST="$PKG_LIST $(pkg le $package)"
     done
     PKG_LIST="$(echo "$PKG_LIST" | tr ' ' '\n' | sort -u | uniq)"
@@ -6885,7 +6886,7 @@ merge_pkg(){                # merge the given comma-separated packages
     rm "${PKGFILE}"
 
     # move the unpacked files into our new package dir
-    PKGDIR="$(find $WORKDIR -maxdepth 1 -type d -name "${PKGNAME}*" | grep -v ${NEWPKGNAME})"
+    PKGDIR="$(find . -maxdepth 1 -type d -name "${PKGNAME}*" | grep -v ${NEWPKGNAME})"
     cp -R "$PKGDIR"/* "$NEWPKGNAME"
     rm -rf "${PKGDIR}/"
 
@@ -6905,9 +6906,10 @@ merge_pkg(){                # merge the given comma-separated packages
   # create the merged PET package
   dir2pet "${NEWPKGNAME}/" || error "Could not create $NEWPKGNAME} PET file"
 
-  rm -rf "${NEWPKGNAME}/" &>/dev/null
+  rm -rf "./${NEWPKGNAME}/" &>/dev/null
+  rm -rf "${WORKDIR}/${NEWPKGNAME}/" &>/dev/null
 
-  # get the filename ofthe new PET package
+  # get the filename of the new PET package
   NEWPKGFILENAME="$(find . -maxdepth 1 -type f -name "${NEWPKGNAME}*.pet")"
 
   # output messages
@@ -7409,7 +7411,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --pkg-update|-pu|update|pu)         [ ! "$2" ] && pkg_update  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_update "$x";   done;;
       --pkg-combine|-pc|pkg-combine|pc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" -a "$x" != "-" ] && COMBINE2SFS=false pkg_combine "$x"; done;;
       --pkg-split|split)                  [ ! "$2" ] && split_pkg   || for x in $opt; do [ "$x" -a "$x" != "-" ] && split_pkg "$x"; done;;
-      --pkg-merge|merge)                  [ ! "$2" ] && merge_pkg   || merge_pkg "$2" "$3";;
+      --pkg-merge|merge)                  [ ! "$2" ] && merge_pkg   || merge_pkg "$2" "$3"; exit 0;;
       --sfs-combine|-sc|sfs-combine|sc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" -a "$x" != "-" ] && COMBINE2SFS=true  pkg_combine "$x"; done;;
       -PS|PS)                             [ ! "$2" ] && pkg_status  || for x in $opt; do [ "$x" -a "$x" != "-" ] && HIDE_USER_PKGS=false FULL_PKG_STATUS=true pkg_status "$x"; done;; # full pkg status, with sorted deps
 
