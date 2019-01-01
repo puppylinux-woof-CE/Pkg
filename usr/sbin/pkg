@@ -6830,16 +6830,26 @@ merge_pkg(){                # merge the given comma-separated packages
 
   cd "$WORKDIR" 1>/dev/null
 
-  local PKG_LIST="$(echo "${1}" | tr ',' '\n' | pkg n -)"
+  local PKG_LIST="$(echo "${1}" | tr ',' '\n' | pkg n - | sort -u | uniq)"
 
   echo "Merging the following packages:"
   echo
   echo "${PKG_LIST}" | sed 's/^/  /g'
   echo
 
+  if [ "$2" = "--with-deps" ];then
+    # add deps of pkgs to list of pkgs to merge
+    for package in $PKG_LIST
+    do
+      echo "Gathering dependencies to include.."
+      PKG_LIST="$PKG_LIST $(pkg le $package)"
+    done
+    PKG_LIST="$(echo "$PKG_LIST" | tr ' ' '\n' | sort -u | uniq)"
+  fi
+
   # get a new package name for the new, merged package
   local PKGNAME="`get_pkg_name "$(basename "${1//,*/}")" 2>/dev/null`"
-  bash -c 'read -e -r -p "Enter a package name and hit ENTER: " -i "${PKGNAME}_" NEWPKGNAME; echo $NEWPKGNAME > /tmp/pkg/NEWPKGNAME'
+  bash -c 'read -e -r -p "Enter a package name and hit ENTER: " -i "${PKGNAME}-MERGED" NEWPKGNAME; echo $NEWPKGNAME > /tmp/pkg/NEWPKGNAME'
   echo
   NEWPKGNAME="$(cat /tmp/pkg/NEWPKGNAME)"
 
@@ -6872,12 +6882,12 @@ merge_pkg(){                # merge the given comma-separated packages
 
     # unpack the downloaded file
     pkg_unpack "$PKGFILE"
-    PKGDIR="$(find $WORKDIR -maxdepth 1 -type d -name "${PKGNAME}*")"
+    rm "${PKGFILE}"
 
     # move the unpacked files into our new package dir
+    PKGDIR="$(find $WORKDIR -maxdepth 1 -type d -name "${PKGNAME}*" | grep -v ${NEWPKGNAME})"
     cp -R "$PKGDIR"/* "$NEWPKGNAME"
     rm -rf "${PKGDIR}/"
-    rm "${PKGFILE}"
 
   done
 
@@ -6898,7 +6908,7 @@ merge_pkg(){                # merge the given comma-separated packages
   rm -rf "${NEWPKGNAME}/" &>/dev/null
 
   # get the filename ofthe new PET package
-  NEWPKGFILENAME="$(find ${WORKDIR} -maxdepth 1 -type f -name "${NEWPKGNAME}*.pet")"
+  NEWPKGFILENAME="$(find . -maxdepth 1 -type f -name "${NEWPKGNAME}*.pet")"
 
   # output messages
   if [ ! -f "$NEWPKGFILENAME" ];then
@@ -7399,7 +7409,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --pkg-update|-pu|update|pu)         [ ! "$2" ] && pkg_update  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_update "$x";   done;;
       --pkg-combine|-pc|pkg-combine|pc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" -a "$x" != "-" ] && COMBINE2SFS=false pkg_combine "$x"; done;;
       --pkg-split|split)                  [ ! "$2" ] && split_pkg   || for x in $opt; do [ "$x" -a "$x" != "-" ] && split_pkg "$x"; done;;
-      --pkg-merge|merge)                  [ ! "$2" ] && merge_pkg   || merge_pkg "$2";;
+      --pkg-merge|merge)                  [ ! "$2" ] && merge_pkg   || merge_pkg "$2" "$3";;
       --sfs-combine|-sc|sfs-combine|sc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" -a "$x" != "-" ] && COMBINE2SFS=true  pkg_combine "$x"; done;;
       -PS|PS)                             [ ! "$2" ] && pkg_status  || for x in $opt; do [ "$x" -a "$x" != "-" ] && HIDE_USER_PKGS=false FULL_PKG_STATUS=true pkg_status "$x"; done;; # full pkg status, with sorted deps
 
