@@ -2724,7 +2724,7 @@ pkg_unpack(){                    # extract (unpack) $1 to current dir
       dpkg-deb -x "$PKGFILE" "$PKGNAME"    # extracts main pkg contents
       result=$?
       dpkg-deb -e "$PKGFILE" "$PKGNAME"/DEBIAN # extracts deb control files
-      [ $result -eq 0 ] && echo -e "${green}Success${endcolour}: File ${magenta}`basename $PKGFILE`${endcolour} extracted." || error "Cannot extract $PKGFILE"
+      [ $result -eq 0 ] && echo -e "${green}Extracted${endcolour}: ${magenta}`basename $PKGFILE`${endcolour}" || error -e "${red}Error${endcolour}: Cannot extract $PKGFILE"
       return $result
       ;;
 
@@ -6830,14 +6830,11 @@ merge_pkg(){                # merge the given comma-separated packages
 
   cd "$WORKDIR" 1>/dev/null
 
-  local PKG_LIST="$(echo "${1}" | tr ',' '\n' | pkg n - | sort -u | uniq)"
-
-  echo "Merging the following packages:"
-  echo
-  echo "${PKG_LIST}" | sed 's/^/  /g'
-  echo
+  local PKG_LIST="$(echo "${1}" | tr ',' '\n' | sort -u | uniq)"
+  local SUFFIX=''
 
   if [ "$2" = "--with-deps" ];then
+    SUFFIX="-WITHDEPS"
     echo "Gathering dependencies to include.."
     echo
     # add deps of pkgs to list of pkgs to merge
@@ -6848,9 +6845,14 @@ merge_pkg(){                # merge the given comma-separated packages
     PKG_LIST="$(echo "$PKG_LIST" | tr ' ' '\n' | sort -u | uniq)"
   fi
 
+  echo "Merging the following packages:"
+  echo
+  echo "${PKG_LIST}" | sed 's/^/  /g'
+  echo
+
   # get a new package name for the new, merged package
   local PKGNAME="`get_pkg_name "$(basename "${1//,*/}")" 2>/dev/null`"
-  bash -c 'read -e -r -p "Enter a package name and hit ENTER: " -i "${PKGNAME}-MERGED" NEWPKGNAME; echo $NEWPKGNAME > /tmp/pkg/NEWPKGNAME'
+  bash -c 'read -e -r -p "Enter a package name and hit ENTER: " -i "${PKGNAME}-MERGED${SUFFIX}" NEWPKGNAME; echo $NEWPKGNAME > /tmp/pkg/NEWPKGNAME'
   echo
   NEWPKGNAME="$(cat /tmp/pkg/NEWPKGNAME)"
 
@@ -6875,21 +6877,48 @@ merge_pkg(){                # merge the given comma-separated packages
     local PKGEXT="`get_pkg_ext "$PKGNAME"`"
     local PKGFILE=''
 
+    [ "$PKGNAME" = "" ] && continue
+    [ "$PKGNAME" = " " ] && continue
+    [ "$PKGNAME" = "-" ] && continue
+
     # download it
     pkg_download "$PKGNAME"
 
+    retval=$?
+
+    if [ $retval -eq 1 ];then
+      echo -e "${yellow}Warning${endcolour}: package '$PKGNAME' not downloaded."
+      continue
+    fi
+
     # get the downloaded file
     PKGFILE="$(find $WORKDIR -maxdepth 1 -type f -name "${PKGNAME}*${PKGEXT}")"
+
+    [ ! -f "$PKGFILE" ] && \
+      PKGFILE="$(find $WORKDIR -maxdepth 1 -type f -name "${PKGNAME_ONLY}_*${PKGEXT}")"
+
+    [ ! -f "$PKGFILE" ] && \
+      PKGFILE="$(find $WORKDIR -maxdepth 1 -type f -name "${PKGNAME_ONLY}-*${PKGEXT}")"
+
+    if [ ! -f "$PKGFILE" ];then
+      echo -e "${red}Error${endcolour}: could not find downloaded package '$PKGFILE'"
+      return 1
+    fi
 
     # unpack the downloaded file
     pkg_unpack "$PKGFILE"
     rm "${PKGFILE}"
 
     # move the unpacked files into our new package dir
-    PKGDIR="$(find . -maxdepth 1 -type d -name "${PKGNAME}*" | grep -v ${NEWPKGNAME})"
+    PKGDIR="$(find $WORKDIR -maxdepth 1 -type d -name "${PKGNAME}*" | grep -v ${NEWPKGNAME})"
+
+    if [ ! -d "$PKGDIR" ];then
+      echo -e "${red}Error${endcolour}: could not find extracted package dir '$PKGDIR'"
+      return 1
+    fi
+
     cp -R "$PKGDIR"/* "$NEWPKGNAME"
     rm -rf "${PKGDIR}/"
-
   done
 
   if [ ! -d "${WORKDIR}/$NEWPKGNAME" ];then
