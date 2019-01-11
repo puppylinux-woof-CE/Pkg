@@ -245,7 +245,7 @@ examples       repack           which-repo
 extract        status           rdep-check
 force          update           what-needs
 func-list      workdir          rm-repo
-txz2pet        dir2repo
+txz2pet        dir2repo
 
 Usage: ${bold}$SELF usage CMD${endcolour}"
     #cd /usr/share/pkg/docs/usage/; echo `ls` | fold -w 70 -s
@@ -262,7 +262,7 @@ func_list(){                      # list all functions available in this script 
 }
 
 
-get_pkg_ext(){                    # return file extension of given pkg FUNCLIST
+get_pkg_ext(){                    # return file extension of $1 FUNCLIST
 
   # get valid usage or exit
   [ ! "$1" ] && echo 'Usage: get_pkg_ext PKGNAME' && exit 1
@@ -316,7 +316,7 @@ get_pkg_ext(){                    # return file extension of given pkg FUNCLIST
 }
 
 
-get_pkg_version(){                # returns version of given package ($1) FUNCLIST
+get_pkg_version(){                # returns version of PKGNAME ($1) FUNCLIST
 
   # exit if no pkg given
   [ ! "$1" ] && exit 1
@@ -362,7 +362,7 @@ get_pkg_version(){                # returns version of given package ($1) FUNCLI
 }
 
 
-get_pkg_name_only_from_ext(){     # for ubuntu/debian/etc pkg naming
+get_pkg_name_only_from_ext(){     # return package name from $1 (must include file extension)
 
   # get valid usage or exit
   [ ! "$1" ] && echo 'Usage: get_pkg_name_only_from_ext <PKG_FILENAME>' && exit 1
@@ -424,7 +424,7 @@ get_pkg_name_only_from_ext(){     # for ubuntu/debian/etc pkg naming
 }
 
 
-get_pkg_name_only(){              # return pkg name only, no version or suffix FUNCLIST
+get_pkg_name_only(){              # return pkg name only from $1, with no version or suffix FUNCLIST
 
   # exit if no valid options
   [ ! "$1" ] && exit 1
@@ -520,7 +520,7 @@ get_pkg_name_only(){              # return pkg name only, no version or suffix F
 }
 
 
-get_pkg_name(){                   # return pkg name with version FUNCLIST
+get_pkg_name(){                   # return full pkg name (with version) from $1 FUNCLIST
 
   # get config settings, inc current repo file
   #. ${PKGRC}
@@ -595,7 +595,7 @@ is_blacklisted_pkg(){             # return true if PKGNAME ($1) is blacklisted F
 }
 
 
-is_installed_pkg(){               # takes exact match of pkgname, prints true|false FUNCLIST
+is_installed_pkg(){               # return true if PKGNAME ($1) is installed, else false FUNCLIST
 
   # exit if no valid options
   [ ! "$1" -o "$1" = "-" ] && print_usage pkg-installed && exit 1
@@ -637,7 +637,7 @@ is_installed_pkg(){               # takes exact match of pkgname, prints true|fa
 }
 
 
-is_builtin_pkg (){                # return true if pkg is builtin, else false FUNCLIST
+is_builtin_pkg (){                # return true if $1 is a builtin pkg, else false FUNCLIST
 
   # if $1 is an exact match of a pkg short name,
   # long name or file name in woof-installed-packages,
@@ -671,7 +671,7 @@ is_builtin_pkg (){                # return true if pkg is builtin, else false FU
 }
 
 
-is_devx_pkg (){                   # return true if pkg is in the devx, else false FUNCLIST
+is_devx_pkg (){                   # return true if $1 is a pkg in the devx, else false FUNCLIST
 
   # if $1 is an exact match of a pkg short name,
   # long name or file name in devx-only-installed-packages,
@@ -705,7 +705,7 @@ is_devx_pkg (){                   # return true if pkg is in the devx, else fals
 }
 
 
-is_usr_pkg (){                    # return true if pkg is user installed, else false FUNCLIST
+is_usr_pkg (){                    # return true if $1 is a user installed pkg, else false FUNCLIST
 
   # if $1 is an exact match of a pkg short name,
   # long name or file name in user-installed-packages,
@@ -739,7 +739,7 @@ is_usr_pkg (){                    # return true if pkg is user installed, else f
 }
 
 
-is_repo_pkg (){                   # return true if pkg is in supported repo, else false FUNCLIST
+is_repo_pkg (){                   # return true if $1 is a pkg in a supported repo, else false FUNCLIST
 
   # if $1 is an exact match of a pkg short name,
   # long name or file name in Packages-*-
@@ -784,7 +784,7 @@ is_repo_pkg (){                   # return true if pkg is in supported repo, els
 }
 
 
-is_current_repo_pkg(){            # takes $PKGNAME, returns true or false FUNCLIST
+is_current_repo_pkg(){            # takes $PKGNAME ($1), returns true or false FUNCLIST
 
   # exit if no valid input
   [ ! "$1"  ] && exit 1
@@ -1079,7 +1079,7 @@ show_config(){                    # show config settings from ~/.pkg/pkgrc FUNCL
 
 # repo and source funcs
 
-get_repo_info(){                  # return details of given repo name FUNCLIST
+get_repo_info(){                  # return details of given repo name ($1) FUNCLIST
   [ ! "$1" -o "$1" = "-" ] && print_usage repo-info && exit 1
   REPOLINE="`list_all_sources $1`" #170214 always get latest info, not info from rcfile
 
@@ -1097,7 +1097,7 @@ get_repo_info(){                  # return details of given repo name FUNCLIST
 }
 
 
-set_current_repo(){               # set the current default repo FUNCLIST
+set_current_repo(){               # set the current repo to use, give repo name as $1 FUNCLIST
 
   # print usage if no valid options
   [ ! "$1" -o "$1" = "-" -o "$1" = "-h" -o "$1" = "--help" ] && print_usage repo && exit 1
@@ -1136,7 +1136,7 @@ set_current_repo(){               # set the current default repo FUNCLIST
 }
 
 
-repo_list(){                      # list names of all avail repos FUNCLIST
+repo_list(){                      # list names of all avail repos [optionally matching $1] FUNCLIST
 
   # we need to list these repos in the order defined in the RC file
   # so Pkg can 'fall back' to other repos in that order
@@ -1524,7 +1524,7 @@ add_repo(){                      # add Pkg/Ubuntu/Debian/Slackware third-party r
 }
 
 
-rm_repo(){                       # remove an installed repo FUNCLIST
+rm_repo(){                       # remove an installed repo by name ($1) FUNCLIST
   if [ ! "$1" -o "$1" = "-" -o "$1" = "-h" -o "$1" = "--help" ];then
     print_usage rm_repo
     exit 1
@@ -2041,7 +2041,7 @@ hide_installed_pkgs_from_search_results(){  # hide BUILTIN and installed pkgs fr
 }
 
 
-list_pkg_names(){                # list (matching) pkg names of current repo only FUNCLIST
+list_pkg_names(){                # list pkg names in current repo only ($1 is optional filter) FUNCLIST
 
   # remove any previous searches
   rm $TMPDIR/pkglist* 2>/dev/null
@@ -2098,7 +2098,7 @@ list_pkg_names(){                # list (matching) pkg names of current repo onl
 }
 
 
-list_all_pkg_names(){            # list (matching) pkg names of any repo FUNCLIST
+list_all_pkg_names(){            # list pkg names in any repo  ($1 is optional filter)FUNCLIST
 
   # remove any previous search results
   rm $TMPDIR/pkglist &>/dev/null
@@ -2158,7 +2158,7 @@ list_all_pkg_names(){            # list (matching) pkg names of any repo FUNCLIS
 }
 
 
-list_build_scripts(){            # list available build scripts FUNCLIST
+list_build_scripts(){            # list available build scripts  ($1 is optional filter)FUNCLIST
 
   # get settings from RC file
   . ${PKGRC}
@@ -2192,7 +2192,7 @@ list_build_scripts(){            # list available build scripts FUNCLIST
 }
 
 
-list_downloaded_pkgs(){          # list packages downloaded in WORKDIR
+list_downloaded_pkgs(){          # list packages downloaded in WORKDIR ($1 is optional filter) FUNCLIST
 
   . ${PKGRC}
 
@@ -2234,7 +2234,7 @@ list_downloaded_pkgs(){          # list packages downloaded in WORKDIR
 }
 
 
-list_installed_pkgs(){           # list user installed packages
+list_installed_pkgs(){           # list user installed packages ($1 is optional filter) FUNCLIST
 
   local user_pkgs_list=''
   local builtins_list=''
@@ -2259,7 +2259,7 @@ list_installed_pkgs(){           # list user installed packages
 }
 
 
-list_builtin_pkgs(){             # list builtin packages
+list_builtin_pkgs(){             # lists builtin packages FUNCLIST
 
   local builtins_repo
 
@@ -2270,7 +2270,7 @@ list_builtin_pkgs(){             # list builtin packages
 }
 
 
-search_pkgs(){                   # current repo, show pkg name and desc in columns FUNCLIST
+search_pkgs(){                   # given $1, searches current repo, shows name and desc columns FUNCLIST
 
   local name
   local desc
@@ -2289,7 +2289,7 @@ search_pkgs(){                   # current repo, show pkg name and desc in colum
 }
 
 
-search_fast(){                   # current repo, show pkg names only, case sensitive FUNCLIST
+search_fast(){                   # given $1, searches current repo, show pkg names only, case sensitive FUNCLIST
   local RES
   # get matching pkgs
   RES="`LANG=C grep "$1" ${HOME}/.packages/${REPOFILE} 2>/dev/null | cut -f1 -d'|'`"
@@ -2316,7 +2316,7 @@ search_fast(){                   # current repo, show pkg names only, case sensi
 }
 
 
-search_all_pkgs(){               # all repos, show pkg name and desc in columns FUNCLIST
+search_all_pkgs(){               # given $1, search all repos, show name and desc columns FUNCLIST
 
   local name
   local desc
@@ -2346,7 +2346,7 @@ search_all_pkgs(){               # all repos, show pkg name and desc in columns 
 }
 
 
-search_all_fast(){               # all repos, show pkg names only, case sensitive FUNCLIST
+search_all_fast(){               # given $1, search all repos, show pkg names only, case sensitive FUNCLIST
 
   local RES
   #if bleeding edge enabled, combine into 1 list, so
@@ -2387,7 +2387,7 @@ search_all_fast(){               # all repos, show pkg names only, case sensitiv
 }
 
 
-which_repo(){                    # list matching pkg and its repo, in any repo FUNCLIST
+which_repo(){                    # list repo of given package ($1) FUNCLIST
 
   # if no valid options, quit
   [ ! "$1" -o "$1" = "-" -o "$1" = " " ] && print_usage which-repo && exit 1
@@ -2434,7 +2434,7 @@ which_repo(){                    # list matching pkg and its repo, in any repo F
 }
 
 
-which_pkg(){                     # find out which pkg FILE comes from FUNCLIST
+which_pkg(){                     # find out which pkg FILE ($1) comes from FUNCLIST
 
   # exit if no valid opts
   [ ! "$1" -o "$1" = '-' -o "$1" = '' ] && print_usage which && exit 1
@@ -2570,7 +2570,7 @@ which_pkg(){                     # find out which pkg FILE comes from FUNCLIST
 
 # pkg info funcs
 
-pkg_contents(){                  # list package contents FUNCLIST
+pkg_contents(){                  # list package ($1) contents FUNCLIST
 
   # if no valid options, quit
   [ ! "$1" -o "$1" = "-" -o "$1" = " " ] && print_usage contents && exit 1
@@ -2763,7 +2763,7 @@ pkg_contents(){                  # list package contents FUNCLIST
 }
 
 
-pkg_entry(){                     # show pkg repo entry, each field on a new line FUNCLIST
+pkg_entry(){                     # show pkg ($1) repo entry, each field on a new line FUNCLIST
 
   # exit if no valid opts
   [ ! "$1" -o "$1" = '-' ] && print_usage pkg-entry && exit 1
@@ -2795,7 +2795,7 @@ pkg_entry(){                     # show pkg repo entry, each field on a new line
 }
 
 
-pkg_status(){                    # print package name, status, deps, etc FUNCLIST
+pkg_status(){                    # print package ($1) name, status, deps, etc FUNCLIST
 
   # exit if no valid options
   [ ! "$1" -o "$1" = "-" ] && print_usage pkg-status && exit 1
@@ -3076,7 +3076,7 @@ prepare_petbuild(){              # get 01mickos petbuild system from Git, if nee
 }
 
 
-pkg_build(){                     # builds packages from source (see BUILDTOOL in pkgrc) FUNCLIST
+pkg_build(){                     # build package ($1) from source (see BUILDTOOL in pkgrc) FUNCLIST
 
   # exit if devx not installed
   [ "`which gcc`" = "" ]   && echo "You need the devx SFS installed to compile." && exit 1
@@ -3228,7 +3228,7 @@ pkg_build(){                     # builds packages from source (see BUILDTOOL in
 }
 
 
-pkg_repack(){                    # create package from its *.files list FUNCLIST
+pkg_repack(){                    # create package ($1) from its *.files list FUNCLIST
 
   # exit if no valid options
   [ ! "$1" -o "$1" = "-" ] && print_usage pkg-repack && exit 1
@@ -3292,7 +3292,7 @@ pkg_repack(){                    # create package from its *.files list FUNCLIST
 }
 
 
-pkg_unpack(){                    # extract (unpack) $1 to current dir FUNCLIST
+pkg_unpack(){                    # extract/unpack $1 to current dir FUNCLIST
 
   # exit if not valid usage
   [ ! -f "$1" ] && print_usage unpack && exit 1
@@ -3390,7 +3390,7 @@ pkg_unpack(){                    # extract (unpack) $1 to current dir FUNCLIST
 }
 
 
-pkg_combine(){                   # combine a pkg and deps into one single pkg FUNCLIST
+pkg_combine(){                   # combine a pkg ($1) and deps into one single pkg FUNCLIST
 
   # exit if no valid options
   [ ! "$1" -o "$1" = "-" ] && print_usage pkg-combine && exit 1
@@ -3935,7 +3935,7 @@ merge_pkg(){                     # merge the given comma-separated packages FUNC
 }
 
 
-split_pkg(){                     # split packages into dev, doc, nls packages FUNCLIST
+split_pkg(){                     # split package ($1) into dev, doc, nls packages FUNCLIST
 
   # make sure the package exists
   [ ! "$1" -o ! -f "$1" ] && print_usage split && exit 1
@@ -4108,7 +4108,7 @@ split_pkg(){                     # split packages into dev, doc, nls packages FU
 
 # main pkg funcs
 
-pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
+pkg_download(){                  # download a pkg ($1) to WORKDIR FUNCLIST
 
   # exit if no valid options
   [ ! "$1" -o "$1" = "-" ] && print_usage download && exit 1
@@ -4401,7 +4401,7 @@ pkg_download(){                  # download a pkg to WORKDIR FUNCLIST
 }
 
 
-pkg_install(){                   # install a downloaded package FUNCLIST
+pkg_install(){                   # install downloaded package ($1) FUNCLIST
 
   . ${PKGRC}
 
@@ -5192,7 +5192,7 @@ Categories=WebBrowser;' > /usr/share/applications/chromium.desktop
 }
 
 
-choose_pkg(){                    # choose from a list of matching packages FUNCLIST
+choose_pkg(){                    # given partial name ($1), choose from a list of matching packages FUNCLIST
 
 
   # exit if no valid options
@@ -5322,7 +5322,7 @@ $PKGS"
 }
 
 
-pkg_get(){                       # find, download and install packages and deps FUNCLIST
+pkg_get(){                       # find, download and install $1 and its deps FUNCLIST
 
   # The function `choose_pkg` is run just before this one. It gives us $TMPDIR/USRPKGLIST,
   # which contains a list of packages the user wants to install or download.
@@ -5475,7 +5475,7 @@ pkg_get(){                       # find, download and install packages and deps 
 }
 
 
-pkg_update(){                    # update installed pets, if updates exist in repo FUNCLIST
+pkg_update(){                    # update installed pkgs, $1 is optional filter FUNCLIST
 
   # exit if no valid options
   #[ ! "$1" -o "$1" = "-" ] && print_usage pkg-update && exit 1
@@ -5581,7 +5581,7 @@ pkg_update(){                    # update installed pets, if updates exist in re
 }
 
 
-pkg_uninstall(){                 # remove an installed package FUNCLIST
+pkg_uninstall(){                 # remove an installed package ($1) FUNCLIST
 
   # quit if no valid options
   [ ! "$1" -o "$1" = "-" ] && print_usage uninstall && exit 1
@@ -5782,7 +5782,7 @@ pkg_uninstall(){                 # remove an installed package FUNCLIST
 }
 
 
-pkg_remove(){                    # remove pkg and its leftover deps FUNC_LIST
+pkg_remove(){                    # remove pkg ($1) and its leftover deps FUNC_LIST
 
   # quit if no valid options
   [ ! "$1" -o "$1" = "-" ] && print_usage remove && exit 1
@@ -5941,7 +5941,7 @@ has_deps(){                      # return true if $1 has deps, else false
 }
 
 
-list_deps(){                     # list all deps of PKG, space separated on one line FUNCLIST
+list_deps(){                     # list all deps of PKG ($1), space separated on one line FUNCLIST
   [ "$1" = '' -o "$1" = "-" ] && print_usage list-deps && exit 1
 
   echo true > /tmp/pkg/list_deps_busy
@@ -6091,7 +6091,7 @@ list_deps(){                     # list all deps of PKG, space separated on one 
 }
 
 
-find_deps(){                     # make 2 lists: DEPS_INSTALLED and DEPS_MISSING FUNCLIST
+find_deps(){                     # given a package name ($1), makes 2 lists: DEPS_INSTALLED and DEPS_MISSING FUNCLIST
 
   # This function takes 1 argument: PKGNAME
   #
@@ -6232,7 +6232,7 @@ find_deps(){                     # make 2 lists: DEPS_INSTALLED and DEPS_MISSING
 }
 
 
-get_deps(){                      # find, get and install the deps of pkg FUNCLIST
+get_deps(){                      # find, get and install the deps of pkgname ($1) FUNCLIST
 
   [ -z "$1" -o ! "$1" -o "$1" = "-" ] && print_usage deps && exit 1
 
@@ -6396,7 +6396,7 @@ get_deps(){                      # find, get and install the deps of pkg FUNCLIS
 }
 
 
-pkg_ldd_msg(){                   # prints final dep check msg FUNCLIST
+pkg_ldd_msg(){                   # check given package ($1) for missing deps FUNCLIST
 
   # exit if no valid usage
   [ ! "$1" -o "$1" = "-" ] && print_usage deps-check && exit 1
