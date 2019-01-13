@@ -1082,9 +1082,9 @@ show_config(){                    # show config settings from ~/.pkg/pkgrc FUNCL
 get_repo_info(){                  # return details of given repo name ($1) FUNCLIST
   [ ! "$1" -o "$1" = "-" ] && print_usage repo-info && exit 1
 
-  REPOLINE="`list_all_sources $1`" #170214 always get latest info, not info from rcfile
+  REPOLINE="`list_all_sources $1 | sort -u | uniq`" #170214 always get latest info, not info from rcfile
 
-  # on first run, this might be needed to se the repo correctly
+  # on first run, this might be needed to set the repo correctly
   [ "$REPOLINE" = '' ] && REPOLINE="`list_all_sources noarch`"
 
   REPONAME="`echo $REPOLINE | cut -f1 -d'|'`"
@@ -1413,7 +1413,6 @@ add_pkg_repo() {                  # add a Pkg-created repo, called by add_repo()
   add_source "${repo_entry}"
   echo
 
-
   # refresh list of available repos
   update_sources
   echo
@@ -1637,33 +1636,39 @@ update_sources(){                 # create the list of available repos FUNCLIST
     echo "$REPONAME|$EX|$REPOFILE|$REPOURL1|$REPOURL2|$REPOURL3|$REPOURL4|$REPOFALLBACKS" > ${HOME}/.pkg/sources
   fi
 
+
   # get repos in order of fallbacks, pkg will then 'fall back' to each repo in that order
-  FALLBACKS="`grep "$REPONAME" ${HOME}/.pkg/sources-all 2>/dev/null | grep -v ^'#' | cut -f8 -d'|'`"
+  FALLBACKS="`grep -m1 "^${REPONAME}|" ${HOME}/.pkg/sources-all 2>/dev/null | grep -v ^'#' | cut -f8 -d'|'`"
 
   # for each repo in fallback list
   for FBACK in $REPOFALLBACKS; do
     # dont add current repo, its already added
     [ "$FBACK" = "$REPONAME" ] && continue
+
     # check if repo is supported (has entries in sources-all)
-    LINE="`grep "$FBACK|" ${HOME}/.pkg/sources-all 2>/dev/null | grep -v ^'#' | grep -v "^$REPONAME"`" #160213
+    LINE="`grep -m1 "^$FBACK|" ${HOME}/.pkg/sources-all 2>/dev/null | grep -v ^'#' | grep -v "^${REPONAME}|"`"
     [ "$LINE" = "" ] && continue
+
     # if repo is valid, add to users list of in-use repos (only valid repos from sources-all => sources)
     if [ -f "${HOME}/.packages/`echo "$LINE" | cut -f3 -d'|'`" ];then
-      echo "Adding repo: `echo "$LINE"|cut -f1 -d'|'`.."
-      echo "$LINE" >> ${HOME}/.pkg/sources
+
+      if [ "$(grep -m1 "^$FBACK|" ${HOME}/.pkg/sources)" = "" ];then
+        echo "Adding repo: `echo "$LINE"|cut -f1 -d'|'`.."
+        echo "$LINE" >> ${HOME}/.pkg/sources
+      fi
     fi
   done
 
   cleaned_repo_list="`cat ${HOME}/.pkg/sources-all 2>/dev/null | grep -v ^'#'| grep -v ^$`"
 
   # now add any other repos to the list (repos that are installed, but not added from fallback list)
-  echo "$cleaned_repo_list" | while read repo_entry
+  echo "$cleaned_repo_list" | uniq | while read repo_entry
   do
     # dont add current repo, its already added
     [ "`echo "$repo_entry" | cut -f1 -d'|'`" = "$REPONAME" ] && echo "Adding repo: $REPONAME.." && continue
 
     # get the repo name
-    repo_name=`echo "$repo_entry"|cut -f1 -d'|'`
+    repo_name="`echo "$repo_entry"|cut -f1 -d'|'`"
 
     # build the repo file (full path)
     repo_file=${HOME}/.packages/`echo "$repo_entry" | cut -f3 -d'|'`
@@ -1844,12 +1849,12 @@ update_repo(){                    # update the current repo from a file stored o
 
 
 list_sources(){                   # return available (matching) repos (~/.pkg/sources) FUNCLIST
-  grep -m1 "^$1" ${HOME}/.pkg/sources ${HOME}/.pkg/sources-user | cut -f2-99 -d':'
+  grep -m1 "^$1" ${HOME}/.pkg/sources ${HOME}/.pkg/sources-user | cut -f2-99 -d':' | uniq
 }
 
 
 list_all_sources(){               # return all (or matching) repos (~/.pkg/sources-all) FUNCLIST
-  grep -m1 "^$1" ${HOME}/.pkg/sources-all ${HOME}/.pkg/sources-user | cut -f2-99 -d':'
+  grep -m1 "^$1" ${HOME}/.pkg/sources-all ${HOME}/.pkg/sources-user | cut -f2-99 -d':' | uniq
 }
 
 
