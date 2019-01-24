@@ -4234,7 +4234,7 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
             echo # start a new line
 
             # get the subdir (from repo line) that the package lives in
-            sub_dir="`echo "$pkg_in_this_repo" | cut -f4 -d'|'`"
+            sub_dir="`echo "$pkg_in_this_repo" | cut -f4 -d'|' | sed 's/^\.//'`"
 
             if [ "$sub_dir" = "." ];then
               sub_dir=''
@@ -4268,8 +4268,15 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
                 [ -z "$URL" ] && continue
                 [ "$URL" = '/' ] && continue
                 [ "$URL" = '' ] && continue
-                wget --quiet --timeout=1 --no-parent --spider "${URL}"
+                # add some system values into the repo URL (arch, distro version, etc.. from DISTRO_SPECS)
+                URL="`echo "$URL"| sed -e 's@${DBIN_ARCH}@'$DBIN_ARCH'@g'`"
+                URL="`echo "$URL"| sed -e 's@${DISTRO_COMPAT_VERSION}@'$DISTRO_COMPAT_VERSION'@g'`"
+                URL="`echo "$URL"| sed -e 's@${DDB_COMP}@'$DDB_COMP'@g'`"
+                URL="`echo "$URL"| sed -e 's@${SLACKWARE}@'$SLACKWARE'@g'`"
+                URL="`echo "$URL"| sed -e 's@${SLACKARCH}@'$SLACKARCH'@g'`"
+                URL="`echo "$URL"| sed -e 's@${lxDISTRO_COMPAT_VERSION}@'$lxDISTRO_COMPAT_VERSION'@g'`"
                 #ping -W2 -c1 -q $(echo  "${URL}" | awk -F/ '{print $3}') &>/dev/null
+                wget --quiet --timeout=1 --no-parent --spider "${URL}"
                 REPLY=$?
                 if [ "$REPLY" = 0 ];then
                   # set the current URL
@@ -4301,7 +4308,7 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
             DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e 's@${DISTRO_COMPAT_VERSION}@'$DISTRO_COMPAT_VERSION'@g'`"
             DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e 's@${DDB_COMP}@'$DDB_COMP'@g'`"
             DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e 's@${SLACKWARE}@'$SLACKWARE'@g'`"
-            DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e 's@${DDB_COMP}@'$DDB_COMP'@g'`"
+            DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e 's@${SLACKARCH}@'$SLACKARCH'@g'`"
             DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e 's@${lxDISTRO_COMPAT_VERSION}@'$lxDISTRO_COMPAT_VERSION'@g'`"
 
             # add our package to the URL
