@@ -2858,6 +2858,7 @@ pkg_status(){                     # print package ($1) name, status, deps, etc F
     # last gasp, if pkg not found yet, check if pkg if listed in layers-installed packages
     if [ -f ${HOME}/.packages/layers-installed-packages -a "$pkg_found" = false ];then
       pkg_found=`LANG=C grep -m1 "^${PKGNAME}|" ${HOME}/.packages/layers-installed-packages`
+
       [ "$pkg_found" = '' ] && install_status="installed (layers)"
     fi
 
@@ -2867,7 +2868,7 @@ pkg_status(){                     # print package ($1) name, status, deps, etc F
   [ "$pkg_repo" = '' ] && pkg_repo="`which_repo "$PKGNAME" 2>/dev/null | cut -f2 -d' '`"
 
   # if we got a repo name, get the repo file
-  [ "$pkg_repo" != '' ] && pkg_repo_file="`repo_file_list $pkg_repo | grep -m1 $pkg_repo`"
+  [ "$pkg_repo" != '' ] && pkg_repo_file="$(grep -m1 "^$pkg_repo|" ${HOME}/.pkg/sources | cut -f3 -d'|')"
 
   # if we have a repo to search for pkg info
   if [ "$pkg_repo_file" != "" ];then
@@ -2969,12 +2970,14 @@ $DEPS_ENTRY"
 
     else # pkg wasn't found, it's unknown to Pkg
       MSG="$PKGNAME not found.
+
 Here are some packages in other repos:"
       PLIST="`which_repo ${PKGNAME}`"
       [ "$PLIST" != "" ] && MSG="$MSG
 $PLIST"
       # create msg for alien pkgs
       MSG="$MSG
+
 Name:           ${PKGNAME}
 Status:         ${install_status:-Unknown}
 Repo:           Alien package, not in $REPONAME repo.
