@@ -110,17 +110,18 @@ if [ ! -f ${PKGRC} ];then
 fi
 
 # get puppy distro env vars
-[ -f /etc/rc.d/PUPSTATE ]                 && . /etc/rc.d/PUPSTATE                #this has PUPMODE and SAVE_LAYER.
-[ -f /etc/DISTRO_SPECS ]                  && . /etc/DISTRO_SPECS                 #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION
-[ -f /etc/rc.d/BOOTCONFIG ]               && . /etc/rc.d/BOOTCONFIG              #has EXTRASFSLIST PREVUNIONRECORD, LASTUNIONRECORD (sfs stuff)
-[ -f /etc/xdg/menus/hierarchy ]           && . /etc/xdg/menus/hierarchy          #w478 has PUPHIERARCHY variable.
-[ -f $HOME/.packages/DISTRO_PKGS_SPECS ]  && . $HOME/.packages/DISTRO_PKGS_SPECS #has lot sof essential info
-[ -f $HOME/.packages/PKGS_MANAGEMENT ]    && . $HOME/.packages/PKGS_MANAGEMENT   #has PKG_NAME_IGNORE, PKG_PET_THEN_BLACKLIST_COMPAT_KIDS, PKG_REPOS_ENABLED
+[ -f /etc/rc.d/PUPSTATE ]                   && . /etc/rc.d/PUPSTATE                    #this has PUPMODE and SAVE_LAYER.
+[ -f /etc/DISTRO_SPECS ]                    && . /etc/DISTRO_SPECS                     #has DISTRO_BINARY_COMPAT, DISTRO_COMPAT_VERSION
+[ -f /etc/rc.d/BOOTCONFIG ]                 && . /etc/rc.d/BOOTCONFIG                  #has EXTRASFSLIST PREVUNIONRECORD, LASTUNIONRECORD (sfs stuff)
+[ -f /etc/xdg/menus/hierarchy ]             && . /etc/xdg/menus/hierarchy              #w478 has PUPHIERARCHY variable.
+[ -f $HOME/.packages/DISTRO_PKGS_SPECS ]    && . $HOME/.packages/DISTRO_PKGS_SPECS     #has lot sof essential info
+[ -f $HOME/.packages/PKGS_MANAGEMENT ]      && . $HOME/.packages/PKGS_MANAGEMENT       #has PKG_NAME_IGNORE, PKG_PET_THEN_BLACKLIST_COMPAT_KIDS, PKG_REPOS_ENABLED
+[ -f $HOME/.packages/DISTRO_COMPAT_REPOS ]  && . $HOME/.packages/DISTRO_COMPAT_REPOS   #has repo URL related vars 
 
 # set the package name suffix appended to combined pkgs (pkg+deps)
 CP_SUFFIX="WITHDEPS_${DISTRO_FILE_PREFIX}"
 
-# set correct arch for repo URLs
+# set correct arch for repo URLs (used by some slack-pup repos)
 case "$DISTRO_TARGETARCH" in
   x86)    DBIN_ARCH=i486                ;;
   x86_64) DBIN_ARCH=x86_64 ; DSUFFIX=64 ;;
@@ -4235,8 +4236,12 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
             # get the subdir (from repo line) that the package lives in
             sub_dir="`echo "$pkg_in_this_repo" | cut -f4 -d'|'`"
 
+            if [ "$sub_dir" = "." ];then
+              sub_dir=''
+            fi
+
             # pre-woof get subdir
-            if [ -f "$HOME/.packages/${repo_file}_subdirs" ];then
+            if [ "$sub_dir" != "" ] && [ -f "$HOME/.packages/${repo_file}_subdirs" ];then
               sub_dir="`grep -m1 "^$PKGNAME|" "$HOME/.packages/${repo_file}_subdirs"  2>/dev/null | cut -f7 -d'|'`"
             fi
 
@@ -4295,6 +4300,9 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
             DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e 's@${DBIN_ARCH}@'$DBIN_ARCH'@g'`"
             DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e 's@${DISTRO_COMPAT_VERSION}@'$DISTRO_COMPAT_VERSION'@g'`"
             DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e 's@${DDB_COMP}@'$DDB_COMP'@g'`"
+            DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e 's@${SLACKWARE}@'$SLACKWARE'@g'`"
+            DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e 's@${DDB_COMP}@'$DDB_COMP'@g'`"
+            DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e 's@${lxDISTRO_COMPAT_VERSION}@'$lxDISTRO_COMPAT_VERSION'@g'`"
 
             # add our package to the URL
             DOWNLOAD_URL="${DOWNLOAD_URL}${PKG_FILENAME}"
@@ -4686,7 +4694,8 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       sync
       cd .. 1>/dev/null
 
-      if [ ! -f $HOME/.packages/${PKGNAME}.files ];then
+      if [ ! -f $HOME/.packages/${PKGNAME}.files ] || \
+         [ -z $HOME/.packages/${PKGNAME}.files ];then
         # add ${HOME}/.packages/${PKGNAME}.files, need to find regular files and links separately... then images..
         find "./${PKGNAME}/" -mount -mindepth 2 -type f | sed -e "s/\.\/${PKGNAME}//g" -e 's/\/root0\//\/root\//g' > $HOME/.packages/${PKGNAME}.files
         find "./${PKGNAME}/" -mount -mindepth 2 -type l | sed -e "s/\.\/${PKGNAME}//g" -e 's/\/root0\//\/root\//g' >> $HOME/.packages/${PKGNAME}.files
