@@ -116,7 +116,7 @@ fi
 [ -f /etc/xdg/menus/hierarchy ]             && . /etc/xdg/menus/hierarchy              #w478 has PUPHIERARCHY variable.
 [ -f $HOME/.packages/DISTRO_PKGS_SPECS ]    && . $HOME/.packages/DISTRO_PKGS_SPECS     #has lot sof essential info
 [ -f $HOME/.packages/PKGS_MANAGEMENT ]      && . $HOME/.packages/PKGS_MANAGEMENT       #has PKG_NAME_IGNORE, PKG_PET_THEN_BLACKLIST_COMPAT_KIDS, PKG_REPOS_ENABLED
-[ -f $HOME/.packages/DISTRO_COMPAT_REPOS ]  && . $HOME/.packages/DISTRO_COMPAT_REPOS   #has repo URL related vars 
+[ -f $HOME/.packages/DISTRO_COMPAT_REPOS ]  && . $HOME/.packages/DISTRO_COMPAT_REPOS   #has repo URL related vars
 
 # set the package name suffix appended to combined pkgs (pkg+deps)
 CP_SUFFIX="WITHDEPS_${DISTRO_FILE_PREFIX}"
@@ -2281,9 +2281,13 @@ search_pkgs(){                    # given $1, searches current repo, shows name 
   local name
   local desc
   local descfull
+  local search
+
+  # convert "foo[ -_]bar" into "foo.*bar"
+  search=`echo "$1" | sed -e 's| |.*|g' -e 's|-|.*|g' -e 's|_|.*|g'`
 
   # convert repo file to nice columnised output, use cat|grep so empty searches return all results
-  cat ${HOME}/.packages/${REPOFILE} 2>/dev/null | grep -i "$1" | while read repo_line;
+  cat ${HOME}/.packages/${REPOFILE} 2>/dev/null | grep -i "$search" | while read repo_line;
   do
     name=`echo  "$repo_line"|cut -f2  -d'|'`
     desc="`echo "$repo_line"|cut -f10 -d'|' | head -c 57`"
@@ -2297,8 +2301,13 @@ search_pkgs(){                    # given $1, searches current repo, shows name 
 
 search_fast(){                    # given $1, searches current repo, show pkg names only, case sensitive FUNCLIST
   local RES
+  local search
+
+  # convert "foo[ -_]bar" into "foo.*bar"
+  search=`echo "$1" | sed -e 's| |.*|g' -e 's|-|.*|g' -e 's|_|.*|g'`
+
   # get matching pkgs
-  RES="`LANG=C grep "$1" ${HOME}/.packages/${REPOFILE} 2>/dev/null | cut -f1 -d'|'`"
+  RES="`LANG=C grep "$search" ${HOME}/.packages/${REPOFILE} 2>/dev/null | cut -f1 -d'|'`"
   # error if no result
   [ ! "$RES" ] && exit 1
 
@@ -2327,12 +2336,15 @@ search_all_pkgs(){                # given $1, search all repos, show name and de
   local name
   local desc
   local descfull
+  local search
 
+  # convert "foo[ -_]bar" into "foo.*bar"
+  search=`echo "$1" | sed -e 's| |.*|g' -e 's|-|.*|g' -e 's|_|.*|g'`
 
   for repo_file in `repo_file_list`
   do #090817
     # convert repo file to nice columnised output
-    cat ${HOME}/.packages/${repo_file} 2>/dev/null | grep -i "$1" | while read repo_line;
+    cat ${HOME}/.packages/${repo_file} 2>/dev/null | grep -i "$search" | while read repo_line;
     do
     # get details from repo
     name=`echo  "$repo_line"|cut -f2  -d'|'`
@@ -2353,8 +2365,12 @@ search_all_pkgs(){                # given $1, search all repos, show name and de
 
 
 search_all_fast(){                # given $1, search all repos, show pkg names only, case sensitive FUNCLIST
-
   local RES
+  local search
+
+  # convert "foo[ -_]bar" into "foo.*bar"
+  search=`echo "$1" | sed -e 's| |.*|g' -e 's|-|.*|g' -e 's|_|.*|g'`
+
   #if bleeding edge enabled, combine into 1 list, so
   # that `pkg -g` etc return most recent from ALL repos
   rm $TMPDIR/pkglist &>/dev/null
@@ -2362,7 +2378,7 @@ search_all_fast(){                # given $1, search all repos, show pkg names o
     RES=''
     for RF in `repo_file_list`
     do #090817
-      cat ${HOME}/.packages/${RF} 2>/dev/null | grep -i "$1" | cut -f1 -d'|' | sort --field-separator='-' -k1,1df -k2gr -k3gr -k4gr | uniq | sed -e '/^$/d' >> $TMPDIR/pkglist
+      cat ${HOME}/.packages/${RF} 2>/dev/null | grep -i "$search" | cut -f1 -d'|' | sort --field-separator='-' -k1,1df -k2gr -k3gr -k4gr | uniq | sed -e '/^$/d' >> $TMPDIR/pkglist
     done
 
   else
@@ -2370,7 +2386,7 @@ search_all_fast(){                # given $1, search all repos, show pkg names o
     # the fallback order, current repo first (that order is set in update_sources)
     for RF in `repo_file_list`
     do #090817
-      cat ${HOME}/.packages/${RF} 2>/dev/null | grep -i "$1"| cut -f1 -d'|' | sort --field-separator='-' -k1,1df -k2gr -k3gr -k4gr | uniq | sed -e '/^$/d' >> $TMPDIR/pkglist
+      cat ${HOME}/.packages/${RF} 2>/dev/null | grep -i "$search"| cut -f1 -d'|' | sort --field-separator='-' -k1,1df -k2gr -k3gr -k4gr | uniq | sed -e '/^$/d' >> $TMPDIR/pkglist
     done
 
   fi
