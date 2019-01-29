@@ -115,10 +115,11 @@ Disable package suggestions on missing command with:
 │       └── sources-all
 ├── pet.specs
 ├── root/
-    └── .pkg/
-    │   ├── sources
-    │   ├── sources-user
-    │   └── sources-all
+│   ├───.pkg/
+│   │   ├── pkgrc
+│   │   ├── sources
+│   │   ├── sources-user
+│   │   └── sources-all
 ├── sbin/
 │   ├── makepkg -> makepkg-fast
 │   └── makepkg-fast
