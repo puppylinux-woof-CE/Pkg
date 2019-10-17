@@ -3362,7 +3362,7 @@ pkg_unpack(){                     # extract/unpack $1 to current dir FUNCLIST
       cp "$PKGFILE" "$PKGNAME/"
       cd "$PKGNAME" 1>/dev/null
       # now extract the rpm contents into current dir
-      exploderpm -x "$PKGFILE" &>/dev/null
+      rpm2cpio "$PKGFILE" | cpio -idmu &>/dev/null
       result=$?
       # clean up and leave
       rm -f *.rpm 2>/dev/null
