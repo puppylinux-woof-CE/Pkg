@@ -1708,8 +1708,8 @@ update_repo(){                    # update the current repo from a file stored o
   chmod 777 /var/local/petget/
   echo 'false' > /var/local/petget/db_verbose
 
-  # now call petget 0setup.. the ENV options prevent popup windows, and need for user input
-  DISPLAY='' SETUPCALLEDFROM=ppm /usr/local/petget/0setup &>$TMPDIR/update_repo_results
+  # now call petget 0setup.. [add argument]
+  /usr/local/petget/0setup x &>$TMPDIR/update_repo_results
 
   # if the repos updated ok
   if [ $? -eq 0 ];then
