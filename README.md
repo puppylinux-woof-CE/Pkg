@@ -130,9 +130,7 @@ Disable package suggestions on missing command with:
     │   └── strippkg
     ├── sbin/
     │   ├── apt2pup
-    │   ├── download_file_old
     │   ├── download_progress
-    │   ├── exploderpm
     │   ├── gpkg -> pkg
     │   ├── gpkgdialog
     │   ├── ppa2pup
