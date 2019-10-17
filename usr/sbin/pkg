@@ -3813,7 +3813,7 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
       PKGCMD="Install command: $SELF install ${WORKDIR}/${PKGNAME}-${SUFFIX}"
     else
       PKGEXT=sfs
-      PKGCMD="Install command: sfs_loadr --cli -q \"${WORKDIR}/$(basename $SFS_FILE)\""
+      PKGCMD="Install command: sfs_load --cli -q \"${WORKDIR}/$(basename $SFS_FILE)\""
     fi
 
     #226013 updated output
@@ -4582,8 +4582,8 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
         sfs)
           PKGFILE="`find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.sfs"`"
           [ ! -f "$PKGFILE" ] && PKGFILE="`find ${WORKDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.sfs"`"
-          echo sfs_loadr -q --cli +"$PKGFILE" #2>/dev/null
-          sfs_loadr -q --cli +"$PKGFILE" #2>/dev/null
+          echo sfs_load -q --cli +"$PKGFILE" #2>/dev/null
+          sfs_load -q --cli +"$PKGFILE" #2>/dev/null
           rm -f $HOME/.packages/${PKGNAME}.files 2>/dev/null
           # create $HOME/.packages/$PKGNAME.files
           pkg_contents "$PKGFILE" | while read line
@@ -5654,12 +5654,12 @@ pkg_uninstall(){                  # remove an installed package ($1) FUNCLIST
   # skip pkg if its a builtin
   [ "$pkg_is_builtin" = true ] && return 1
 
-  local pkg_is_sfs_file="`sfs_loadr -q -i | grep -v ^sfs_loadr | grep ^$PKGNAME`"
+  local pkg_is_sfs_file="`sfs_load -q -i | grep -v ^sfs_load | grep ^$PKGNAME`"
 
   # if pkg is SFS, "uninstall" it here
   if [ "$pkg_is_sfs_file" != "" -o "$pkg_ext" = "sfs" ];then
-    PKGNAME="$(sfs_loadr -q -i | grep -v ^sfs_loadr | grep ^$PKGNAME | head -1)"
-    sfs_loadr -q --cli -"${CURDIR}/${PKGNAME}" 2>/dev/null
+    PKGNAME="$(sfs_load -q -i | grep -v ^sfs_load | grep ^$PKGNAME | head -1)"
+    sfs_load -q --cli -"${CURDIR}/${PKGNAME}" 2>/dev/null
     is_installed=true # we want to continue
   fi
 

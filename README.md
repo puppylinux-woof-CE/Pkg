@@ -136,8 +136,6 @@ Disable package suggestions on missing command with:
     │   ├── ppa2pup
     │   ├── pkg
     │   ├── pkgdialog
-    │   ├── sfs_loadr
-    │   ├── sfs_optimise
     │   ├── slack2pup
     │   └── Xpkgdialog -> pkgdialog
     └── share/
