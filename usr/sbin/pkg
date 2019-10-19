@@ -4690,34 +4690,6 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       sync
       cd .. 1>/dev/null
 
-      if [ ! -f $HOME/.packages/${PKGNAME}.files ] || \
-         [ -z $HOME/.packages/${PKGNAME}.files ];then
-        # add ${HOME}/.packages/${PKGNAME}.files, need to find regular files and links separately... then images..
-        find "./${PKGNAME}/" -mount -mindepth 2 -type f | sed -e "s/\.\/${PKGNAME}//g" -e 's/\/root0\//\/root\//g' > $HOME/.packages/${PKGNAME}.files
-        find "./${PKGNAME}/" -mount -mindepth 2 -type l | sed -e "s/\.\/${PKGNAME}//g" -e 's/\/root0\//\/root\//g' >> $HOME/.packages/${PKGNAME}.files
-
-        for ONEIMAGEFILE in `ls -1 /*[0-9].xpm 2>/dev/null`
-        do
-         BASEONEIMAGE="`basename $ONEIMAGEFILE`"
-         echo "/usr/local/lib/X11/pixmaps/$BASEONEIMAGE" >> $HOME/.packages/${PKGNAME}.files
-        done
-        for ONEIMAGEFILE in `ls -1 /*[0-9].png 2>/dev/null`
-        do
-         BASEONEIMAGE="`basename $ONEIMAGEFILE`"
-         echo "/usr/local/lib/X11/pixmaps/$BASEONEIMAGE" >> $HOME/.packages/${PKGNAME}.files
-        done
-        for ONEIMAGEFILE in `ls -1 /*[^0-9].xpm 2>/dev/null`
-        do
-         BASEONEIMAGE="`basename $ONEIMAGEFILE`"
-         echo "/usr/local/lib/X11/mini-icons/$BASEONEIMAGE" >> $HOME/.packages/${PKGNAME}.files
-        done
-        for ONEIMAGEFILE in `ls -1 /*[^0-9].png 2>/dev/null` #v2.16
-        do
-         BASEONEIMAGE="`basename $ONEIMAGEFILE`"
-         echo "/usr/local/lib/X11/mini-icons/$BASEONEIMAGE" >> $HOME/.packages/${PKGNAME}.files
-        done
-      fi
-
       # move the *.files to $HOME/.packages
       FILES=''
       FILES="`find "$CURDIR" -mount -maxdepth 1 -iname "*.files" | head -1`"
@@ -4731,8 +4703,7 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       mv ${HOME}/.packages/${PKGNAME}.files2 ${HOME}/.packages/${PKGNAME}.files
 
       # some pets add images and icons at / so move them
-      mv /{*.xpm,*.png} /usr/share/pixmaps/ 2>/dev/null
-      mv /*.ico /usr/share/pixmaps/ 2>/dev/null
+      mv /{*.xpm,*.png,*.ico} /usr/share/pixmaps/ 2>/dev/null
 
       # run the post install scripts (for puppy, slackware, arch, debian/ubuntu, etc)
       for i in /pinstall.sh /install/doinst.sh /DEBIAN/postinst
