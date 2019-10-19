@@ -4611,35 +4611,8 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
               | grep -v '^$' > $HOME/.packages/${PKGNAME}.files
           fi
 
-					# woofce: NO_MULTIARCH_SYMLINK=1 (DISTRO_SPECS)
-					if [ -z "$NO_MULTIARCH_SYMLINK" ] ; then
-            if [ -f $HOME/.packages/${PKGNAME}.files ];then
-              pkg_has_archdir="$(grep -m1 "$DISTRO_ARCHDIR" "$HOME/.packages/${PKGNAME}.files")"
-            fi
-
-						# Workaround to avoid overwriting the $DISTRO_ARCHDIR symlink.
-						if [ "$DISTRO_ARCHDIR" != "" -a -f $HOME/.packages/${PKGNAME}.files -a "$pkg_has_archdir" != "" ]; then
-						  mkdir -p /tmp/$PKGNAME
-						  rm -rf /tmp/$PKGNAME/*
-						  dpkg-deb -x ${CURDIR}/${PKGNAME}.deb /tmp/$PKGNAME/ 2> $TMPDIR/$SELF-cp-errlog
-						  for f in $(find /tmp/$PKGNAME \( -type f -o -type l \))
-						  do
-							  xpath=$(echo "$f" |  cut  -f 4-30 -d "/" | sed "s/$DISTRO_ARCHDIR\///")
-							  mkdir -p ${DIRECTSAVEPATH}/$(dirname "$xpath")
-							  cp -a "$f" ${DIRECTSAVEPATH}/$(dirname "$xpath")/
-						  done
-						  rm -rf /tmp/$PKGNAME &>/dev/null
-						else
-						  dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
-						fi
- 					else
-						dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
- 					fi
-
-          if [ "`cat $TMPDIR/$SELF-cp-errlog | grep 'tar: Exiting with failure status due to previous errors'`" != "" ];then
-            error "Failed to unpack $PKGNAME.deb"
-            exit 1
-          fi
+          dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${DIRECTSAVEPATH}/
+          [ $? -ne 0 ] && exit 1
           [ -d /DEBIAN ] && rm -rf /DEBIAN #130112 precaution.
           dpkg-deb -e "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" /DEBIAN #130112 extracts deb control files to dir /DEBIAN. may have a post-install script, see below.
           rm "${PKGNAME}.deb"
@@ -4856,39 +4829,6 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
        fi
       done
 
-			# woofce: NO_MULTIARCH_SYMLINK=1 (DISTRO_SPECS)
-			if [ -z "$NO_MULTIARCH_SYMLINK" ] ; then
-        #121217 it seems that this problem is occurring in other modes (13 reported)...
-        #121123 having a problem with multiarch symlinks in full-installation...
-        #it seems that the symlink is getting replaced by a directory.
-        if [ "$DISTRO_ARCHDIR" ];then #in /etc/rc.d/DISTRO_SPECS. 130112 change test from DISTRO_ARCHDIR. 130114 revert DISTRO_ARCHDIR_SYMLINKS==yes.
-          if [ -d /usr/lib/${DISTRO_ARCHDIR} ];then
-            if [ ! -h /usr/lib/${DISTRO_ARCHDIR} ];then
-              cp -a -f --remove-destination /usr/lib/${DISTRO_ARCHDIR}/* /usr/lib/
-              sync
-              rm -r -f /usr/lib/${DISTRO_ARCHDIR}
-              ln -s ./ /usr/lib/${DISTRO_ARCHDIR}
-            fi
-          fi
-          if [ -d /lib/${DISTRO_ARCHDIR} ];then
-            if [ ! -h /lib/${DISTRO_ARCHDIR} ];then
-              cp -a -f --remove-destination /lib/${DISTRO_ARCHDIR}/* /lib/
-              sync
-              rm -r -f /lib/${DISTRO_ARCHDIR}
-              ln -s ./ /lib/${DISTRO_ARCHDIR}
-            fi
-          fi
-          if [ -d /usr/bin/${DISTRO_ARCHDIR} ];then
-            if [ ! -h /usr/bin/${DISTRO_ARCHDIR} ];then
-              cp -a -f --remove-destination /usr/bin/${DISTRO_ARCHDIR}/* /usr/bin/
-              sync
-              rm -r -f /usr/bin/${DISTRO_ARCHDIR}
-              ln -s ./ /usr/bin/${DISTRO_ARCHDIR}
-            fi
-          fi
-        fi
-      fi
-
       #flush unionfs cache, so files in pup_save layer will appear "on top"...
       if [ "$DIRECTSAVEPATH" != "" ];then
        #but first, clean out any bad whiteout files...
@@ -4898,10 +4838,6 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
        do
         ONEWHITEOUTFILE="`basename "$ONEWHITEOUT"`"
         ONEWHITEOUTPATH="`dirname "$ONEWHITEOUT"`"
-        if [ "$ONEWHITEOUTFILE" = ".wh.__dir_opaque" ];then
-         [ "`grep "$ONEWHITEOUTPATH" /root/.packages/${PKGNAME}.files`" != "" ] && rm -f "/initrd/pup_rw/$ONEWHITEOUT"
-         continue
-        fi
         ONEPATTERN="`echo -n "$ONEWHITEOUT" | sed -e 's%/\\.wh\\.%/%'`"'/*' ;#echo "$ONEPATTERN" >&2
         [ "`grep -x "$ONEPATTERN" /root/.packages/${PKGNAME}.files`" != "" ] && rm -f "/initrd/pup_rw/$ONEWHITEOUT"
        done
