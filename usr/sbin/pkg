@@ -4548,35 +4548,35 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       # extract the archive file into a $CURDIR/$PKGNAME folder
       case "$pkg_ext" in
 
-        pet)
+        pet) # needs tar 1.26+
+          rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
+          mkdir -p "${CURDIR}/${PKGNAME}"
           PKGFILE="`find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.pet"`"
-          #determine the compression, extend test to 'XZ'
-          file -b "${PKGFILE}" | grep -i -q "^xz" && TAREXT=xz || TAREXT=gz
-          [ "$TAREXT" = 'xz' ] && taropts='-xJf' || taropts='-zxf'
-
-          # convert to tar extractable archive
-          pet2tgz "${PKGFILE}" 1>/dev/null
-
-          # now extract the file
-          tar $taropts "${CURDIR}/${PKGNAME}.tar.${TAREXT}" 2> $TMPDIR/$SELF-cp-errlog
-
-          # some old types need this extra step
-          if [ -f "${CURDIR}/${PKGNAME}.tar.$TAREXT" ];then
-            cd "${CURDIR}/${PKGNAME}/" 1>/dev/null
-            tar --absolute-names $tarops "./${PKGNAME}.tar.$TAREXT" ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog #260713
-            sync
-            rm -f  "./${PKGNAME}.tar.$TAREXT" 1>/dev/null
-            cd - 1>/dev/null
+          PETPKG=${PKGFILE%.pet} #remove trailing ".pet"
+          head -c -32 ${PETPKG}.pet > ${PETPKG}.tar
+          PETFILES="$(tar -tf ${PETPKG}.tar)"
+          PETPREFIX="$(echo "$PETFILES" | head -1)"
+          case "$PETPREFIX" in
+            "./"*)
+              pPATTERN="s%^\\./${PETPKG##*/}%% ; /pet\.specs/d ; /pinstall\.sh/d ; /puninstall\.sh/d ; /^\\/$/d ; "
+              tar --strip=2 --directory="${CURDIR}/${PKGNAME}/" -xf ${PETPKG}.tar
+              ;;
+            *)
+              pPATTERN="s%^${PETPKG##*/}%%     ; /pet\.specs/d ; /pinstall\.sh/d ; /puninstall\.sh/d ; /^\\/$/d ; "
+              tar --strip=1 --directory="${CURDIR}/${PKGNAME}/" -xf ${PETPKG}.tar
+              ;;
+          esac
+          if [ $? -ne 0 ] ; then
+            echo "ERROR: failed to unpack ${PETPKG}.pet"
+            rm -f ${PETPKG}.tar
+            exit 1
           fi
-
+          rm -f ${PETPKG}.tar
           # save the uninstall script for later
           if [ -f "${CURDIR}/${PKGNAME}/puninstall.sh" ];then
             mv "${CURDIR}/${PKGNAME}/puninstall.sh" ${HOME}/.packages/${PKGNAME}.remove
           fi
-
-          # create a tgz
-          tgz2pet "${CURDIR}/${PKGNAME}.tar.$TAREXT" 1>/dev/null
-          rm "${CURDIR}/${PKGNAME}.tar.$TAREXT" 2>/dev/null
+          echo "$PETFILES" | sed -e "$pPATTERN" -e "s#^\.\/#\/#g" -e "s#^#\/#g" -e "s#^\/\/#\/#g" -e 's#^\/$##g' -e 's#^\/\.$##g' > ${HOME}/.packages/${PKGNAME}.files
         ;;
 
         sfs)
