@@ -4815,23 +4815,6 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
           DB_ENTRY="${PKGNAME}|${PKGNAME_ONLY}|${PKGVER}|${BUILD}|${PKGCAT}|${PKGSIZE}|${PKGDIR}|${PKGNAME}.${pkg_ext}|${DEPSLIST}|${PKGDESC}|${DISTRO_BINARY_COMPAT}|${DISTRO_COMPAT_VERSION}"
         fi
 
-        # Fix for Debian executables showing as shared libs in ROX.
-        if [ "$DISTRO_FILE_PREFIX" = "stretch" -o "$DISTRO_FILE_PREFIX" = "ascii" ]; then
-          if [ "$(ps aux | grep ROX |grep -v grep)" ]; then # Other managers are OK
-            if [ "$(which elfedit)" ];then
-              grep -E '/bin/|/sbin/' ${HOME}/.packages/${PKGNAME}.files |
-              while read FLINE
-              do
-                [ "$(file "$FLINE" | grep -i 'shared object')" ] && elfedit --input-type=dyn --output-type=exec $FLINE
-              done
-            else
-              echo -e "${yellow}Warning${endcolour} Recent Debian executables show as shared libraries in ROX,"
-              echo "which causes ROX to fail to open or execute them. To fix that during package "
-              echo "installation you should install elfutils or have devx loaded."
-            fi
-          fi
-        fi
-
         # now add the db entry to user-installed-packages
         echo "$DB_ENTRY" >> ${HOME}/.packages/user-installed-packages #130913
 
