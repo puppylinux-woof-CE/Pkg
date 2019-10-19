@@ -4611,7 +4611,7 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
               | grep -v '^$' > $HOME/.packages/${PKGNAME}.files
           fi
 
-          dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${DIRECTSAVEPATH}/
+          dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${CURDIR}/${PKGNAME}
           [ $? -ne 0 ] && exit 1
           [ -d /DEBIAN ] && rm -rf /DEBIAN #130112 precaution.
           dpkg-deb -e "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" /DEBIAN #130112 extracts deb control files to dir /DEBIAN. may have a post-install script, see below.
