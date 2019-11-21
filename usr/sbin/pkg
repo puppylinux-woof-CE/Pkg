@@ -263,7 +263,7 @@ func_list(){                      # list all functions available in this script 
 }
 
 update_system_cache() {
-  # $1 = PKGFILE [ex: /root/.packages/abiword.files]
+  # $1 = PKGFILES [ex: /root/.packages/abiword.files]
   local PKGFILES=$1
 
   if grep -q -m 1 '/usr/share/glib-2.0/schemas' $PKGFILES ; then
@@ -4929,7 +4929,7 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       postinstall_hacks "$PKGNAME" "$PKGNAME_ONLY" &
 
       # update system cache
-      update_system_cache $HOME/.packages/${PKGNAME}.files
+      update_system_cache $HOME/.packages/${PKGNAME}.files 1>/dev/null 2>&1
 
     fi #if CONFIRM = y #100213,0.9  moved down to here, fixes install, and output msgs
 
@@ -5712,7 +5712,7 @@ pkg_uninstall(){                  # remove an installed package ($1) FUNCLIST
       mv ${HOME}/.packages/user-installed-packages_clean ${HOME}/.packages/user-installed-packages
 
       # update system cache
-      update_system_cache ${PKGFILE}
+      update_system_cache ${PKGFILE} 1>/dev/null 2>&1
 
       # remove $HOME/.packages/$PKGNAME.files
       rm $PKGFILE ${PKGFILE} 2>/dev/null
