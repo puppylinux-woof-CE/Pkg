@@ -4687,7 +4687,6 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
               | grep -v '/$' \
               | tr -s ' ' \
               | cut -f6 -d' ' \
-              | sed -e 's/^.//g' 2>/dev/null \
               | grep -v '^$' > $HOME/.packages/${PKGNAME}.files
           fi
 
@@ -4776,10 +4775,9 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       [ -f "`echo $FILES`" ] && mv "$FILES" "${HOME}/.packages/" 2>/dev/null #260713
 
       #pkgname.files may need to be fixed...
-      cat ${HOME}/.packages/${PKGNAME}.files | grep -v '/$' | sed -e 's%^\\.%%' -e 's%^%/%' -e 's%^//%/%' 2>/dev/null > ${HOME}/.packages/${PKGNAME}.files2
-      mv ${HOME}/.packages/${PKGNAME}.files2 ${HOME}/.packages/${PKGNAME}.files
-
-      sort -u $HOME/.packages/${PKGNAME}.files > $HOME/.packages/${PKGNAME}.files2
+      cat ${HOME}/.packages/${PKGNAME}.files | grep -v '/$' \
+        | sed -e "s#^\.\/#\/#g" -e "s#^#\/#g" -e "s#^\/\/#\/#g" -e 's#^\/$##g' -e 's#^\/\.$##g' \
+        | sort -u > ${HOME}/.packages/${PKGNAME}.files2
       mv ${HOME}/.packages/${PKGNAME}.files2 ${HOME}/.packages/${PKGNAME}.files
 
       # some pets add images and icons at / so move them
