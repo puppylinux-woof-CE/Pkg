@@ -4699,42 +4699,18 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
           cd - 1>/dev/null
         ;;
 
-        *tbz|*tar.bz2)
-          rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
-          mkdir -p "${CURDIR}/${PKGNAME}"
-          cp "${CURDIR}/${PKGNAME}.$pkg_ext" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
-          cd "${CURDIR}/${PKGNAME}/"
-
-          ( umask 000 ; cat "${PKGNAME}.$pkg_ext" | bzip2 -dc | tar -xf - 2> $TMPDIR/$SELF-cp-errlog )
-
-          rm "${PKGNAME}.$pkg_ext"
-          cd - 1>/dev/null
-        ;;
-
-        *tlz|*tar.lzma)
+        *tgz|*txz|*tzst|*tar.gz|*tar.xz|*tar.zst|*tlz|*tar.lzma|*tbz|*tar.bz2)
           rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
           mkdir -p "${CURDIR}/${PKGNAME}"
           PKGFILE="`find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.${pkg_ext}"`"
-          cp "$PKGFILE" "${CURDIR}/${PKGNAME}/`basename $PKGFILE`" || exit 4
+          cp "$PKGFILE" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
           cd "${CURDIR}/${PKGNAME}/"
-
-          ( umask 000 ; cat "${PKGNAME}.$pkg_ext" | lzma -dc | tar -xf - 2> $TMPDIR/$SELF-cp-errlog )
-
-          rm "${PKGNAME}.$pkg_ext"
-          cd - 1>/dev/null
-        ;;
-
-        *tgz|*txz|*tar.gz|*tar.xz|*xz|*gz)
-          rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
-          mkdir -p "${CURDIR}/${PKGNAME}"
-          PKGFILE="`find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.${pkg_ext}"`"
-          cp "$PKGFILE" "${CURDIR}/${PKGNAME}/`basename $PKGFILE`" || exit 4
-          cd "${CURDIR}/${PKGNAME}/"
-
-          file -b "${PKGNAME}.$pkg_ext" | grep -i -q "^xz" && TAREXT=xz || TAREXT=gz
-          [ "$TAREXT" = 'xz' ] && taropts='-xJf' || taropts='-zxf'
-
-          tar $taropts "${PKGNAME}.$pkg_ext" 2> $TMPDIR/$SELF-cp-errlog
+          case "$pkg_ext" in
+            *tbz|*tar.bz2)  bzip2 -dc "${PKGNAME}.$pkg_ext" | tar -xf - 2> $TMPDIR/$SELF-cp-errlog ;;
+            *tlz|*tar.lzma) lzma -dc "${PKGNAME}.$pkg_ext"  | tar -xf - 2> $TMPDIR/$SELF-cp-errlog ;;
+            *) tar -xf "${PKGNAME}.$pkg_ext" 2> $TMPDIR/$SELF-cp-errlog ;;
+          esac
+          tar -tf "${PKGNAME}.$pkg_ext" > $HOME/.packages/${PKGNAME}.files
           rm "${PKGNAME}.$pkg_ext"
           cd - 1>/dev/null
         ;;
@@ -4776,7 +4752,7 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
 
       #pkgname.files may need to be fixed...
       cat ${HOME}/.packages/${PKGNAME}.files | grep -v '/$' \
-        | sed -e "s#^\.\/#\/#g" -e "s#^#\/#g" -e "s#^\/\/#\/#g" -e 's#^\/$##g' -e 's#^\/\.$##g' \
+        | sed -e "s#^\.\/#\/#g" -e "s#^#\/#g" -e "s#^\/\/#\/#g" -e 's#^\/$##g' -e 's#^\/\.$##g' -e '\%^/install/%d' \
         | sort -u > ${HOME}/.packages/${PKGNAME}.files2
       mv ${HOME}/.packages/${PKGNAME}.files2 ${HOME}/.packages/${PKGNAME}.files
 
