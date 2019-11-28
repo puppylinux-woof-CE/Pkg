@@ -775,9 +775,9 @@ update_scope_settings
 build_repo_dropdown
 set_gtkrc #update gtk styles
 
-#180913 always update the lists on first open
-build_tree1_input
-build_tree2_input
+echo -n > $AVAIL_LIST # clear 
+#build_tree1_input
+build_tree2_input # always build list of installed packages on first open
 
 BUILDTOOL_UI='' # the list of build scripts in gtkdialog form
 LABELS="Available packages|Installed packages|Settings|Help" # the main tabs
