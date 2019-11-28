@@ -1087,28 +1087,30 @@ set_autoclean(){                  # yes|no auto delete installed packages from W
 
 
 set_config(){                     # update all options in config file FUNCLIST
-  echo "WORKDIR=$WORKDIR"                    > ${PKGRC}
-  echo "REPONAME=$REPONAME"                 >> ${PKGRC}
-  echo "EX=$EX"                             >> ${PKGRC}
-  echo "REPOFILE=$REPOFILE"                 >> ${PKGRC}
-  echo "REPOURL1=$REPOURL1"                 >> ${PKGRC}
-  echo "REPOURL2=$REPOURL2"                 >> ${PKGRC}
+  (
+  echo "WORKDIR=$WORKDIR"
+  echo "REPONAME=$REPONAME"
+  echo "EX=$EX"
+  echo "REPOFILE=$REPOFILE"
+  echo "REPOURL1=$REPOURL1"
+  echo "REPOURL2=$REPOURL2"
   #140213 add all urls
-  echo "REPOURL3=$REPOURL3"                 >> ${PKGRC}
-  echo "REPOURL4=$REPOURL4"                 >> ${PKGRC}
+  echo "REPOURL3=$REPOURL3"
+  echo "REPOURL4=$REPOURL4"
   # seach settings
-  echo "PKGSEARCH=\"$PKGSEARCH\""           >> ${PKGRC}
-  echo "PKGSEARCHEXACT=\"$PKGSEARCHEXACT\"" >> ${PKGRC}
-  echo "DEPSEARCH=\"$DEPSEARCH\""           >> ${PKGRC}
-  echo "DEPSEARCHEXACT=\"$DEPSEARCHEXACT\"" >> ${PKGRC}
+  echo "PKGSEARCH=\"$PKGSEARCH\""
+  echo "PKGSEARCHEXACT=\"$PKGSEARCHEXACT\""
+  echo "DEPSEARCH=\"$DEPSEARCH\""
+  echo "DEPSEARCHEXACT=\"$DEPSEARCHEXACT\""
   # multiple repo settings
-  echo "REPOFALLBACKS=\"$REPOFALLBACKS\""   >> ${PKGRC}
-  echo "PKGSCOPE=\"$PKGSCOPE\""             >> ${PKGRC}
-  echo "DEPSCOPE=\"$DEPSCOPE\""             >> ${PKGRC}
-  echo "BLEDGE=\"$BLEDGE\""                 >> ${PKGRC}
-  echo "RDCHECK=\"$RDCHECK\""               >> ${PKGRC} #150813
-  echo "AUTOCLEAN=\"$AUTOCLEAN\""           >> ${PKGRC}
-  echo "BUILDTOOL=$BUILDTOOL"               >> ${PKGRC}
+  echo "REPOFALLBACKS=\"$REPOFALLBACKS\""
+  echo "PKGSCOPE=\"$PKGSCOPE\""
+  echo "DEPSCOPE=\"$DEPSCOPE\""
+  echo "BLEDGE=\"$BLEDGE\""
+  echo "RDCHECK=\"$RDCHECK\""
+  echo "AUTOCLEAN=\"$AUTOCLEAN\""
+  echo "BUILDTOOL=$BUILDTOOL"
+  ) > ${PKGRC}
 }
 
 
