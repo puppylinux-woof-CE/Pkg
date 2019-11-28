@@ -1167,15 +1167,11 @@ get_repo_info(){                  # return details of given repo name ($1) FUNCL
 
   # on first run, this might be needed to set the repo correctly
   [ "$REPOLINE" = '' ] && REPOLINE="`list_all_sources noarch`"
-
-  REPONAME="`echo $REPOLINE | cut -f1 -d'|'`"
-        EX="`echo $REPOLINE | cut -f2 -d'|'`"
-  REPOFILE="`echo $REPOLINE | cut -f3 -d'|'`"
-  REPOURL1="`echo $REPOLINE | cut -f4 -d'|'`"
-  REPOURL2="`echo $REPOLINE | cut -f5 -d'|'`"
-  REPOURL3="`echo $REPOLINE | cut -f6 -d'|'`"
-  REPOURL4="`echo $REPOLINE | cut -f7 -d'|'`"
-  REPOFALLBACKS="`echo "$REPOLINE"| cut -f8 -d'|'`"
+  #               1      2     3       4        5       6         7          8
+  IFS="|" read REPONAME EX REPOFILE REPOURL1 REPOURL2 REPOURL3 REPOURL4 REPOFALLBACKS \
+	ETC <<EOF
+$REPOLINE
+EOF
 }
 
 
