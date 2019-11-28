@@ -1802,7 +1802,7 @@ update_repo(){                    # update the current repo from a file stored o
   if [ $? -eq 0 ];then
     [ "`which logger`" != '' ] && logger "$0 Repo files updated by $APP $APPVER"
     echo -e "Repo files updated:"
-    grep ^Processing $TMPDIR/update_repo_results | cut -f2 -d' '
+    grep " PKG DB " $TMPDIR/update_repo_results | cut -f2 -d ':'
     # remove the repo update tmp file
     rm -f $TMPDIR/update_repo_results 2>/dev/null
   else
