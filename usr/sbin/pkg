@@ -184,8 +184,17 @@ fi
 [ ! -d "$TMPDIR" ] && error "Cannot create temp dir ${lightblue}$TMPDIR${endcolour}" && exit 3
 
 # support aliases, create ALIASES tmp file
-PKG_NAME_ALIASES='mozilla-firefox,firefox gtk+,gtk2 gtk2,gtk+2 dirac,schroedinger hunspell,myspell mp,mped mplayer,mplayer_*,mplayer-*,mplayer2,smplayer,gmplayer mrxvt,rxvt-unicode,xterm,urxvt,urxvt-unicode cxxlibs,glibc*,libc-* glibc-solibs,glibcsolibs alsalib,alsa-lib,alsa-lib2* alsautils,alsa-utils,alsa_utils,alsa-utils2* libungif,libgif,giflib zip,infozip dbus,libdbus*,libdbus-glib* hal,libhal* mesa,mesa_*,libgl1-mesa*,mesa-common* libxcb,libxcb_base sane,sane-backends samba,samba-tng,samba_*,mountcifs SDL_*,libsdl_* SDL,libsdl skype,skype_static util_linux_ng,util-linux-ng,util-linux,util_linux,utillinuxng vlc,vlc-nogui,vlc_nogui,VLC_Plus_Extras xf86-video-ati,xf86-video-ati-*,ati_fglrx xfdiff,xfdiff-cut xorg_base,xorg_base_t2,x11-common,x-dev,xorg,xorg73_base_t2 acl,libacl* xdg_puppy,xdg-utils perl_tiny,perl-base,perl-modules,perlapi* xorg-util-macros,util-macros portaudio,libportaudio jack-audio-connection-kit,libjack libjasper,jasper imlib2,libimlib2 imlib,libimlib'
-[ ! -f "$TMPDIR/pkg_aliases" ] && echo "$PKG_NAME_ALIASES" | tr ' ' '\n' > $TMPDIR/pkg_aliases
+PKG_NAME_ALIASES='rxvt-unicode,urxvt,urxvt-unicode
+gtk+,gtk+2*
+gtkdialog,gtkdialog3
+dbus*,libdbus*,libdbus-glib*
+mesa,mesa_*,libgl1-mesa*,mesa-common*
+sane,sane-backends
+samba,samba-tng,samba_*,mountcifs
+udev,udev_*,libudev*,libgudev*
+xdg_puppy,xdg-utils
+perl_tiny,perl-base,perl-modules,perlapi*'
+[ ! -f "$TMPDIR/pkg_aliases" ] && echo "$PKG_NAME_ALIASES" > $TMPDIR/pkg_aliases
 
 # remove error code flag if we got here
 rm -f /tmp/pkg/error130 &>/dev/null
