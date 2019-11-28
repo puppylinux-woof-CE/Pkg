@@ -984,11 +984,26 @@ pkg -H'
 
 
 
+# check screen size
+while read a b c ; do
+	case $a in -geometry)
+		SCRNXY=${b%%+*} #1366x768
+		read SCRN_X SCRN_Y <<< "${SCRNXY//x/ }"
+		break
+	esac
+done <<< "$(LANG=C xwininfo -root)"
+
+if [ "$SCRN_X" ] ; then
+	WIDTH="1000"
+	[ "$SCRN_X" -le 1010 ] && WIDTH="$((SCRN_X-10))"
+else
+	WIDTH="700"
+fi
 
 #
 #
 # build the main GUI
-GUI='<window title="'${APPNAME}'">
+GUI='<window title="'${APPNAME}'" width-request="'${WIDTH}'">
 <notebook labels="'$LABELS'">
 <vbox>
 <text height-request="2"><label>""</label></text>
