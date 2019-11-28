@@ -68,7 +68,7 @@ error(){
 
 # for correct error output, trap commands early
 cleanup(){
-  rm -f ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE /tmp/pkg/list_deps_busy ${TMPDIR}pkg_file_list ${TMPDIR}/dependents_list ${TMPDIR}DEP_DONE ${TMPDIR}ldd_file_list &>/dev/null
+  rm -f ${TMPDIR}/missing_dep* ${TMPDIR}/installed_pkg* ${TMPDIR}/all_dep* ${TMPDIR}/DEP_DONE /tmp/pkg/list_deps_busy ${TMPDIR}/pkg_file_list ${TMPDIR}/dependents_list ${TMPDIR}/DEP_DONE ${TMPDIR}/ldd_file_list &>/dev/null
   rm -rf /tmp/pkg/build_pkg/ &>/dev/null
 
   # prevent double msg output if error=130 (user Ctrl-C)
@@ -623,23 +623,23 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
   # get the relevant repo contents (fields 1,2,8) from all repos,
   # then add pipes to line start/end for easier parsing later, then do
   # a basic search, for $pkg* (we'll refine it later), to avoid 'Argument list too long'..
-  cut -f1,2,8 $HOME/.packages/user-installed-packages $HOME/.packages/woof-installed-packages $supported_repo_files | sed -e "s/^/|/g" -e "s/$/|/g" 2>/dev/null | grep -i "|$pkg_name" > ${TMPDIR}repo_contents
+  cut -f1,2,8 $HOME/.packages/user-installed-packages $HOME/.packages/woof-installed-packages $supported_repo_files | sed -e "s/^/|/g" -e "s/$/|/g" 2>/dev/null | grep -i "|$pkg_name" > ${TMPDIR}/repo_contents
 
   # get fields 1,2 and 8 (the 3 name fields) from all supported repo files, then
   # add '|' to start and end of lines, then find exact match of $pkg_name..
   # if no exact match, look for $pkg_name-*, then $pkg_name_*
-  if [ -f ${TMPDIR}repo_contents ];then
-    full_name=`cat ${TMPDIR}repo_contents 2>/dev/null| grep -m1 "|${pkg_name}|"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name//-*/}|"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name//_*/}|"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name}-"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name}_"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name}"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "^${pkg_name}|"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "^${pkg_name}-"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "^${pkg_name}_"`
+  if [ -f ${TMPDIR}/repo_contents ];then
+    full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null| grep -m1 "|${pkg_name}|"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name//-*/}|"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name//_*/}|"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name}-"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name}_"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name}"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "^${pkg_name}|"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "^${pkg_name}-"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "^${pkg_name}_"`
 
-    rm ${TMPDIR}repo_contents &>/dev/null
+    rm ${TMPDIR}/repo_contents &>/dev/null
   fi
 
   # if we found pkg in repo, keep only the package name ('|pkg-123|pkg|blah|' -> 'pkg-123')
@@ -1189,7 +1189,7 @@ set_current_repo(){               # set the current repo to use, give repo name 
   rm $TMPDIR/CURREPOURL 2>/dev/null
 
   # remove old repo files list (used in list_source_files)
-  rm -f ${TMPDIR}source_files 2>/dev/null
+  rm -f ${TMPDIR}/source_files 2>/dev/null
 
   # if not updating the scopes or bleeding-edge,leave them as set in rcfile
   [ "$PKGSCOPE" = "" ] && PKGSCOPE="$PKGSCOPE"
@@ -2778,7 +2778,7 @@ pkg_contents(){                   # list package ($1) contents FUNCLIST
     done
 
     # now get our pkg contents list, it might have been re-formatted (if a builtin)
-    PKG_FLIST="`cat ${TMPDIR}pkg_file_list 2>/dev/null`"
+    PKG_FLIST="`cat ${TMPDIR}/pkg_file_list 2>/dev/null`"
 
     # last resort, if we lost our file list or still dont have, try the basics again
     [ "$PKG_FLIST" = '' ] && PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "${PKGNAME}*.files" 2>/dev/null`"
@@ -2787,7 +2787,7 @@ pkg_contents(){                   # list package ($1) contents FUNCLIST
     [ "$PKG_FLIST" != '' ] && PKG_FLIST="`echo "$PKG_FLIST" | grep -v ' ' | grep -v "^\$" | sort -u`"
 
     # and clean up the tmp files
-    rm ${TMPDIR}pkg_file_list 2>/dev/null
+    rm ${TMPDIR}/pkg_file_list 2>/dev/null
   fi
 
   # try PKGNAME_ONLY.files (exact match)
@@ -5925,35 +5925,35 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
     echo "$deps" | tr ' ' '\n' | tr ',' '\n' | sort -u > $TMPDIR/all_deps_0
 
     # remove any deps in installed pkgs list from all deps.. to leave only missing deps
-    comm -23 ${TMPDIR}all_deps_0 ${TMPDIR}installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}all_deps_1
+    comm -23 ${TMPDIR}/all_deps_0 ${TMPDIR}/installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}/all_deps_1
 
     # remove all blacklisted packages from the list
-    grep -vE "'$blacklisted_pkgs_list'" ${TMPDIR}all_deps_1 2>/dev/null | sort -u > ${TMPDIR}all_deps_1_without_blacklisted_packages
-    mv ${TMPDIR}all_deps_1_without_blacklisted_packages ${TMPDIR}all_deps_1
+    grep -vE "'$blacklisted_pkgs_list'" ${TMPDIR}/all_deps_1 2>/dev/null | sort -u > ${TMPDIR}/all_deps_1_without_blacklisted_packages
+    mv ${TMPDIR}/all_deps_1_without_blacklisted_packages ${TMPDIR}/all_deps_1
 
-    rm -f ${TMPDIR}DEP_DONE 2>/dev/null
+    rm -f ${TMPDIR}/DEP_DONE 2>/dev/null
 
     if [ -f $TMPDIR/all_deps_1 -a ! -z $TMPDIR/all_deps_1 ];then
       # recursive search deps of deps
       for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
       do
-        deps_list_file="${TMPDIR}all_deps_${i}"
+        deps_list_file="${TMPDIR}/all_deps_${i}"
 
 
         if [ -f $deps_list_file ];then
 
           # remove all blacklisted packages from the list
-          grep -vE "'$blacklisted_pkgs_list'" "$deps_list_file" > ${TMPDIR}deps_list_file_without_blacklisted_pkgs
-          mv ${TMPDIR}deps_list_file_without_blacklisted_pkgs  $deps_list_file
+          grep -vE "'$blacklisted_pkgs_list'" "$deps_list_file" > ${TMPDIR}/deps_list_file_without_blacklisted_pkgs
+          mv ${TMPDIR}/deps_list_file_without_blacklisted_pkgs  $deps_list_file
 
           # remove done packages from the list
-          if [ -f ${TMPDIR}DEP_DONE ];then
-            deps_done_list="$(cat ${TMPDIR}DEP_DONE | tr '\n' '|' | grep -v ^$)"
-            grep -vE "'$deps_done_list'" $deps_list_file > ${TMPDIR}deps_list_file_without_completed_pkgs
-            mv ${TMPDIR}deps_list_file_without_completed_pkgs $deps_list_file
+          if [ -f ${TMPDIR}/DEP_DONE ];then
+            deps_done_list="$(cat ${TMPDIR}/DEP_DONE | tr '\n' '|' | grep -v ^$)"
+            grep -vE "'$deps_done_list'" $deps_list_file > ${TMPDIR}/deps_list_file_without_completed_pkgs
+            mv ${TMPDIR}/deps_list_file_without_completed_pkgs $deps_list_file
           fi
 
-          next_deps_list_file="${TMPDIR}all_deps_$(($i + 1))"
+          next_deps_list_file="${TMPDIR}/all_deps_$(($i + 1))"
 
           # for each dep in $deps, get their deps too
           for subdep in `sort -u $deps_list_file | grep -v ^$`
@@ -5966,7 +5966,7 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
             local is_builtin
             local is_in_devx
 
-            local already_done=`grep -m1 "^${subdep}\$" ${TMPDIR}DEP_DONE 2>/dev/null`
+            local already_done=`grep -m1 "^${subdep}\$" ${TMPDIR}/DEP_DONE 2>/dev/null`
             [ "$already_done" != '' ] && continue
 
             if [ "$HIDE_BUILTINS" = true ];then
@@ -5983,7 +5983,7 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
 
             if [ "$subdeps" != '' ] && [ "$subdeps" != ' ' ];then
               # remove everything after the + (if the + is followed by alphanumeric chars), then add to tmp files
-              echo "$subdep" >> ${TMPDIR}DEP_DONE
+              echo "$subdep" >> ${TMPDIR}/DEP_DONE
 
               # create the next deps list file to parse, containing the deps of this $subdep
               subdeps_list="`echo "${subdeps}" | tr ' ' '\n' | grep -v ^$ | sed -e 's/++/+++/g' -e 's/+[a-z0-9].*//g' | sort -u`"
@@ -5994,27 +5994,27 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
       done
 
       # add all deps together, sorted, duplicated removed
-      sort -u ${TMPDIR}all_deps_* | grep -v ^$ > ${TMPDIR}all_deps_sorted
-      mv ${TMPDIR}all_deps_sorted ${TMPDIR}all_deps
+      sort -u ${TMPDIR}/all_deps_* | grep -v ^$ > ${TMPDIR}/all_deps_sorted
+      mv ${TMPDIR}/all_deps_sorted ${TMPDIR}/all_deps
 
     fi
 
   fi
 
   # remove any deps in installed pkgs list from all deps.. to leave only missing deps
-  if [ -f ${TMPDIR}installed_pkgs -a ! -z  ${TMPDIR}installed_pkgs ];then
-    comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}missing_deps
+  if [ -f ${TMPDIR}/installed_pkgs -a ! -z  ${TMPDIR}/installed_pkgs ];then
+    comm -23 ${TMPDIR}/all_deps ${TMPDIR}/installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}/missing_deps
   fi
 
   # remove all blacklisted packages from the list
-  grep -vE "'$blacklisted_pkgs_list'" ${TMPDIR}missing_deps 2>/dev/null | sort -u > ${TMPDIR}missing_deps_without_blacklisted_pkgs
-  mv ${TMPDIR}missing_deps_without_blacklisted_pkgs ${TMPDIR}missing_deps
+  grep -vE "'$blacklisted_pkgs_list'" ${TMPDIR}/missing_deps 2>/dev/null | sort -u > ${TMPDIR}/missing_deps_without_blacklisted_pkgs
+  mv ${TMPDIR}/missing_deps_without_blacklisted_pkgs ${TMPDIR}/missing_deps
 
-  [ ! -f ${TMPDIR}missing_deps -o -z ${TMPDIR}missing_deps ] && rm /tmp/pkg/list_deps_busy 2>/dev/null && return 1
-  [ ! -f ${TMPDIR}missing_deps ] && return 1
+  [ ! -f ${TMPDIR}/missing_deps -o -z ${TMPDIR}/missing_deps ] && rm /tmp/pkg/list_deps_busy 2>/dev/null && return 1
+  [ ! -f ${TMPDIR}/missing_deps ] && return 1
 
   # get fixed deps list
-  deps="`LANG=C sort -u ${TMPDIR}missing_deps 2>/dev/null | tr ' ' '\n' | while read dep
+  deps="`LANG=C sort -u ${TMPDIR}/missing_deps 2>/dev/null | tr ' ' '\n' | while read dep
   do
     echo $(get_pkg_name_only "$dep")
   done`"
@@ -6022,7 +6022,7 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
   [ "$deps" != "" ] && echo "$deps" | sed -e 's/^ //g' | tr ' ' '\n' | sort -u | tr '\n' ' '
 
   # clean up
-  rm ${TMPDIR}missing_dep* ${TMPDIR}installed_pkg* ${TMPDIR}all_dep* ${TMPDIR}DEP_DONE /tmp/pkg/list_deps_busy 2>/dev/null
+  rm ${TMPDIR}/missing_dep* ${TMPDIR}/installed_pkg* ${TMPDIR}/all_dep* ${TMPDIR}/DEP_DONE /tmp/pkg/list_deps_busy 2>/dev/null
 }
 
 
@@ -6083,19 +6083,19 @@ find_deps(){                      # given a package name ($1), makes 2 lists: DE
 
   # remove builtins from list unless HIDE_BUILTINS=false
   if [ "${HIDE_BUILTINS}" = true ];then
-    echo "$deps_list" | tr ' ' '\n'  | grep -v ^$ > ${TMPDIR}all_deps
+    echo "$deps_list" | tr ' ' '\n'  | grep -v ^$ > ${TMPDIR}/all_deps
     # add woof pkgs to list of pkgs to remove from final output
     cut -f2 -d'|' $HOME/.packages/woof-installed-packages | grep -v ^$ | sort -u >> $TMPDIR/installed_pkgs
     # remove any deps in installed pkgs list from all deps.. to leave only missing deps
 
-    sort -u ${TMPDIR}all_deps > ${TMPDIR}all_deps_sorted
-    mv ${TMPDIR}all_deps_sorted ${TMPDIR}all_deps
+    sort -u ${TMPDIR}/all_deps > ${TMPDIR}/all_deps_sorted
+    mv ${TMPDIR}/all_deps_sorted ${TMPDIR}/all_deps
 
-    sort -u ${TMPDIR}installed_pkgs > ${TMPDIR}installed_pkgs_sorted
-    mv ${TMPDIR}installed_pkgs_sorted ${TMPDIR}installed_pkgs
+    sort -u ${TMPDIR}/installed_pkgs > ${TMPDIR}/installed_pkgs_sorted
+    mv ${TMPDIR}/installed_pkgs_sorted ${TMPDIR}/installed_pkgs
 
-    comm -23 ${TMPDIR}all_deps ${TMPDIR}installed_pkgs | grep -v ^$ > ${TMPDIR}missing_deps
-    deps_list="`cat "${TMPDIR}missing_deps" 2>/dev/null | grep -v ^$ | sort | tr '\n' ' ' `"
+    comm -23 ${TMPDIR}/all_deps ${TMPDIR}/installed_pkgs | grep -v ^$ > ${TMPDIR}/missing_deps
+    deps_list="`cat "${TMPDIR}/missing_deps" 2>/dev/null | grep -v ^$ | sort | tr '\n' ' ' `"
   fi
 
   # so now, $deps_list='dep1 dep2 dep3'
@@ -6365,11 +6365,11 @@ pkg_ldd_msg(){                    # check given package ($1) for missing deps FU
     [ ! -f "$FNDFILES" ] && continue
 
     # get list of ldd-able file
-    cat "$FNDFILES" | grep -E '/lib/|/lib64/|/bin/|/games/|/sbin/' > ${TMPDIR}ldd_file_list_${pkg_name}
-    [ -z ${TMPDIR}ldd_file_list_${pkg_name} ] && continue
+    cat "$FNDFILES" | grep -E '/lib/|/lib64/|/bin/|/games/|/sbin/' > ${TMPDIR}/ldd_file_list_${pkg_name}
+    [ -z ${TMPDIR}/ldd_file_list_${pkg_name} ] && continue
 
     #loop through list
-    for file in `cat ${TMPDIR}ldd_file_list_${pkg_name}`
+    for file in `cat ${TMPDIR}/ldd_file_list_${pkg_name}`
     do
       [ ! -x "$file" ] && continue
       RES="`ldd $file 2>/dev/null`"
@@ -6385,7 +6385,7 @@ pkg_ldd_msg(){                    # check given package ($1) for missing deps FU
     else
       echo -e "${green}OK:${endcolour} ${pkg_name} has no missing dependencies."
     fi
-    rm -f ${TMPDIR}ldd_file_list* $TMPDIR/${pkg_name}-MISSINGLIBS.txt 2>/dev/null
+    rm -f ${TMPDIR}/ldd_file_list* $TMPDIR/${pkg_name}-MISSINGLIBS.txt 2>/dev/null
   done
 }
 
@@ -7121,9 +7121,9 @@ menu_entry_msg(){                 # show menu entry details of installed pkg FUN
 
     # replace the Categories= line with one which has only the top, main category..
     # .. this should prevent duplicate menu entries
-    #cat "$MENUFILE" | grep -v ^Categories > ${TMPDIR}fixed.desktop
-    #echo "Categories=${TOPMENU};" >> ${TMPDIR}fixed.desktop
-    #mv ${TMPDIR}fixed.desktop $MENUFILE
+    #cat "$MENUFILE" | grep -v ^Categories > ${TMPDIR}/fixed.desktop
+    #echo "Categories=${TOPMENU};" >> ${TMPDIR}/fixed.desktop
+    #mv ${TMPDIR}/fixed.desktop $MENUFILE
 
     # print msg
     if [ "$no_display" != "" -o "$terminal_only" != '' ];then
