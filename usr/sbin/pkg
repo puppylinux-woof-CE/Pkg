@@ -1163,7 +1163,7 @@ show_config(){                    # show config settings from ~/.pkg/pkgrc FUNCL
 get_repo_info(){                  # return details of given repo name ($1) FUNCLIST
   [ ! "$1" -o "$1" = "-" ] && print_usage repo-info && exit 1
 
-  REPOLINE="`list_all_sources $1 | sort -u | uniq`" #170214 always get latest info, not info from rcfile
+  REPOLINE="`list_all_sources $1 | sort -u`" #170214 always get latest info, not info from rcfile
 
   # on first run, this might be needed to set the repo correctly
   [ "$REPOLINE" = '' ] && REPOLINE="`list_all_sources noarch`"
@@ -1511,7 +1511,7 @@ add_pkg_repo() {                  # add a Pkg-created repo, called by add_repo()
     # register as a user installed repo, so we can remove it later (using rm_repo)
     touch ~/.pkg/sources-user
     echo "$repo_entry" >> ~/.pkg/sources-user
-    local user_repos="$(sort -u ~/.pkg/sources-user | uniq)"
+    local user_repos="$(sort -u ~/.pkg/sources-user)"
     echo "$user_repos" > ~/.pkg/sources-user
 
   fi
@@ -1546,14 +1546,14 @@ add_repo(){                       # add Pkg/Ubuntu/Debian/Slackware third-party 
         # register repo, so we know to update it in update_sources()
         touch ~/.pkg/sources-user
         echo "$repo_entry" >> ~/.pkg/sources-user
-        local user_repos="$(sort -u ~/.pkg/sources-user | uniq)"
+        local user_repos="$(sort -u ~/.pkg/sources-user)"
         echo "$user_repos" > ~/.pkg/sources-user
 
         # register in a slack supported file too
         mkdir -p /etc/slackpkg/
         touch /etc/slackpkg/mirrors
         echo "$slack_repo_url" >> /etc/slackpkg/mirrors
-        local slack_repos="$(sort -u /etc/slackpkg/mirrors | uniq)"
+        local slack_repos="$(sort -u /etc/slackpkg/mirrors)"
         echo "$slack_repos" > /etc/slackpkg/mirrors
       fi
       ;;
@@ -1576,14 +1576,14 @@ add_repo(){                       # add Pkg/Ubuntu/Debian/Slackware third-party 
         # register repo, so we know to update it in update_sources()
         touch ~/.pkg/sources-user
         echo "$repo_entry" >> ~/.pkg/sources-user
-        local user_repos="$(sort -u ~/.pkg/sources-user | uniq)"
+        local user_repos="$(sort -u ~/.pkg/sources-user)"
         echo "$user_repos" > ~/.pkg/sources-user
 
         # register in an apt-supported file too
         mkdir -p /etc/apt/
         touch /etc/apt/sources.list
         echo "deb $@" >> /etc/apt/sources.list
-        local deb_repos="$(sort -u /etc/apt/sources.list | uniq)"
+        local deb_repos="$(sort -u /etc/apt/sources.list)"
         echo "$deb_repos" > /etc/apt/sources.list
       fi
       ;;
@@ -1887,7 +1887,7 @@ update_repo(){                    # update the current repo from a file stored o
 
     # update third-party Slackware repos
     if [ -f /etc/slackpkg/mirrors ];then
-      local slack_repos="$(sort -u /etc/slackpkg/mirrors | uniq)"
+      local slack_repos="$(sort -u /etc/slackpkg/mirrors)"
       local slack_repo_url=""
 
       for slack_repo in $slack_repos
@@ -2786,7 +2786,7 @@ pkg_contents(){                   # list package ($1) contents FUNCLIST
     [ "$PKG_FLIST" = '' ] && PKG_FLIST="`find $HOME/.packages/ -maxdepth 1 -type f -name "${PKGNAME}*.files" 2>/dev/null`"
 
     # clean up the list a bit
-    [ "$PKG_FLIST" != '' ] && PKG_FLIST="`echo "$PKG_FLIST" | grep -v ' ' | grep -v "^\$" | sort | uniq`"
+    [ "$PKG_FLIST" != '' ] && PKG_FLIST="`echo "$PKG_FLIST" | grep -v ' ' | grep -v "^\$" | sort -u`"
 
     # and clean up the tmp files
     rm ${TMPDIR}pkg_file_list 2>/dev/null
@@ -3564,7 +3564,7 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
 
     # get the deps of the pkg, but dont install
     FORCE=$force_opt find_deps "$PKGNAME"
-    ALL_DEPS="`cat $TMPDIR/deps_installed $TMPDIR/deps_missing 2>/dev/null | sort | uniq`"
+    ALL_DEPS="`cat $TMPDIR/deps_installed $TMPDIR/deps_missing 2>/dev/null | sort -u`"
 
     # download the needed package
     if [ ! -f "$PKG_FILE" -o "$FORCE" = true ];then
@@ -3585,7 +3585,7 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
 
 
     # make a cleaned list to go over (sanity check)
-    ALL_DEPS_LIST="`echo "$ALL_DEPS" | tr ',' '\n' | grep -v "^\$" | sort | uniq`"
+    ALL_DEPS_LIST="`echo "$ALL_DEPS" | tr ',' '\n' | grep -v "^\$" | sort -u`"
 
     # go through each dep listed
     echo "$ALL_DEPS_LIST" | while read LINE
@@ -3633,7 +3633,7 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
     PARENTPKG=${PKGNAME}
 
     # for all pkgs in the tmp dir (nto including any 'combined' pkgs)
-    TMP_PKGS="`find "$BUILD_DIR/" -maxdepth 1 -type f -name "*" | grep -v $SUFFIX | grep -v ^$ | grep -v ' ' | sort | uniq`"
+    TMP_PKGS="`find "$BUILD_DIR/" -maxdepth 1 -type f -name "*" | grep -v $SUFFIX | grep -v ^$ | grep -v ' ' | sort -u`"
 
     local count=1
 
@@ -3918,7 +3918,7 @@ merge_pkg(){                      # merge the given comma-separated packages FUN
 
   cd "$WORKDIR" 1>/dev/null
 
-  local PKG_LIST="$(echo "${1}" | tr ',' '\n' | sort -u | uniq)"
+  local PKG_LIST="$(echo "${1}" | tr ',' '\n' | sort -u)"
   local SUFFIX=''
 
   if [ "$2" = "--with-deps" ];then
@@ -3930,7 +3930,7 @@ merge_pkg(){                      # merge the given comma-separated packages FUN
     do
       PKG_LIST="$PKG_LIST $(pkg le $package)"
     done
-    PKG_LIST="$(echo "$PKG_LIST" | tr ' ' '\n' | sort -u | uniq)"
+    PKG_LIST="$(echo "$PKG_LIST" | tr ' ' '\n' | sort -u)"
   fi
 
   echo "Merging the following packages:"
@@ -6087,7 +6087,7 @@ find_deps(){                      # given a package name ($1), makes 2 lists: DE
   if [ "${HIDE_BUILTINS}" = true ];then
     echo "$deps_list" | tr ' ' '\n'  | grep -v ^$ > ${TMPDIR}all_deps
     # add woof pkgs to list of pkgs to remove from final output
-    cut -f2 -d'|' $HOME/.packages/woof-installed-packages | grep -v ^$ | sort | uniq >> $TMPDIR/installed_pkgs
+    cut -f2 -d'|' $HOME/.packages/woof-installed-packages | grep -v ^$ | sort -u >> $TMPDIR/installed_pkgs
     # remove any deps in installed pkgs list from all deps.. to leave only missing deps
 
     sort -u ${TMPDIR}all_deps > ${TMPDIR}all_deps_sorted
@@ -6140,15 +6140,15 @@ find_deps(){                      # given a package name ($1), makes 2 lists: DE
 
     # clean up deps_installed, remove duplicates, etc
     if [ -f $TMPDIR/deps_installed ];then
-      cat $TMPDIR/deps_installed 2>/dev/null| sort | uniq >> $TMPDIR/deps_installed1
+      cat $TMPDIR/deps_installed 2>/dev/null| sort -u >> $TMPDIR/deps_installed1
       [ -f $TMPDIR/deps_installed1 ] && mv $TMPDIR/deps_installed1 $TMPDIR/deps_installed 2>/dev/null
     fi
 
   done # end of while $dep
 
   # make a comma separated list from newlines
-  deps_installed="`cat $TMPDIR/deps_installed 2>/dev/null | sort | uniq | tr '\n' ',' | sed -e 's/,,/,/' -e 's/,$//' -e 's/^,//'`"
-  deps_missing="`cat $TMPDIR/deps_missing 2>/dev/null | sort | uniq | tr '\n' ',' | sed -e 's/,,/,/' -e 's/,$//' -e 's/^,//'`"
+  deps_installed="`cat $TMPDIR/deps_installed 2>/dev/null | sort -u | tr '\n' ',' | sed -e 's/,,/,/' -e 's/,$//' -e 's/^,//'`"
+  deps_missing="`cat $TMPDIR/deps_missing 2>/dev/null | sort -u | tr '\n' ',' | sed -e 's/,,/,/' -e 's/,$//' -e 's/^,//'`"
 
   #120213, fixed, force all deps to be in the download list, if --force was given
   if [ "$FORCE" = true ];then
