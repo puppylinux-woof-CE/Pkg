@@ -7343,7 +7343,10 @@ first_run (){                     # welome message on first run
 
 {
 #=====================  final checks  =======================#
-
+if [ ! -f "${HOME}/.packages/$REPOFILE" ];then
+  REPOFILE="$(cat  /root/.pkg/sources-all /root/.pkg/sources /etc/pkg/sources-all /etc/pkg/sources | grep -m 1 -E "^$REPONAME" | cut -d'|' -f3)"
+  [ ! -z "$REPOFILE" ] && touch "${HOME}/.packages/$REPOFILE"
+fi
 # try to set a default repo if none was found
 if [ ! -f "${HOME}/.packages/$REPOFILE" -o ! -f "$HOME/.pkg/sources" ];then
 
