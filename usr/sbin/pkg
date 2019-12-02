@@ -1514,12 +1514,11 @@ add_repo(){                       # add Pkg/Ubuntu/Debian/Slackware third-party 
       ;;
 
     'ppa:'*|'http://'*|'https://'*)
-      wget --quiet --timeout=2 --no-parent --spider "${1}install"
-      REPLY=$?
-      if [ "$REPLY" = 0 ];then
+      wget --quiet --timeout=2 --no-parent --spider "${1}install" 2>/dev/null && \
+      {
         add_pkg_repo "${1}install"
-        exit $?
-      fi
+        exit 0
+      } || exit 1
 
       ppa2pup "$@"
       retval=$?
@@ -4343,16 +4342,15 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
                 URL="`echo "$URL"| sed -e 's@${SLACKARCH}@'$SLACKARCH'@g'`"
                 URL="`echo "$URL"| sed -e 's@${lxDISTRO_COMPAT_VERSION}@'$lxDISTRO_COMPAT_VERSION'@g'`"
                 #ping -W2 -c1 -q $(echo  "${URL}" | awk -F/ '{print $3}') &>/dev/null
-                wget --quiet --timeout=1 --no-parent --spider "${URL}"
-                REPLY=$?
-                if [ "$REPLY" = 0 ];then
+                wget --quiet --timeout=2 --no-parent --spider "${URL}" &>/dev/null && \
+                {
                   # set the current URL
                   curr_repo_url="$URL"
                   if [ ! -z "$curr_repo_url" ];then
                     echo "$curr_repo_url" > $TMPDIR/curr_repo_url
                     break
                   fi
-                fi
+                }
               done
             #else
             # curr_repo_url="`cat $TMPDIR/curr_repo_url`"
@@ -4388,9 +4386,15 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
             [ "$sub_dir" != '' ] && DOWNLOAD_URL="`echo "$DOWNLOAD_URL"| sed -e "s@//${sub_dir}@/${sub_dir}@g" -e "s@${sub_dir}//@${sub_dir}/@g"`"
 
             # exit if URL is not found (if we get a 404 back)
-            if [ -z "$DOWNLOAD_URL" -o "`wget -S --spider "$DOWNLOAD_URL" 2>&1 | grep -m1 'HTTP/1.1 404 Not Found'`" != '' ]; then
+            if [ -z "$DOWNLOAD_URL" ]; then
               error "Package URL not found   $DOWNLOAD_URL"
               return 8
+            else
+              wget -S --spider "$DOWNLOAD_URL" &>/dev/null || \
+              {
+                error "Package URL not found   $DOWNLOAD_URL"
+                return 8				  
+              }
             fi
 
             # we may be using multiple URLs, so each time we change URL,
