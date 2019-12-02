@@ -55,6 +55,7 @@ green="\e[32m"; red="\e[91m"; magenta="\e[95m"; lightblue="\e[36m"; yellow="\e[9
 [ -z "$PKG_NO_COLOURS" ] && export PKG_NO_COLOURS=false # if true, disable coloured output or not
 [ -z "$PKG_CONFIGURE"  ] && export PKG_CONFIGURE=''     # reset
 [ -z "$PKG_CFLAGS"     ] && export PKG_CFLAGS=''        # reset
+[ -z "$PKG_PPA2PUP_FN" ] && if [ ! -z "`which gawk`" ]; then PKG_PPA2PUP_FN=ppa2pup_gawk; else PKG_PPA2PUP_FN=ppa2pup; fi
 
 # but disable colours if called as gpkg, or the ENV variable PKG_NO_COLOURS is true
 if [ "`basename $0`" != "pkg" -o "$PKG_NO_COLOURS" = true ];then
@@ -1718,6 +1719,17 @@ update_sources(){                 # create the list of available repos FUNCLIST
   [ -f ${HOME}/.pkg/sources ] && echo "Sources updated." && . ${PKGRC}
 }
 
+set_ppa2pup_fn(){
+  #Paranoid precaution, so that one can't do code injection
+  case "$PKG_PPA2PUP_FN" in
+  ppa2pup_gawk) ppa2pup_fn=ppa2pup_gawk; ;;
+  ppa2pup) ppa2pup_fn=ppa2pup ;;
+  *) 
+    echo "Invalid value: PKG_PPA2PUP_FN=${PKG_PPA2PUP_FN}"
+    echo "Valid values: ppa2pup or ppa2pup_gawk"
+    exit 1 ;; 
+  esac
+}
 
 update_repo(){                    # update the current repo from a file stored online FUNCLIST
 
@@ -1827,10 +1839,11 @@ update_repo(){                    # update the current repo from a file stored o
         echo
         ANSWER="$(cat /tmp/pkg/ANSWER)"
       fi
-
+      
       if [ "$ANSWER" = 'y' ] || [ "$ANSWER" = 'Y' ];then
         echo "Please wait..."
-        ppa2pup ${line//|/ } 1>/dev/null && echo -e "${green}Success${endcolour}: Updated repo '$ppa_repo_name'"
+        set_ppa2pup_fn
+        $ppa2pup_fn ${line//|/ } 1>/dev/null && echo -e "${green}Success${endcolour}: Updated repo '$ppa_repo_name'"
         retval=$?
       fi
     done
@@ -4205,7 +4218,7 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
 
   # the file to save to.. not reliable till we checked the repos
   PKGFILE="${WORKDIR}/${PKGNAME}.$pkg_ext"
-
+  PKG_FNAME_GUESS="$PKGFILE"
   # set download options
   [ "$FORCE" = true  ] && CONTINUE='' || CONTINUE='-c'
   [ "$ASK"  != true  ] && QTAG=''
@@ -4431,7 +4444,7 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
             # clean up output
             [ "$QUIET" != true ] && echo -ne "\b\b\b\b"
             echo
-
+            ln -s "${PKG_FILENAME}" "$PKG_FNAME_GUESS" #TODO use relative symbolic links + symbolic link cleanup. 
             # if file downloaded ok
             if [ -f "${WORKDIR}/${PKG_FILENAME}" ];then
               echo -e "${green}Downloaded:${endcolour} ${WORKDIR}/${PKG_FILENAME}"
@@ -5510,6 +5523,12 @@ pkg_get(){                        # find, download and install $1 and its deps F
       # maybe try $CURDIR/pkgname*.*
       [ ! -f "$PKGFILE" ] && PKGFILE="`find "$CURDIR" -maxdepth 1 -type f -name "${pkg_name}*.*"`"
 
+      if [ ! -f "$PKGFILE" ]; then
+        PKGFILE_symlink="`find "$CURDIR" -maxdepth 1 -type l -name "${pkg_name}*.*"`"
+        PKGFILE="$(readlink "$PKGFILE_symlink")"
+        rm "$PKGFILE_symlink"
+      fi
+      
       # add extension if Pkg returned an erroneous or user dir
       [ -d "$PKGFILE" ] && PKGFILE="${PKGFILE}.$pkg_ext"
 
@@ -7379,7 +7398,10 @@ first_run (){                     # welome message on first run
 
 {
 #=====================  final checks  =======================#
-
+if [ ! -f "${HOME}/.packages/$REPOFILE" ];then
+  REPOFILE="$(cat  /root/.pkg/sources-all /root/.pkg/sources /etc/pkg/sources-all /etc/pkg/sources | grep -m 1 -E "^$REPONAME" | cut -d'|' -f3)"
+  [ ! -z "$REPOFILE" ] && touch "${HOME}/.packages/$REPOFILE"
+fi
 # try to set a default repo if none was found
 if [ ! -f "${HOME}/.packages/$REPOFILE" -o ! -f "$HOME/.pkg/sources" ];then
 
