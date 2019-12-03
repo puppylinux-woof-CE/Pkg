@@ -5409,7 +5409,7 @@ pkg_get(){                        # find, download and install $1 and its deps F
   CURDIR="$WORKDIR"
 
   # use the list of pkgs user has chosen to install, or the given PKGNAME
-  if [ "`cat "$TMPDIR/USRPKGLIST" 2>/dev/null`" != "" ];then
+  if [ -f $TMPDIR/USRPKGLIST ] && [ "`cat "$TMPDIR/USRPKGLIST" 2>/dev/null`" != "" ];then
     PKGLIST="`cat "$TMPDIR/USRPKGLIST" | grep -v "^\$"`"
   fi
 
@@ -5573,6 +5573,10 @@ pkg_update(){                     # update installed pkgs, $1 is optional filter
     # get installed packages
     PKGLIST="`HIDE_BUILTINS=false list_installed_pkgs`"
   fi
+
+  # we don't want get_pkg to search this file, when it's called below,
+  # as we're not writing the current packages to it, so remove the file
+  rm -f $TMPDIR/USRPKGLIST 2>/dev/null
 
   # iterate over the list
   echo "$PKGLIST"  | grep -v ^$ | sort -u | while read installed_pkg; do
