@@ -217,10 +217,9 @@ get_blacklist(){
 }
 
 get_blacklist
-# create a list like "foo|bar", to be used in grep commands
-PKG_BLACKLIST_REGEX="$(echo "$PKG_BLACKLIST" | tr '\n' '|')"
+# create a list like "foo|bar|baz", to be used in grep commands
+PKG_BLACKLIST_REGEX="$(echo "$PKG_BLACKLIST" | tr '\n' '|' | sed -e 's/^|//' -e 's/|$//')"
 export PKG_BLACKLIST_REGEX 
-
 # remove error code flag if we got here
 rm -f /tmp/pkg/error130 &>/dev/null
 
