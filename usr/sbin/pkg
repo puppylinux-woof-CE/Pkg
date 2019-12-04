@@ -2068,7 +2068,7 @@ hide_blacklisted_pkgs_from_search_results(){ # hide BUILTIN and installed pkgs f
   [ "$FORCE" = true ] && return 0
 
   # remove blacklisted packages from search list
-  cat $TMPDIR/pkglist | grep -v -E "'$PKG_BLACKLIST'" > $TMPDIR/pkglist_without_blacklisted
+  cat $TMPDIR/pkglist | grep -vE "'$PKG_BLACKLIST_REGEX'" > $TMPDIR/pkglist_without_blacklisted
   mv $TMPDIR/pkglist_without_blacklisted $TMPDIR/pkglist
 
   # clean up tmp files
