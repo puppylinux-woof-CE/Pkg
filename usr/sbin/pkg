@@ -203,17 +203,17 @@ fi
 PKG_NAME_ALIASES='mozilla-firefox,firefox gtk+,gtk2 gtk2,gtk+2 dirac,schroedinger hunspell,myspell mp,mped mplayer,mplayer_*,mplayer-*,mplayer2,smplayer,gmplayer mrxvt,rxvt-unicode,xterm,urxvt,urxvt-unicode cxxlibs,glibc*,libc-* glibc-solibs,glibcsolibs alsalib,alsa-lib,alsa-lib2* alsautils,alsa-utils,alsa_utils,alsa-utils2* libungif,libgif,giflib zip,infozip dbus,libdbus*,libdbus-glib* hal,libhal* mesa,mesa_*,libgl1-mesa*,mesa-common* libxcb,libxcb_base sane,sane-backends samba,samba-tng,samba_*,mountcifs SDL_*,libsdl_* SDL,libsdl skype,skype_static util_linux_ng,util-linux-ng,util-linux,util_linux,utillinuxng vlc,vlc-nogui,vlc_nogui,VLC_Plus_Extras xf86-video-ati,xf86-video-ati-*,ati_fglrx xfdiff,xfdiff-cut xorg_base,xorg_base_t2,x11-common,x-dev,xorg,xorg73_base_t2 acl,libacl* xdg_puppy,xdg-utils perl_tiny,perl-base,perl-modules,perlapi* xorg-util-macros,util-macros portaudio,libportaudio jack-audio-connection-kit,libjack libjasper,jasper imlib2,libimlib2 imlib,libimlib'
 [ ! -f "$TMPDIR/pkg_aliases" ] && echo "$PKG_NAME_ALIASES" | tr ' ' '\n' > $TMPDIR/pkg_aliases
 
-# get blacklisted packages as pipe delimited list (in $PKG_BLACKLIST and )
-# and allow easy user defined black listed packages, in ~/.pkg/blacklisted_packages
-# .. exports $PKG_BLACKLIST
-get_blacklist(){                  # take sno args, exports $PKG_BLACKLIST  FUNCLIST
-  echo "$PKG_BLACKLIST $PKG_NAME_IGNORE $(cat ${HOME}/.pkg/blacklisted_packages 2>/dev/null)" \
+# get blacklisted packages (each on new line) from $PKG_NAME_IGNORE 
+# and ~/.pkg/blacklisted_packages .. exports $PKG_BLACKLIST
+get_blacklist(){
+
+  PKG_BLACKLIST="$(echo "$PKG_BLACKLIST $PKG_NAME_IGNORE $(cat ${HOME}/.pkg/blacklisted_packages 2>/dev/null)" \
     | grep -v "^$" \
-    | sort -u \
-    | tr '\n' ' ' \
-    | sed -e 's/  / /g' -e 's/ /|/g' -e 's/|$//g'> $TMPDIR/pkg_blacklist
-  export PKG_BLACKLIST="$(cat "$TMPDIR/pkg_blacklist" | grep ^$ | sort -u)"
-  rm $TMPDIR/pkg_blacklist &>/dev/null
+    | tr ' ' '\n' \
+    | grep -v ^$ \
+    | sort -u)"
+
+  export PKG_BLACKLIST
 }
 get_blacklist
 
@@ -636,7 +636,6 @@ is_blacklisted_pkg(){             # return true if PKGNAME ($1) is blacklisted F
     return 1
   fi
 }
-
 
 is_installed_pkg(){               # return true if PKGNAME ($1) is installed, else false FUNCLIST
 
