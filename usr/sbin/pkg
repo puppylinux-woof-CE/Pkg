@@ -132,11 +132,22 @@ case "$DISTRO_TARGETARCH" in
   *)      DBIN_ARCH=i486                ;;
 esac
 
+# set correct package name/version separator (helps resolve package names)
+case $DISTRO_BINARY_COMPAT in
+  ubuntu|trisquel|debian|devuan)
+    separator='_'
+    ;;
+  *)
+    separator='-'
+    ;;
+esac
+
 # needed for some debian based repos
 case $DISTRO_COMPAT_VERSION in
   wheezy) DDB_COMP=bz2 ;; # older versions
   *)      DDB_COMP=xz  ;;
 esac
+
 
 # now create 'layers-installed': will contain builtins (and devx packages, if devx is loaded)
 #130511 need to include devx-only-installed-packages, if loaded...
@@ -346,7 +357,9 @@ get_pkg_version(){                # returns version of PKGNAME ($1) FUNCLIST
 
   pkg_version=`echo $PKGNAME | sed -e "s/^${PKGNAME_ONLY}_//g"`
   # if $pkg_version is same as $PKGNAME, try cutting again, using '-' instead of '_'
+  [ "$pkg_version" = "$PKGNAME" ] && pkg_version=`echo $PKGNAME | sed -e "s/^${PKGNAME_ONLY}${separator}//g"`
   [ "$pkg_version" = "$PKGNAME" ] && pkg_version=`echo $PKGNAME | sed -e "s/^${PKGNAME_ONLY}-//g"`
+  [ "$pkg_version" = "$PKGNAME" ] && pkg_version=`echo $PKGNAME | sed -e "s/^${PKGNAME_ONLY}_//g"`
 
   # now trim off the other unneeded bits
   pkg_version=`echo  $pkg_version | sed \
@@ -1718,6 +1731,7 @@ update_sources(){                 # create the list of available repos FUNCLIST
   [ -f ${HOME}/.pkg/sources ] && echo "Sources updated." && . ${PKGRC}
 }
 
+
 set_ppa2pup_fn(){
   #Paranoid precaution, so that one can't do code injection
   case "$PKG_PPA2PUP_FN" in
@@ -1729,6 +1743,7 @@ set_ppa2pup_fn(){
     exit 1 ;; 
   esac
 }
+
 
 update_repo(){                    # update the current repo from a file stored online FUNCLIST
 
@@ -5447,7 +5462,7 @@ pkg_get(){                        # find, download and install $1 and its deps F
   CURDIR="$WORKDIR"
 
   # use the list of pkgs user has chosen to install, or the given PKGNAME
-  if [ "`cat "$TMPDIR/USRPKGLIST" 2>/dev/null`" != "" ];then
+  if [ -f $TMPDIR/USRPKGLIST ] && [ "`cat "$TMPDIR/USRPKGLIST" 2>/dev/null`" != "" ];then
     PKGLIST="`cat "$TMPDIR/USRPKGLIST" | grep -v "^\$"`"
   fi
 
@@ -5597,7 +5612,7 @@ pkg_update(){                     # update installed pkgs, $1 is optional filter
     PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
 
     # get installed packages
-    PKGLIST="`HIDE_BUILTINS=false list_installed_pkgs "$PKGNAME_ONLY"`"
+    PKGLIST="`HIDE_BUILTINS=true list_installed_pkgs "$PKGNAME_ONLY"`"
 
     #is_builtin=`is_builtin_pkg "$PKGNAME"`
 
@@ -5609,8 +5624,12 @@ pkg_update(){                     # update installed pkgs, $1 is optional filter
     #fi
   else
     # get installed packages
-    PKGLIST="`HIDE_BUILTINS=false list_installed_pkgs`"
+    PKGLIST="`HIDE_BUILTINS=true list_installed_pkgs`"
   fi
+
+  # we don't want get_pkg to search this file, when it's called below,
+  # as we're not writing the current packages to it, so remove the file
+  rm -f $TMPDIR/USRPKGLIST 2>/dev/null
 
   # iterate over the list
   echo "$PKGLIST"  | grep -v ^$ | sort -u | while read installed_pkg; do
@@ -5640,7 +5659,7 @@ pkg_update(){                     # update installed pkgs, $1 is optional filter
 
     latest_repo_pkg="`grep -m1 "^${PNAME}${separator}" ${HOME}/.packages/Packages-* |cut -f1 -d'|' | head -1 | cut -f2 -d':'`"
 
-    # skip if we didn't find the right package
+    # skip if we didn't find the right package (it might from a repo at all)_
     [ "`echo "$latest_repo_pkg" | grep "^${PNAME}${separator}"`" = '' ] && continue
 
     latest_version=`get_pkg_version "$latest_repo_pkg"`
@@ -5662,10 +5681,13 @@ pkg_update(){                     # update installed pkgs, $1 is optional filter
         fi
 
         if [ "$ASK" = false -o "$ASKREPLY" = "y" ];then
-          echo -e "${yellow}Update${endcolour}: ${magenta}$PNAME${endcolour} from ${bold}$installed_version${endcolour} to ${bold}$latest_version${endcolour}"
-          cd "$WORKDIR"
-          ASK=$ASK FORCE=$FORCE pkg_get "$latest_repo_pkg"
-          cd "$CURDIR"
+          (cd "$WORKDIR"
+          ASK=$ASK FORCE=$FORCE pkg_download "$latest_repo_pkg" &>/dev/null && \
+          {
+            FORCE=true pkg_uninstall "$installed_pkg" &>/dev/null && pkg_install "$latest_repo_pkg" &>/dev/null
+            echo -e "${yellow}Updated${endcolour} ${magenta}$PNAME${endcolour} from ${bold}$installed_version${endcolour} to ${bold}$latest_version${endcolour}"
+          } || pkg delete "$latest_repo_pkg" &>/dev/null
+          cd "$CURDIR")
         fi
 
       else #280613 inform user if no update found
