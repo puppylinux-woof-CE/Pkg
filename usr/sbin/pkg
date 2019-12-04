@@ -55,6 +55,7 @@ green="\e[32m"; red="\e[91m"; magenta="\e[95m"; lightblue="\e[36m"; yellow="\e[9
 [ -z "$PKG_NO_COLOURS" ] && export PKG_NO_COLOURS=false # if true, disable coloured output or not
 [ -z "$PKG_CONFIGURE"  ] && export PKG_CONFIGURE=''     # reset
 [ -z "$PKG_CFLAGS"     ] && export PKG_CFLAGS=''        # reset
+[ -z "$PKG_BLACKLIST"  ] && export PKG_BLACKLIST=''     # reset
 [ -z "$PKG_PPA2PUP_FN" ] && if [ ! -z "`which gawk`" ]; then PKG_PPA2PUP_FN=ppa2pup_gawk; else PKG_PPA2PUP_FN=ppa2pup; fi
 
 # but disable colours if called as gpkg, or the ENV variable PKG_NO_COLOURS is true
@@ -204,13 +205,17 @@ PKG_NAME_ALIASES='mozilla-firefox,firefox gtk+,gtk2 gtk2,gtk+2 dirac,schroedinge
 
 # get blacklisted packages as pipe delimited list (in $PKG_BLACKLIST and )
 # and allow easy user defined black listed packages, in ~/.pkg/blacklisted_packages
-echo "$PKG_NAME_IGNORE $(cat ${HOME}/.pkg/blacklisted_packages 2>/dev/null)" \
-  | grep -v "^$" \
-  | sort -u \
-  | tr '\n' ' ' \
-  | sed -e 's/  / /g' -e 's/ /|/g' -e 's/|$//g'> $TMPDIR/pkg_blacklist
-PKG_BLACKLIST="$(cat "$TMPDIR/pkg_blacklist")"
-export PKG_BLACKLIST
+# .. exports $PKG_BLACKLIST
+get_blacklist(){                  # take sno args, exports $PKG_BLACKLIST  FUNCLIST
+  echo "$PKG_BLACKLIST $PKG_NAME_IGNORE $(cat ${HOME}/.pkg/blacklisted_packages 2>/dev/null)" \
+    | grep -v "^$" \
+    | sort -u \
+    | tr '\n' ' ' \
+    | sed -e 's/  / /g' -e 's/ /|/g' -e 's/|$//g'> $TMPDIR/pkg_blacklist
+  export PKG_BLACKLIST="$(cat "$TMPDIR/pkg_blacklist" | grep ^$ | sort -u)"
+  rm $TMPDIR/pkg_blacklist &>/dev/null
+}
+get_blacklist
 
 # remove error code flag if we got here
 rm -f /tmp/pkg/error130 &>/dev/null
@@ -272,6 +277,7 @@ extract        status           rdep-check
 force          update           what-needs
 func-list      workdir          rm-repo
 txz2pet        dir2repo         merge
+whitelist      blacklist
 
 Usage: ${bold}$SELF usage CMD${endcolour}"
     #cd /usr/share/pkg/docs/usage/; echo `ls` | fold -w 70 -s
@@ -620,23 +626,15 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
 
 is_blacklisted_pkg(){             # return true if PKGNAME ($1) is blacklisted FUNCLIST
   # exit if no valid options
-  [ ! "$1" -o "$1" = "-" ] && print_usage pkg-installed && exit 1
+  [ ! "$1" -o "$1" = "-" ] && exit 1
 
-  local EX=''
-  local PKGNAME=''
-  local PKGNAME_ONLY=''
-
-  # get pkg extension
-  EX=`get_pkg_ext "$1"`
-
-  # strip away extension and path
-  PKGNAME="$(basename "$1" .$EX)"
-  #PKGNAME=`get_pkg_name "$PKGNAME"`
-
-  # get the package name without version
-  PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
-
-  [ "`echo "$PKG_BLACKLIST" | grep -E "$PKGNAME_ONLY"`" != '' ] && echo true || echo false
+  # if we find an exact match of PKGNAME_ONLY in $PKG_BLACKLIST
+  if [ "`echo "$PKG_BLACKLIST" | grep -E "^$(get_pkg_name_only "$1")\$"`" != '' ];then
+    echo true
+  else
+    echo false
+    return 1
+  fi
 }
 
 
@@ -5358,7 +5356,7 @@ choose_pkg(){                     # given partial name ($1), choose from a list 
     for LINE in `echo "$PKGS"  | sort -r` #first pkg found (newest) added to top, then the next, etc, sort use sort -r to keep newest at top of new list
     do
       # if not searching for -dev or -dgb pkg, move it to bottom of the list
-      if [ "`is_blacklisted_pkg "$LINE"`" = false -a "`echo "$PKGNAME" | grep -E "\-dbg_|\-dev_"`" = "" -a "`echo "$LINE" | grep -E "\-dbg_|\-dev_"`" != "" ];then
+      if [ "`is_blacklisted_pkg "$(get_pkg_name_only "$LINE")"`" = false -a "`echo "$PKGNAME" | grep -E "\-dbg_|\-dev_"`" = "" -a "`echo "$LINE" | grep -E "\-dbg_|\-dev_"`" != "" ];then
         PKGS="`echo "$PKGS" | grep -v  "$LINE"`"
         PKGS="$PKGS
 $LINE"
@@ -5968,6 +5966,38 @@ clean_pkgs(){                     # delete downloaded pkg files of installed pkg
     # if it has a downloaded pkg in $WORKDIR, (offer to) delete it
     [ "$pkg_to_rm" != '' ] && rm -v "${WORKDIR}/$pkg_to_rm";
   done
+}
+
+
+pkg_blacklist(){                  # give package name ($1) to "blacklist" (ignore) it
+
+  # exit if no valid option
+  [ ! "$1" -o "$1" = "-" ] && print_usage blacklist && exit 1
+
+  # skip if already in black list
+  echo "$PKG_BLACKLIST" | grep -q -m1 "^${1}\$" && return 0
+  # skip if its a builtin
+  [ "$(is_builtin_pkg "$1")" = true ] && return 1
+  
+  echo "$1" >> ~/.pkg/blacklisted_packages
+  sort -u ~/.pkg/blacklisted_packages > ~/.pkg/blacklisted_packages__sorted
+  mv ~/.pkg/blacklisted_packages__sorted ~/.pkg/blacklisted_packages
+  
+  # regenerate the black list ($PKG_BLACKLIST)
+  get_blacklist
+}
+
+
+pkg_whitelist(){                  # give package name ($1) to remove it from the "blacklist"
+
+  # exit if no valid option
+  [ ! "$1" -o "$1" = "-" ] && print_usage whitelist && exit 1
+  
+  grep -v "^${1}\$" ~/.pkg/blacklisted_packages > ~/.pkg/blacklisted_packages__sorted
+  mv ~/.pkg/blacklisted_packages__sorted ~/.pkg/blacklisted_packages
+
+  # regenerate the black list ($PKG_BLACKLIST)
+  get_blacklist
 }
 
 
@@ -7587,6 +7617,10 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       # pkg compiling
       --pkg-build|-pb|build|pb)           [ ! "$2" ] && pkg_build || for x in $opt; do [ "$x" -a "$x" != "-" ] && PKG_CONFIGURE="$PKG_CONFIGURE" PKG_CFLAGS="$PKG_CFLAGS" pkg_build "$x"; done;;
    --pkg-build-list|-pbl|build-list|pbl)  [ ! "$2" ] && list_build_scripts || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_build_scripts "$x"; done;;
+
+      # blacklist and whitelist
+      blacklist)                          [ ! "$2" ] && pkg_blacklist  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_blacklist "$x"; done;;
+      whitelist)                          [ ! "$2" ] && pkg_whitelist  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_whitelist "$x"; done;;
 
       # dependencies
       --what-needs|-wn|what-needs|wn)     [ ! "$2" ] && list_dependents; for x in $opt; do [ "$x" -a "$x" != "-" ] && list_dependents "$x";    done ;; # list pkgs depending on $x, not including builtins by default

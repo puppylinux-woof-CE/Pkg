@@ -1,0 +1,19 @@
+USAGE="Usage: ${bold}pkg blacklist PKGNAME${endcolour}
+
+Add PKGNAME to the blacklist.
+
+The blacklist is a list of packages that Pkg 
+will always ignore.
+
+The blacklist can be found at:
+
+${bold}\$HOME/.pkg/blacklisted_packages${endcolour}
+
+You can remove a package from the blacklist using:
+
+  ${bold}pkg whitelist PKGNAME${endcolour}
+
+
+Here is your current blacklist:
+
+${yellow}$(\cat ~/.pkg/blacklisted_packages)${endcolour}"
