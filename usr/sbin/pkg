@@ -215,7 +215,11 @@ get_blacklist(){
 
   export PKG_BLACKLIST
 }
+
 get_blacklist
+# create a list like "foo|bar", to be used in grep commands
+PKG_BLACKLIST_REGEX="$(echo "$PKG_BLACKLIST" | tr '\n' '|')"
+export PKG_BLACKLIST_REGEX 
 
 # remove error code flag if we got here
 rm -f /tmp/pkg/error130 &>/dev/null
@@ -6143,7 +6147,7 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
     comm -23 ${TMPDIR}all_deps_0 ${TMPDIR}installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}all_deps_1
 
     # remove all blacklisted packages from the list
-    grep -vE "'$PKG_BLACKLIST'" ${TMPDIR}all_deps_1 2>/dev/null | sort -u > ${TMPDIR}all_deps_1_without_blacklisted_packages
+    grep -vE "'$PKG_BLACKLIST_REGEX'" ${TMPDIR}all_deps_1 2>/dev/null | sort -u > ${TMPDIR}all_deps_1_without_blacklisted_packages
     mv ${TMPDIR}all_deps_1_without_blacklisted_packages ${TMPDIR}all_deps_1
 
     rm -f ${TMPDIR}DEP_DONE 2>/dev/null
@@ -6158,7 +6162,7 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
         if [ -f $deps_list_file ];then
 
           # remove all blacklisted packages from the list
-          grep -vE "'$PKG_BLACKLIST'" "$deps_list_file" > ${TMPDIR}deps_list_file_without_blacklisted_pkgs
+          grep -vE "'$PKG_BLACKLIST_REGEX'" "$deps_list_file" > ${TMPDIR}deps_list_file_without_blacklisted_pkgs
           mv ${TMPDIR}deps_list_file_without_blacklisted_pkgs  $deps_list_file
 
           # remove done packages from the list
@@ -6222,7 +6226,7 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
   fi
 
   # remove all blacklisted packages from the list
-  grep -vE "'$PKG_BLACKLIST'" ${TMPDIR}missing_deps 2>/dev/null | sort -u > ${TMPDIR}missing_deps_without_blacklisted_pkgs
+  grep -vE "'$PKG_BLACKLIST_REGEX'" ${TMPDIR}missing_deps 2>/dev/null | sort -u > ${TMPDIR}missing_deps_without_blacklisted_pkgs
   mv ${TMPDIR}missing_deps_without_blacklisted_pkgs ${TMPDIR}missing_deps
 
   [ ! -f ${TMPDIR}missing_deps -o -z ${TMPDIR}missing_deps ] && rm /tmp/pkg/list_deps_busy 2>/dev/null && return 1
