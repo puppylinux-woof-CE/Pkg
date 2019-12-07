@@ -684,16 +684,16 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
   # get fields 1,2 and 8 (the 3 name fields) from all supported repo files, then
   # add '|' to start and end of lines, then find exact match of $pkg_name..
   # if no exact match, look for $pkg_name-*, then $pkg_name_*
-  if [ -f ${TMPDIR}repo_contents ];then
+  if [ -f ${TMPDIR}/repo_contents ];then
     full_name=`cat ${TMPDIR}repo_contents 2>/dev/null| grep -m1 "|${pkg_name}|"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name//-*/}|"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name//_*/}|"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name}-"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name}_"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "|${pkg_name}"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "^${pkg_name}|"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "^${pkg_name}-"` \
-      || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "^${pkg_name}_"`
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name//-*/}|"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name//_*/}|"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name}-"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name}_"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name}"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "^${pkg_name}|"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "^${pkg_name}-"` \
+      || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "^${pkg_name}_"`
 
       full_name="${full_name//_amd64/}"
       full_name="${full_name//_arm64/}"
