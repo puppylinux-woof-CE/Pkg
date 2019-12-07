@@ -685,7 +685,7 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
   # add '|' to start and end of lines, then find exact match of $pkg_name..
   # if no exact match, look for $pkg_name-*, then $pkg_name_*
   if [ -f ${TMPDIR}/repo_contents ];then
-    full_name=`cat ${TMPDIR}repo_contents 2>/dev/null| grep -m1 "|${pkg_name}|"` \
+    full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null| grep -m1 "|${pkg_name}|"` \
       || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name//-*/}|"` \
       || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name//_*/}|"` \
       || full_name=`cat ${TMPDIR}/repo_contents 2>/dev/null|grep -m1 "|${pkg_name}-"` \
@@ -702,7 +702,7 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
       full_name="${full_name//_i[3-6]86/}"
       full_name="${full_name//_x84_64/}"
 
-    rm ${TMPDIR}repo_contents &>/dev/null
+    rm ${TMPDIR}/repo_contents &>/dev/null
   fi
 
   # if we found pkg in repo, keep only the package name ('|pkg-123|pkg|blah|' -> 'pkg-123')
