@@ -220,6 +220,7 @@ get_blacklist
 # create a list like "foo|bar|baz", to be used in grep commands
 PKG_BLACKLIST_REGEX="$(echo "$PKG_BLACKLIST" | tr '\n' '|' | sed -e 's/^|//' -e 's/|$//')"
 export PKG_BLACKLIST_REGEX 
+
 # remove error code flag if we got here
 rm -f /tmp/pkg/error130 &>/dev/null
 
@@ -639,6 +640,7 @@ is_blacklisted_pkg(){             # return true if PKGNAME ($1) is blacklisted F
     return 1
   fi
 }
+
 
 is_installed_pkg(){               # return true if PKGNAME ($1) is installed, else false FUNCLIST
 
