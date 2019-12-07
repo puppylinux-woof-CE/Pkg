@@ -40,6 +40,10 @@ These commands can be used with the options above, but not each other:
  uninstall-all|ua           uninstall all installed packages
  delete|l PKGNAME           delete a downloaded package
  delete-all|la              delete ALL downloaded packages
+
+ blacklist PKGNAME          ignore a package, so it doesnt get installed                  
+ whitelist PKGNAME          remove a package from the blacklist
+
  clean [PKGNAME]            delete downloaded pkg files of installed pkgs
  autoclean [yes|no]         auto delete pkg files after download+install
 

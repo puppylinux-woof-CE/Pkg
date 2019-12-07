@@ -55,6 +55,7 @@ green="\e[32m"; red="\e[91m"; magenta="\e[95m"; lightblue="\e[36m"; yellow="\e[9
 [ -z "$PKG_NO_COLOURS" ] && export PKG_NO_COLOURS=false # if true, disable coloured output or not
 [ -z "$PKG_CONFIGURE"  ] && export PKG_CONFIGURE=''     # reset
 [ -z "$PKG_CFLAGS"     ] && export PKG_CFLAGS=''        # reset
+[ -z "$PKG_BLACKLIST"  ] && export PKG_BLACKLIST=''     # reset
 [ -z "$PKG_PPA2PUP_FN" ] && if [ ! -z "`which gawk`" ]; then PKG_PPA2PUP_FN=ppa2pup_gawk; else PKG_PPA2PUP_FN=ppa2pup; fi
 
 # but disable colours if called as gpkg, or the ENV variable PKG_NO_COLOURS is true
@@ -126,6 +127,9 @@ CP_SUFFIX="WITHDEPS_${DISTRO_FILE_PREFIX}"
 case "$DISTRO_TARGETARCH" in
   x86)    DBIN_ARCH=i486                ;;
   x86_64) DBIN_ARCH=x86_64 ; DSUFFIX=64 ;;
+  arm64)  DBIN_ARCH=arm64  ; DSUFFIX=64 ;;
+  armel)  DBIN_ARCH=armel  ; DSUFFIX=64 ;;
+  armhf)  DBIN_ARCH=armh   ; DSUFFIX=64 ;;
   *)      DBIN_ARCH=i486                ;;
 esac
 
@@ -199,6 +203,24 @@ fi
 PKG_NAME_ALIASES='mozilla-firefox,firefox gtk+,gtk2 gtk2,gtk+2 dirac,schroedinger hunspell,myspell mp,mped mplayer,mplayer_*,mplayer-*,mplayer2,smplayer,gmplayer mrxvt,rxvt-unicode,xterm,urxvt,urxvt-unicode cxxlibs,glibc*,libc-* glibc-solibs,glibcsolibs alsalib,alsa-lib,alsa-lib2* alsautils,alsa-utils,alsa_utils,alsa-utils2* libungif,libgif,giflib zip,infozip dbus,libdbus*,libdbus-glib* hal,libhal* mesa,mesa_*,libgl1-mesa*,mesa-common* libxcb,libxcb_base sane,sane-backends samba,samba-tng,samba_*,mountcifs SDL_*,libsdl_* SDL,libsdl skype,skype_static util_linux_ng,util-linux-ng,util-linux,util_linux,utillinuxng vlc,vlc-nogui,vlc_nogui,VLC_Plus_Extras xf86-video-ati,xf86-video-ati-*,ati_fglrx xfdiff,xfdiff-cut xorg_base,xorg_base_t2,x11-common,x-dev,xorg,xorg73_base_t2 acl,libacl* xdg_puppy,xdg-utils perl_tiny,perl-base,perl-modules,perlapi* xorg-util-macros,util-macros portaudio,libportaudio jack-audio-connection-kit,libjack libjasper,jasper imlib2,libimlib2 imlib,libimlib'
 [ ! -f "$TMPDIR/pkg_aliases" ] && echo "$PKG_NAME_ALIASES" | tr ' ' '\n' > $TMPDIR/pkg_aliases
 
+# get blacklisted packages (each on new line) from $PKG_NAME_IGNORE 
+# and ~/.pkg/blacklisted_packages .. exports $PKG_BLACKLIST
+get_blacklist(){
+
+  PKG_BLACKLIST="$(echo "$PKG_BLACKLIST $PKG_NAME_IGNORE $(cat ${HOME}/.pkg/blacklisted_packages 2>/dev/null)" \
+    | grep -v "^$" \
+    | tr ' ' '\n' \
+    | grep -v ^$ \
+    | sort -u)"
+
+  export PKG_BLACKLIST
+}
+
+get_blacklist
+# create a list like "foo|bar|baz", to be used in grep commands
+PKG_BLACKLIST_REGEX="$(echo "$PKG_BLACKLIST" | tr '\n' '|' | sed -e 's/^|//' -e 's/|$//')"
+export PKG_BLACKLIST_REGEX 
+
 # remove error code flag if we got here
 rm -f /tmp/pkg/error130 &>/dev/null
 
@@ -258,7 +280,8 @@ examples       repack           which-repo
 extract        status           rdep-check
 force          update           what-needs
 func-list      workdir          rm-repo
-txz2pet        dir2repo
+txz2pet        dir2repo         merge
+whitelist      blacklist
 
 Usage: ${bold}$SELF usage CMD${endcolour}"
     #cd /usr/share/pkg/docs/usage/; echo `ls` | fold -w 70 -s
@@ -310,6 +333,7 @@ get_pkg_ext(){                    # return file extension of $1 FUNCLIST
     #*.tpkg)       echo tpkg      ;;
     #*.apk)        echo apk       ;;
     *)
+      # no extension given, or extension not recognised, so..
       # if it's an installed pkg, get the extension from $HOME/.packages/*
       pkg_installed=`list_installed_pkgs "$1" | grep -m1 "^$1"`
 
@@ -531,7 +555,7 @@ get_pkg_name_only(){              # return pkg name only from $1, with no versio
   fi
 
   # the sed bit changes 'liblzma5+20120614' to 'liblzma5'
-  [ "$pkg_name_only" != '' ] && echo $pkg_name_only | sed -e 's/++/+++/g' -e 's/+[a-z0-9].*//g' || return 1
+  [ "$pkg_name_only" != '' ] && echo $pkg_name_only | sed -e 's/\+[a-z0-9].*//g' || return 1
 }
 
 
@@ -549,7 +573,7 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
   # get the extension of the given package name, if any
   local pkg_ext=`get_pkg_ext "$1"`
   # get the name without path and extension
-  local pkg_name="`basename "$1" .$pkg_ext`"
+  local pkg_name="$(basename "$1" .$pkg_ext)"
 
   # get the repos files in the correct (fall back) order, then add file paths
   supported_repo_files="`repo_file_list | sed -e "s#^#$HOME/.packages/#g"`"
@@ -573,6 +597,13 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
       || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "^${pkg_name}-"` \
       || full_name=`cat ${TMPDIR}repo_contents 2>/dev/null|grep -m1 "^${pkg_name}_"`
 
+      full_name="${full_name//_amd64/}"
+      full_name="${full_name//_arm64/}"
+      full_name="${full_name//_armel/}"
+      full_name="${full_name//_armhf/}"
+      full_name="${full_name//_i[3-6]86/}"
+      full_name="${full_name//_x84_64/}"
+
     rm ${TMPDIR}repo_contents &>/dev/null
   fi
 
@@ -582,6 +613,15 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
   # if we have a package name, return it here and leave the func
   [ "$full_name" != '' ] && echo $full_name && return 0
 
+  # if dealing with local files, .deb packages have the arch appended at
+  # the end, before the extension, so we'll need to remove that (if there)
+  pkg_name="${pkg_name//_amd64/}"
+  pkg_name="${pkg_name//_arm64/}"
+  pkg_name="${pkg_name//_armel/}"
+  pkg_name="${pkg_name//_armhf/}"
+  pkg_name="${pkg_name//_i[3-6]86/}"
+  pkg_name="${pkg_name//_x84_64/}"
+
   # if no pkg found in repos, we cant translate/lookup its longer name,
   # so just return what we got, without path, without pkg extension
   [ "$full_name" = '' ] && echo "`basename "$pkg_name" .$pkg_ext`"
@@ -590,23 +630,15 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
 
 is_blacklisted_pkg(){             # return true if PKGNAME ($1) is blacklisted FUNCLIST
   # exit if no valid options
-  [ ! "$1" -o "$1" = "-" ] && print_usage pkg-installed && exit 1
+  [ ! "$1" -o "$1" = "-" ] && exit 1
 
-  local EX=''
-  local PKGNAME=''
-  local PKGNAME_ONLY=''
-
-  # get pkg extension
-  EX=`get_pkg_ext "$1"`
-
-  # strip away extension and path
-  PKGNAME="$(basename "$1" .$EX)"
-  #PKGNAME=`get_pkg_name "$PKGNAME"`
-
-  # get the package name without version
-  PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
-
-  [ "`echo "$PKG_NAME_IGNORE" | grep "$PKGNAME_ONLY "`" != '' ] && echo true || echo false
+  # if we find an exact match of PKGNAME_ONLY in $PKG_BLACKLIST
+  if [ "`echo "$PKG_BLACKLIST" | grep -E "^$(get_pkg_name_only "$1")\$"`" != '' ];then
+    echo true
+  else
+    echo false
+    return 1
+  fi
 }
 
 
@@ -2036,11 +2068,8 @@ hide_blacklisted_pkgs_from_search_results(){ # hide BUILTIN and installed pkgs f
   # dont hide package if using --force (the user may want to force a re-install of already installed pkg, for example)
   [ "$FORCE" = true ] && return 0
 
-  # get pkg names (generic names, no versions) of all blacklisted packages in pipe delimited list
-  blacklisted_pkgs_list="$(echo $PKG_NAME_IGNORE | sed -e 's/ /|/g')"
-
   # remove blacklisted packages from search list
-  cat $TMPDIR/pkglist | grep -v -E "'$blacklisted_pkgs_list'" > $TMPDIR/pkglist_without_blacklisted
+  cat $TMPDIR/pkglist | grep -vE "'$PKG_BLACKLIST_REGEX'" > $TMPDIR/pkglist_without_blacklisted
   mv $TMPDIR/pkglist_without_blacklisted $TMPDIR/pkglist
 
   # clean up tmp files
@@ -2838,7 +2867,7 @@ pkg_entry(){                      # show pkg ($1) repo entry, each field on a ne
     echo "$1 not found in $REPOFILE"
     exit 1
   else
-    echo "$PKG_ENTRY" | tr '|' '\n' | grep -v '^$'
+    echo "$PKG_ENTRY"
   fi
   return 0
 }
@@ -3511,7 +3540,7 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
 
     # get the deps of the pkg, but dont install
     FORCE=$force_opt find_deps "$PKGNAME"
-    ALL_DEPS="`cat $TMPDIR/deps_installed $TMPDIR/deps_missing 2>/dev/null | sort | uniq`"
+    ALL_DEPS="`cat $TMPDIR/deps_installed $TMPDIR/deps_missing 2>/dev/null | sort -u | uniq`"
 
     # download the needed package
     if [ ! -f "$PKG_FILE" -o "$FORCE" = true ];then
@@ -3655,11 +3684,16 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
         # package dir
         local pkg_dir="${i/.deb/}/"
         [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_all/}"
-        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_i386/}"
+        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_i[3-6]86/}"
+        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_amd64/}"
         [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_amd64/}"
         [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_x64/}"
+        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_arm64/}"
+        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_armel/}"
+        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_armhf/}"
         [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/~dfsg-[0-9]/}"
         [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/~dsfg-[0-9]/}"
+        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/~[a-z]*[0-9]/}"
 
         if [ ! -d "$pkg_dir" ];then
           needle="$(get_pkg_name "$i")"
@@ -3875,9 +3909,15 @@ merge_pkg(){                      # merge the given comma-separated packages FUN
     # add deps of pkgs to list of pkgs to merge
     for package in $PKG_LIST
     do
-      PKG_LIST="$PKG_LIST $(pkg le $package)"
+      PKG_LIST="$PKG_LIST $(list_deps $package)"
     done
     PKG_LIST="$(echo "$PKG_LIST" | tr ' ' '\n' | sort -u | uniq)"
+
+    # strip out local file names, keep only PKGNAME_ONLY
+    PKG_LIST="$(for package in $PKG_LIST
+    do
+     get_pkg_name "$(basename "$package")" 2>/dev/null
+    done | sort -u)"
   fi
 
   echo "Merging the following packages:"
@@ -3912,7 +3952,7 @@ merge_pkg(){                      # merge the given comma-separated packages FUN
     local PKGEXT="`get_pkg_ext "$PKGNAME"`"
     local PKGFILE=''
 
-    [ "$PKGNAME" = "" ] && continue
+    [ "$PKGNAME" = ""  ] && continue
     [ "$PKGNAME" = " " ] && continue
     [ "$PKGNAME" = "-" ] && continue
 
@@ -4960,7 +5000,7 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       [ "$PKGSIZE" = '' ] && PKGSIZE=`LANG=C du -s -k ${CURDIR}/${PKG} 2>/dev/null | cut -f1`
       # get pkg version
       PKGVER="`LANG=C  echo "$PKGNAME" | sed -e 's/^[^0-9]*-//g'`"
-      PKGARCH="`LANG=C echo "$PKGNAME" | cut -f3 -d'-' | grep -E 'i[3-9]|x[8-9]|noarch'`"
+      PKGARCH="`LANG=C echo "$PKGNAME" | cut -f3 -d'-' | grep -E 'i[3-9]|x[8-9]|arm64|armel|armhf|noarch'`"
 
       # last check for pkg info
       [ "$DEPSLIST" = '' ] && DEPSLIST="`grep -m1 "^${PKGNAME}|" ${HOME}/.packages/Packages-* 2>/dev/null | cut -f9 -d'|' | grep '+' | head -1`"
@@ -5320,7 +5360,7 @@ choose_pkg(){                     # given partial name ($1), choose from a list 
     for LINE in `echo "$PKGS"  | sort -r` #first pkg found (newest) added to top, then the next, etc, sort use sort -r to keep newest at top of new list
     do
       # if not searching for -dev or -dgb pkg, move it to bottom of the list
-      if [ "`is_blacklisted_pkg "$LINE"`" = false -a "`echo "$PKGNAME" | grep -E "\-dbg_|\-dev_"`" = "" -a "`echo "$LINE" | grep -E "\-dbg_|\-dev_"`" != "" ];then
+      if [ "`is_blacklisted_pkg "$(get_pkg_name_only "$LINE")"`" = false -a "`echo "$PKGNAME" | grep -E "\-dbg_|\-dev_"`" = "" -a "`echo "$LINE" | grep -E "\-dbg_|\-dev_"`" != "" ];then
         PKGS="`echo "$PKGS" | grep -v  "$LINE"`"
         PKGS="$PKGS
 $LINE"
@@ -5432,13 +5472,6 @@ pkg_get(){                        # find, download and install $1 and its deps F
     echo "No packages to get, exiting."
     exit 1
   fi
-
-  # skip if any pkgs previously installed during our current loop (of getting 'pkg + recursive deps')
-  echo "$PKGLIST" | while read pkg_in_list
-  do
-    name_only=`get_pkg_name_only "$pkg_in_list"`
-    [ -f $TMPDIR/PKGSDONE -a "`grep "^${name_only}\$" $TMPDIR/PKGSDONE 2>/dev/null`" != '' ] && continue
-  done
 
   # list the pkgs and ask to download (and maybe install)
   echo "$PKGLIST" | while read pkg
@@ -5610,6 +5643,11 @@ pkg_update(){                     # update installed pkgs, $1 is optional filter
 
     [ "$PNAME" = '' ] && continue
 
+    local pkg_is_blacklisted=`is_blacklisted_pkg "$PNAME"`
+
+    # skip pkg if its a builtin
+    [ "$pkg_is_blacklisted" = true ] && return 1
+
     case $DISTRO_BINARY_COMPAT in
       ubuntu|trisquel|debian|devuan)
         separator='_'
@@ -5693,11 +5731,17 @@ pkg_uninstall(){                  # remove an installed package ($1) FUNCLIST
   # get pkg name only .. without versions or suffix
   PKGNAME_ONLY="`get_pkg_name_only "$PKGNAME"`"
 
+  local pkg_is_blacklisted=`is_blacklisted_pkg "$PKGNAME_ONLY"`
+
+  # skip pkg if its a builtin
+  [ "$pkg_is_blacklisted" = true ] && return 1
+
   local pkg_is_builtin=`is_builtin_pkg "$PKGNAME_ONLY"`
-  local is_installed=`is_installed_pkg "$PKGNAME"`
 
   # skip pkg if its a builtin
   [ "$pkg_is_builtin" = true ] && return 1
+
+  local is_installed=`is_installed_pkg "$PKGNAME"`
 
   local pkg_is_sfs_file="`sfs_loadr -q -i | grep -v ^sfs_loadr | grep ^$PKGNAME`"
 
@@ -5933,6 +5977,38 @@ clean_pkgs(){                     # delete downloaded pkg files of installed pkg
 }
 
 
+pkg_blacklist(){                  # give package name ($1) to "blacklist" (ignore) it
+
+  # exit if no valid option
+  [ ! "$1" -o "$1" = "-" ] && print_usage blacklist && exit 1
+
+  # skip if already in black list
+  echo "$PKG_BLACKLIST" | grep -q -m1 "^${1}\$" && return 0
+  # skip if its a builtin
+  [ "$(is_builtin_pkg "$1")" = true ] && return 1
+  
+  echo "$1" >> ~/.pkg/blacklisted_packages
+  sort -u ~/.pkg/blacklisted_packages > ~/.pkg/blacklisted_packages__sorted
+  mv ~/.pkg/blacklisted_packages__sorted ~/.pkg/blacklisted_packages
+  
+  # regenerate the black list ($PKG_BLACKLIST)
+  get_blacklist
+}
+
+
+pkg_whitelist(){                  # give package name ($1) to remove it from the "blacklist"
+
+  # exit if no valid option
+  [ ! "$1" -o "$1" = "-" ] && print_usage whitelist && exit 1
+  
+  grep -v "^${1}\$" ~/.pkg/blacklisted_packages > ~/.pkg/blacklisted_packages__sorted
+  mv ~/.pkg/blacklisted_packages__sorted ~/.pkg/blacklisted_packages
+
+  # regenerate the black list ($PKG_BLACKLIST)
+  get_blacklist
+}
+
+
 # dependency funcs
 
 get_deps_entry(){                 # $1 is PKGNAME, returns dep entry from repo db
@@ -6054,8 +6130,6 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
   PKGNAME=`get_pkg_name "$PKGNAME"`
   PKGNAME_ONLY=`get_pkg_name_only "$PKGNAME"`
 
-  blacklisted_pkgs_list="$(echo $PKG_NAME_IGNORE | sed -e 's/ /|/g')"
-
   # get the deps of the pkg, note, in the repo deps are NOT listed by proper pkg names, .. they are +dbus,+glib,+SDL
 
   # search for deps entry in repo file.. look for |pkgname.ext|
@@ -6078,7 +6152,7 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
     comm -23 ${TMPDIR}all_deps_0 ${TMPDIR}installed_pkgs | sort -u | grep -v ^$ > ${TMPDIR}all_deps_1
 
     # remove all blacklisted packages from the list
-    grep -vE "'$blacklisted_pkgs_list'" ${TMPDIR}all_deps_1 2>/dev/null | sort -u > ${TMPDIR}all_deps_1_without_blacklisted_packages
+    grep -vE "'$PKG_BLACKLIST_REGEX'" ${TMPDIR}all_deps_1 2>/dev/null | sort -u > ${TMPDIR}all_deps_1_without_blacklisted_packages
     mv ${TMPDIR}all_deps_1_without_blacklisted_packages ${TMPDIR}all_deps_1
 
     rm -f ${TMPDIR}DEP_DONE 2>/dev/null
@@ -6093,7 +6167,7 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
         if [ -f $deps_list_file ];then
 
           # remove all blacklisted packages from the list
-          grep -vE "'$blacklisted_pkgs_list'" "$deps_list_file" > ${TMPDIR}deps_list_file_without_blacklisted_pkgs
+          grep -vE "'$PKG_BLACKLIST_REGEX'" "$deps_list_file" > ${TMPDIR}deps_list_file_without_blacklisted_pkgs
           mv ${TMPDIR}deps_list_file_without_blacklisted_pkgs  $deps_list_file
 
           # remove done packages from the list
@@ -6157,7 +6231,7 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
   fi
 
   # remove all blacklisted packages from the list
-  grep -vE "'$blacklisted_pkgs_list'" ${TMPDIR}missing_deps 2>/dev/null | sort -u > ${TMPDIR}missing_deps_without_blacklisted_pkgs
+  grep -vE "'$PKG_BLACKLIST_REGEX'" ${TMPDIR}missing_deps 2>/dev/null | sort -u > ${TMPDIR}missing_deps_without_blacklisted_pkgs
   mv ${TMPDIR}missing_deps_without_blacklisted_pkgs ${TMPDIR}missing_deps
 
   [ ! -f ${TMPDIR}missing_deps -o -z ${TMPDIR}missing_deps ] && rm /tmp/pkg/list_deps_busy 2>/dev/null && return 1
@@ -7551,6 +7625,10 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       # pkg compiling
       --pkg-build|-pb|build|pb)           [ ! "$2" ] && pkg_build || for x in $opt; do [ "$x" -a "$x" != "-" ] && PKG_CONFIGURE="$PKG_CONFIGURE" PKG_CFLAGS="$PKG_CFLAGS" pkg_build "$x"; done;;
    --pkg-build-list|-pbl|build-list|pbl)  [ ! "$2" ] && list_build_scripts || for x in $opt; do [ "$x" -a "$x" != "-" ] && list_build_scripts "$x"; done;;
+
+      # blacklist and whitelist
+      blacklist)                          [ ! "$2" ] && pkg_blacklist  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_blacklist "$x"; done;;
+      whitelist)                          [ ! "$2" ] && pkg_whitelist  || for x in $opt; do [ "$x" -a "$x" != "-" ] && pkg_whitelist "$x"; done;;
 
       # dependencies
       --what-needs|-wn|what-needs|wn)     [ ! "$2" ] && list_dependents; for x in $opt; do [ "$x" -a "$x" != "-" ] && list_dependents "$x";    done ;; # list pkgs depending on $x, not including builtins by default
