@@ -5,8 +5,6 @@ noarch|pet|Packages-puppy-noarch-official|http://ftp.nluug.nl/os/Linux/distr/pup
 common32|pet|Packages-puppy-common32-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-common32/|http://distro.ibiblio.org/puppylinux/pet_packages-common32/|||
 common64|pet|Packages-puppy-common64-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-common64/|http://distro.ibiblio.org/puppylinux/pet_packages-common64/|||
 
-
-
 slacko|pet|Packages-puppy-slacko-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-slacko/|http://distro.ibiblio.org/puppylinux/pet_packages-slacko/|||slacko14 noarch 
 
 slacko14|pet|Packages-puppy-slacko14-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-slacko14/|http://distro.ibiblio.org/puppylinux/pet_packages-slacko14/|||noarch 

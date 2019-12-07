@@ -33,6 +33,10 @@ ${APPNAME:-Pkg} will support any repos added in sources-all. Each repo
 needs a name, filetype, a repo file in '$HOME/.packages/' named 
 'Packages-*-*' or 'livepackages*.txt' etc, and some other options.
 
+To see the list of packages that Pkg will ignore by default, look in 
+'$HOME/.pkg/blacklisted_packages'. You can add more package names there 
+if you wish, of use \`pkg blacklist PKGNAME\`
+
 This is free software; see the source for copying conditions.
 There is NO WARRANTY, to the extent permitted by law.
 

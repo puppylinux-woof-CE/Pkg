@@ -8,6 +8,10 @@ ENV_VAR_HELP="ENVIRONMENT VARIABLES:
  NO_ALIASES     [=false]    if true, ignore package name aliases in searches
  NO_INSTALL     [=false]    if true, skip installing of packages
  PKG_NO_COLOURS [=false]    if true, disable coloured output
+ 
+ PKG_BLACKLIST  [=empty]    a space separated list of packages to ignore, 
+                            which will be appended to the contents of
+                            \$HOME/.pkg/blackisted_packages  
 
  When BUILDTOOL=buildpet in ~/.pkg/pkgrc (use with \`pkg build\` command):
 
