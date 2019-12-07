@@ -1,6 +1,6 @@
 #!/bin/ash
 
-pkgname=pkg-1.9.x-noarch
+pkgname=pkg-1.9.23-noarch
 
 mkdir -p /tmp/pkg 2>/dev/null
 
