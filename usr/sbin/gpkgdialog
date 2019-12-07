@@ -775,9 +775,9 @@ update_scope_settings
 build_repo_dropdown
 set_gtkrc #update gtk styles
 
-#180913 always update the lists on first open
-build_tree1_input
-build_tree2_input
+echo -n > $AVAIL_LIST # clear 
+#build_tree1_input
+build_tree2_input # always build list of installed packages on first open
 
 BUILDTOOL_UI='' # the list of build scripts in gtkdialog form
 LABELS="Available packages|Installed packages|Settings|Help" # the main tabs
@@ -984,215 +984,242 @@ pkg -H'
 
 
 
+# check screen size
+while read a b c ; do
+	case $a in -geometry)
+		SCRNXY=${b%%+*} #1366x768
+		read SCRN_X SCRN_Y <<< "${SCRNXY//x/ }"
+		break
+	esac
+done <<< "$(LANG=C xwininfo -root)"
+
+if [ "$SCRN_X" ] ; then
+	WIDTH="1000"
+	[ "$SCRN_X" -le 1010 ] && WIDTH="$((SCRN_X-10))"
+else
+	WIDTH="700"
+fi
 
 #
 #
 # build the main GUI
-GUI='<window title="'${APPNAME}'">
-<notebook labels="'$LABELS'">
-<vbox>
-<text height-request="2"><label>""</label></text>
-<hbox>
-<hbox width-request="150">
-<comboboxtext auto-refresh="false">
-	<variable>NEWREPO</variable>
-	<input file>/tmp/repolist</input>
-</comboboxtext>
-</hbox>
-<button tooltip-text="choose a repo">
-	<input file stock="gtk-apply"></input>
-	<action>switch_repo; update_scope_settings; build_repo_dropdown; build_tree1_input; build_tree2_input;</action>
-	<action>refresh:NEWREPO</action>
-	<action>refresh:TREE1</action>
-	<action>refresh:TREE2</action>
-</button>
-<text width-request="10"><label>""</label></text>
-<hbox width-request="150">
-<entry>
-<variable>SEARCH</variable>
-</entry>
-</hbox>
-<button tooltip-text="search for packages">
-	<input file stock="gtk-find"></input>
-	<action>build_tree1_input "$SEARCH"; build_tree2_input "$SEARCH"; build_tree3_input "$SEARCH"</action>
-	<action>refresh:TREE1</action>
-	<action>refresh:TREE2</action>
-	<action>refresh:TREE3</action>
-</button>
-<text width-request="10"><label>""</label></text>
-<button tooltip-text="refresh all package lists">
-	<input file stock="gtk-refresh"></input>
-	<action>export SEARCH=''; build_tree1_input; build_tree2_input; build_tree3_input</action>
-	<action>refresh:TREE1</action>
-	<action>refresh:TREE2</action>
-	<action>refresh:TREE3</action>
-	<action>clear:SEARCH</action>
-</button>
-<button tooltip-text="update the package repos">
-	<input file stock="gtk-connect"></input>
-	<action>. ${HOME}/.pkg/pkgrc; OLDREPO=$REPONAME; ur_tailbox $TEMPDIR/gpkg-repo-update & pkg --repo-update > $TEMPDIR/gpkg-repo-update; pkg --repo $OLDREPO</action>
-	<action>export SEARCH=''; build_tree1_input; build_tree2_input; build_tree3_input</action>
-	<action>refresh:TREE1</action>
-	<action>refresh:TREE2</action>
-	<action>refresh:TREE3</action>
-	<action>clear:SEARCH</action>
-	<action>echo "Finished." >> $TEMPDIR/gpkg-repo-update</action>
-</button>
-<button tooltip-text="exit this program"><input file stock="gtk-quit"></input></button>
-<text width-request="2"><label>""</label></text>
-</hbox>
-<tree has_focus="true" auto-refresh="true" hover-selection="true" icon="pet48x">
-<label>Name|Category|Size|Description</label>
-<height>250</height><width>600</width>
-<variable>TREE1</variable>
-<input>cat $AVAIL_LIST</input>
-<action signal="button-release-event">[ "`echo $TREE1`" != "" ] && popup_menu $TREE1 & build_tree1_input "$SEARCH"; build_tree2_input "$SEARCH"</action>
-<action signal="button-release-event">refresh:TREE1</action>
-<action signal="button-release-event">refresh:TREE2</action>
-</tree>
-</vbox>
-<vbox>
-<tree auto-refresh="true" auto-sort="true" hover-selection="true" icon="pet48x">
-<label>Name|Category|Size|Description</label>
-<height>250</height><width>600</width>
-<variable>TREE2</variable>
-<input>cat $INST_LIST</input>
-<action signal="button-release-event">[ "`echo $TREE2`" != "" ] && popup_menu $TREE2 Uninstall; build_tree1_input "$SEARCH"; build_tree2_input "$SEARCH"</action>
-<action signal="button-release-event">refresh:TREE2</action>
-<action signal="button-release-event">refresh:TREE1</action>
-</tree>
-</vbox>
-'${BUILDTOOL_UI}'
-<vbox>
-<frame>
-<text use-markup="true"><label>"<b>Search settings</b>"</label></text>
-<text><label>""</label></text>
-<hbox>
-<text><label>"Package search scope:"</label></text>
-<radiobutton auto-refresh="true" tooltip-text="search for packages only in the the current repo">
-<input file>/tmp/PKGSCOPEONE</input>
-<variable>PKGSCOPEONE</variable>
-<action>update_scope_settings</action>
-<default>"'$PKGSCOPEONE'"</default>
-<label>Current repo only</label>
-</radiobutton>
-<radiobutton auto-refresh="true" tooltip-text="search for packages in all repos">
-<input file>/tmp/PKGSCOPEALL</input>
-<variable>PKGSCOPEALL</variable>
-<action>update_scope_settings</action>
-<action>NEWREPO=All; export NEWREPO;</action>
-<default>"'$PKGSCOPEALL'"</default>
-<label>All repos</label>
-</radiobutton>
-</hbox>
-<hbox>
-<text><label>"Package dependency search scope:"</label></text>
-<radiobutton auto-refresh="true" tooltip-text="search for package dependencies in the current repo only">
-<input file>/tmp/DEPSCOPEONE</input>
-<variable>DEPSCOPEONE</variable>
-<action>update_scope_settings</action>
-<default>"'$DEPSCOPEONE'"</default>
-<label>Current repo only</label>
-</radiobutton>
-<radiobutton auto-refresh="true" tooltip-text="search for package dependencies in all repos">
-<input file>/tmp/DEPSCOPEALL</input>
-<variable>DEPSCOPEALL</variable>
-<action>update_scope_settings</action>
-<default>"'$DEPSCOPEALL'"</default>
-<label>All repos</label>
-</radiobutton>
-</hbox>
-<hbox>
-<text><label>"Recursive dependency checking:"</label></text>
-<radiobutton tooltip-text="search for dependencies of every package installed">
-<variable>RDCHECKON</variable>
-<default>"'$RDCHECKON'"</default>
-<label>Enabled</label>
-</radiobutton>
-<radiobutton tooltip-text="search for dependencies of only one level deep, dont search for deps of deps">
-<variable>RDCHECKOFF</variable>
-<default>"'$RDCHECKOFF'"</default>
-<label>Disabled</label>
-</radiobutton>
-</hbox>
-<hbox>
-<text><label>"Bleeding edge package search:"</label></text>
-<radiobutton tooltip-text="search for the latest version of a package, from any repo">
-<variable>BLEDGEON</variable>
-<default>"'$BLEDGEON'"</default>
-<label>Enabled</label>
-</radiobutton>
-<radiobutton tooltip-text="search for packages in the current repo, then fallback to other repos">
-<variable>BLEDGEOFF</variable>
-<default>"'$BLEDGEOFF'"</default>
-<label>Disabled</label>
-</radiobutton>
-</hbox>
-<text><label>""</label></text>
-<text use-markup="true"><label>"<b>Other settings</b>"</label></text>
-<text><label>""</label></text>
-<hbox>
-<text><label>"Show installed packages only from current repo:"</label></text>
-<radiobutton tooltip-text="In the installed package list, show only packages that belong to the currently selected repository.">
-<variable>ALLINSTOFF</variable>
-<default>"'$ALLINSTOFF'"</default>
-<label>Enabled</label>
-<action>export ALLINST="true"</action>
-</radiobutton>
-<radiobutton tooltip-text="In the installed package list, show installed packages from all repositories, and including locally installed packages.">
-<variable>ALLINSTON</variable>
-<default>"'$ALLINSTON'"</default>
-<label>Disabled</label>
-<action>export ALLINST="false"</action>
-</radiobutton>
-</hbox>
-<hbox>
-<text><label>"Force install, download, uninstall, etc:"</label></text>
-<radiobutton tooltip-text="force downloads and installations etc, even if they have been done already">
-<variable>FORCEON</variable>
-<default>"'$FORCEON'"</default>
-<label>Enabled</label>
-<action>export FORCEOPT="-f"</action>
-</radiobutton>
-<radiobutton tooltip-text="do not force downloads or installations">
-<variable>FORCEOFF</variable>
-<default>"'$FORCEOFF'"</default>
-<label>Disabled</label>
-<action>export FORCEOPT=""</action>
-</radiobutton>
-</hbox>
-<text><label>""</label></text>
-<hbox>
-<button>
-<input file stock="gtk-open"></input>
-<label>View Logfiles</label>
-<action>rox /tmp/gpkgdialog/ &</action>
-</button>
-<button>
-<input file stock="gtk-save"></input>
-<label>Save Settings</label>
-<action>if [ "$PKGSCOPEALL" = "true" ];then REPOLIST="`cat /tmp/repolist | grep -v "^All"`"; REPOLIST2="$ALL$REPOLIST"; echo -n "$REPOLIST2" > /tmp/repolist; fi;</action>
-<action>if [ "$PKGSCOPEALL" = "false" ];then . ${HOME}/.pkg/pkgrc; REPOLIST="`cat /tmp/repolist | grep -v "^$REPONAME"`"; REPOLIST2="$REPONAME@$REPOLIST"; echo -n "$REPOLIST2" | tr "@" "\n" > /tmp/repolist; echo -n "$REPOFILE" > $TEMPDIR/gpkg-repofile; fi;</action>
-<action>. ${HOME}/.pkg/pkgrc; export NEWREPO=$REPONAME; save_settings; switch_repo;</action>
-<action>build_tree1_input; build_tree2_input; build_tree3_input;</action>
-<action>refresh:TREE1</action>
-<action>refresh:TREE2</action>
-<action>refresh:NEWREPO</action>
-</button>
-</hbox>
-</frame>
-</vbox>
-<vbox>
-<edit indent="20" editable="false">
-<width>500</width><height>300</height>
-<variable>HELPTXT</variable>
-<default>"
+GUI='
+<window title="'${APPNAME}'" width-request="'${WIDTH}'">
+   <notebook labels="'$LABELS'">
+   <vbox>
+      <text height-request="2"><label>""</label></text>
+      <hbox>
+         <hbox width-request="150">
+            <comboboxtext auto-refresh="false">
+               <variable>NEWREPO</variable>
+               <input file>/tmp/repolist</input>
+            </comboboxtext>
+         </hbox>
+         <button tooltip-text="choose a repo">
+            <input file stock="gtk-apply"></input>
+            <action>switch_repo; update_scope_settings; build_repo_dropdown; build_tree1_input; build_tree2_input;</action>
+            <action>refresh:NEWREPO</action>
+            <action>refresh:TREE1</action>
+            <action>refresh:TREE2</action>
+         </button>
+         <text width-request="10"><label>""</label></text>
+         <hbox width-request="150">
+            <entry>
+               <variable>SEARCH</variable>
+            </entry>
+         </hbox>
+         <button tooltip-text="search for packages">
+            <input file stock="gtk-find"></input>
+            <action>build_tree1_input "$SEARCH"; build_tree2_input "$SEARCH"; build_tree3_input "$SEARCH"</action>
+            <action>refresh:TREE1</action>
+            <action>refresh:TREE2</action>
+            <action>refresh:TREE3</action>
+         </button>
+         <text width-request="10"><label>""</label></text>
+         <button tooltip-text="refresh all package lists">
+            <input file stock="gtk-refresh"></input>
+            <action>export SEARCH=''; build_tree1_input; build_tree2_input; build_tree3_input</action>
+            <action>refresh:TREE1</action>
+            <action>refresh:TREE2</action>
+            <action>refresh:TREE3</action>
+            <action>clear:SEARCH</action>
+         </button>
+         <button tooltip-text="update the package repos">
+            <input file stock="gtk-connect"></input>
+            <action>. ${HOME}/.pkg/pkgrc; OLDREPO=$REPONAME; ur_tailbox $TEMPDIR/gpkg-repo-update & pkg --repo-update > $TEMPDIR/gpkg-repo-update; pkg --repo $OLDREPO</action>
+            <action>export SEARCH=''; build_tree1_input; build_tree2_input; build_tree3_input</action>
+            <action>refresh:TREE1</action>
+            <action>refresh:TREE2</action>
+            <action>refresh:TREE3</action>
+            <action>clear:SEARCH</action>
+            <action>echo "Finished." >> $TEMPDIR/gpkg-repo-update</action>
+         </button>
+         <button tooltip-text="exit this program">
+            <input file stock="gtk-quit"></input>
+         </button>
+         <text width-request="2"><label>""</label></text>
+      </hbox>
+
+      <tree has_focus="true" auto-refresh="true" hover-selection="true">
+         <label>Name|Category|Size|Description</label>
+         <height>250</height><width>600</width>
+         <variable>TREE1</variable>
+         <input>cat $AVAIL_LIST</input>
+         <action signal="button-release-event">[ "`echo $TREE1`" != "" ] && popup_menu $TREE1 & build_tree1_input "$SEARCH"; build_tree2_input "$SEARCH"</action>
+         <action signal="button-release-event">refresh:TREE1</action>
+         <action signal="button-release-event">refresh:TREE2</action>
+      </tree>
+   </vbox>
+
+   <vbox>
+      <tree auto-refresh="true" auto-sort="true" hover-selection="true">
+         <label>Name|Category|Size|Description</label>
+         <height>250</height><width>600</width>
+         <variable>TREE2</variable>
+         <input>cat $INST_LIST</input>
+         <action signal="button-release-event">[ "`echo $TREE2`" != "" ] && popup_menu $TREE2 Uninstall; build_tree1_input "$SEARCH"; build_tree2_input "$SEARCH"</action>
+         <action signal="button-release-event">refresh:TREE2</action>
+         <action signal="button-release-event">refresh:TREE1</action>
+      </tree>
+   </vbox>
+
+   '${BUILDTOOL_UI}'
+
+   <vbox>
+      <frame>
+         <text use-markup="true"><label>"<b>Search settings</b>"</label></text>
+         <text><label>""</label></text>
+         <hbox>
+            <text><label>"Package search scope:"</label></text>
+            <radiobutton auto-refresh="true" tooltip-text="search for packages only in the the current repo">
+               <input file>/tmp/PKGSCOPEONE</input>
+               <variable>PKGSCOPEONE</variable>
+               <action>update_scope_settings</action>
+               <default>"'$PKGSCOPEONE'"</default>
+               <label>Current repo only</label>
+            </radiobutton>
+            <radiobutton auto-refresh="true" tooltip-text="search for packages in all repos">
+               <input file>/tmp/PKGSCOPEALL</input>
+               <variable>PKGSCOPEALL</variable>
+               <action>update_scope_settings</action>
+               <action>NEWREPO=All; export NEWREPO;</action>
+               <default>"'$PKGSCOPEALL'"</default>
+               <label>All repos</label>
+            </radiobutton>
+         </hbox>
+         <hbox>
+            <text><label>"Package dependency search scope:"</label></text>
+            <radiobutton auto-refresh="true" tooltip-text="search for package dependencies in the current repo only">
+               <input file>/tmp/DEPSCOPEONE</input>
+               <variable>DEPSCOPEONE</variable>
+               <action>update_scope_settings</action>
+               <default>"'$DEPSCOPEONE'"</default>
+               <label>Current repo only</label>
+            </radiobutton>
+            <radiobutton auto-refresh="true" tooltip-text="search for package dependencies in all repos">
+               <input file>/tmp/DEPSCOPEALL</input>
+               <variable>DEPSCOPEALL</variable>
+               <action>update_scope_settings</action>
+               <default>"'$DEPSCOPEALL'"</default>
+               <label>All repos</label>
+            </radiobutton>
+         </hbox>
+         <hbox>
+            <text><label>"Recursive dependency checking:"</label></text>
+            <radiobutton tooltip-text="search for dependencies of every package installed">
+               <variable>RDCHECKON</variable>
+               <default>"'$RDCHECKON'"</default>
+               <label>Enabled</label>
+            </radiobutton>
+            <radiobutton tooltip-text="search for dependencies of only one level deep, dont search for deps of deps">
+               <variable>RDCHECKOFF</variable>
+               <default>"'$RDCHECKOFF'"</default>
+               <label>Disabled</label>
+            </radiobutton>
+         </hbox>
+         <hbox>
+            <text><label>"Bleeding edge package search:"</label></text>
+            <radiobutton tooltip-text="search for the latest version of a package, from any repo">
+               <variable>BLEDGEON</variable>
+               <default>"'$BLEDGEON'"</default>
+               <label>Enabled</label>
+            </radiobutton>
+            <radiobutton tooltip-text="search for packages in the current repo, then fallback to other repos">
+               <variable>BLEDGEOFF</variable>
+               <default>"'$BLEDGEOFF'"</default>
+               <label>Disabled</label>
+            </radiobutton>
+         </hbox>
+
+         <text><label>""</label></text>
+         <text use-markup="true"><label>"<b>Other settings</b>"</label></text>
+         <text><label>""</label></text>
+
+         <hbox>
+            <text><label>"Show installed packages only from current repo:"</label></text>
+            <radiobutton tooltip-text="In the installed package list, show only packages that belong to the currently selected repository.">
+               <variable>ALLINSTOFF</variable>
+               <default>"'$ALLINSTOFF'"</default>
+               <label>Enabled</label>
+               <action>export ALLINST="true"</action>
+            </radiobutton>
+            <radiobutton tooltip-text="In the installed package list, show installed packages from all repositories, and including locally installed packages.">
+               <variable>ALLINSTON</variable>
+               <default>"'$ALLINSTON'"</default>
+               <label>Disabled</label>
+               <action>export ALLINST="false"</action>
+            </radiobutton>
+         </hbox>
+         <hbox>
+            <text><label>"Force install, download, uninstall, etc:"</label></text>
+            <radiobutton tooltip-text="force downloads and installations etc, even if they have been done already">
+               <variable>FORCEON</variable>
+               <default>"'$FORCEON'"</default>
+               <label>Enabled</label>
+               <action>export FORCEOPT="-f"</action>
+            </radiobutton>
+            <radiobutton tooltip-text="do not force downloads or installations">
+               <variable>FORCEOFF</variable>
+               <default>"'$FORCEOFF'"</default>
+               <label>Disabled</label>
+               <action>export FORCEOPT=""</action>
+            </radiobutton>
+         </hbox>
+         <text><label>""</label></text>
+         <hbox>
+            <button>
+               <input file stock="gtk-open"></input>
+               <label>View Logfiles</label>
+               <action>rox /tmp/gpkgdialog/ &</action>
+            </button>
+            <button>
+               <input file stock="gtk-save"></input>
+               <label>Save Settings</label>
+               <action>if [ "$PKGSCOPEALL" = "true" ];then REPOLIST="`cat /tmp/repolist | grep -v "^All"`"; REPOLIST2="$ALL$REPOLIST"; echo -n "$REPOLIST2" > /tmp/repolist; fi;</action>
+               <action>if [ "$PKGSCOPEALL" = "false" ];then . ${HOME}/.pkg/pkgrc; REPOLIST="`cat /tmp/repolist | grep -v "^$REPONAME"`"; REPOLIST2="$REPONAME@$REPOLIST"; echo -n "$REPOLIST2" | tr "@" "\n" > /tmp/repolist; echo -n "$REPOFILE" > $TEMPDIR/gpkg-repofile; fi;</action>
+               <action>. ${HOME}/.pkg/pkgrc; export NEWREPO=$REPONAME; save_settings; switch_repo;</action>
+               <action>build_tree1_input; build_tree2_input; build_tree3_input;</action>
+               <action>refresh:TREE1</action>
+               <action>refresh:TREE2</action>
+               <action>refresh:NEWREPO</action>
+            </button>
+         </hbox>
+      </frame>
+   </vbox>
+
+   <vbox>
+      <edit indent="20" editable="false">
+         <width>500</width><height>300</height>
+         <variable>HELPTXT</variable>
+         <default>"
 '$HELP_INFO'
-"</default>
-</edit>
-</vbox>
-</notebook>
-</window>'
+         "</default>
+      </edit>
+   </vbox>
+   </notebook>
+
+</window>
+'
 export GUI
 }
 
