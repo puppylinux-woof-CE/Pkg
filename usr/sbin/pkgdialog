@@ -148,7 +148,11 @@ Choose a package to compile (devx required) using $BUILDTOOL" 22 74 22 \
   fi
 
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		rm $TMPFILE 2>/dev/null
+		main_menu
+	fi
 	# get chosen buildscript
 	BS="`cat $TMPFILE 2>/dev/null`"
 	[ "$BS" = "" ] && exit 1
@@ -175,7 +179,11 @@ $REPO $REPOSFILE"
 Choose a package repository" 22 74 22 \
 $LIST 2>$TMPFILE
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		rm $TMPFILE 2>/dev/null
+		main_menu
+	fi
 	set_repos
 }
 
@@ -202,7 +210,11 @@ Total packages: 		`wc -l /root/.packages/$FILE | cut -f1 -d' '`
 Fallback order: $FALLBACKS
 " 0 0
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		rm $TMPFILE 2>/dev/null
+		main_menu
+	fi
 	if [ "$RETVAL" = 0 ];then
 		clear
 		npkg --repo "$REPO2USE"
@@ -221,7 +233,11 @@ show_pkgsetup () {
 	  --exit-label "Return to menu" \
 	  --textbox /tmp/pkgdialog_${whoami}_box_contents 22 74
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		rm $TMPFILE 2>/dev/null
+		main_menu
+	fi
 	main_menu
 }
 
@@ -243,7 +259,10 @@ $LIST 2>$TMPFILE
   fi
 	# quit if 'Cancel' button used
 	RETVAL=$?
-	[ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		rm $TMPFILE 2>/dev/null
+		main_menu
+	fi
 
 	THEPKG="`cat $TMPFILE 2>/dev/null| sed -e 's/\"//g' | tr ' ' '\n'`"
 	echo "$THEPKG" | while read LINE
@@ -270,7 +289,11 @@ done`"
 Choose a package to check for updates for that package" 22 74 22 \
 $LIST 2>$TMPFILE
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		rm $TMPFILE 2>/dev/null
+		main_menu
+	fi
 	# get chosen pkg
 	PKG2UPDATE="`cat $TMPFILE 2>/dev/null | head -1`"
 
@@ -298,7 +321,10 @@ done`"
 	    --checklist "\nThe packages below are already installed" 22 74 22 $LIST 2>$TMPFILE
 	fi
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && continue
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		continue
+	fi
 
 	THEPKG="`cat $TMPFILE 2>/dev/null| sed -e 's/\"//g' | tr ' ' '\n'`"
 	echo "$THEPKG" | while read LINE
@@ -328,7 +354,10 @@ done`"
   fi
 
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && continue
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		continue
+	fi
 	THEPKG="`cat $TMPFILE 2>/dev/null| sed -e 's/\"//g' | tr ' ' '\n'`"
 
 	echo "$THEPKG" | while read LINE
@@ -352,7 +381,11 @@ combine_pkgs () {
 Enter the package name or search term
 " 0 0 2>$TMPFILE
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		rm $TMPFILE 2>/dev/null
+		main_menu
+	fi
 
 	SEARCH_TERM="`cat $TMPFILE 2>/dev/null`"
 	[ "$SEARCH_TERM" = '' ] && rm $TMPFILE 2>/dev/null && main_menu
@@ -373,7 +406,10 @@ Combine a package plus all its dependencies." 19 70 19 \
 	$LINE 2>$TMPFILE
 
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && continue
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		continue
+	fi
 	PKG2COMBINE="`cat $TMPFILE 2>/dev/null | head -1`"
 
 	[ "$PKG2COMBINE" = '' ] && main_menu
@@ -388,7 +424,10 @@ Combine a package plus all its dependencies." 19 70 19 \
 Choose a final package format for $LINE." 19 70 19 \
 		$LIST 2>$TMPFILE
 		# quit if 'Cancel' button used
-		RETVAL=$?; [ "$RETVAL" = 1 ] && continue
+		RETVAL=$?
+		if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+			continue
+		fi
 		echo '' > /tmp/pkgdialog_${whoami}_box_contents
 		ACTION="`cat $TMPFILE 2>/dev/null`"
 		[ "$RESPKG_ACTION" = "download-and-combine" ] && npkg -d "${LINE//\"/}"
@@ -420,7 +459,11 @@ Enter a package name to convert
 " 0 0 2>$TMPFILE
 
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		rm $TMPFILE 2>/dev/null
+		main_menu
+	fi
 
 	SEARCH_TERM="`cat $TMPFILE 2>/dev/null`"
 	[ "$SEARCH_TERM" = '' ] && rm $TMPFILE 2>/dev/null && main_menu
@@ -460,8 +503,10 @@ Convert a package from the '$REPONAME' repository." 22 74 22 $LINE 2>$TMPFILE
   fi
 
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && continue
-
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		continue
+	fi
 	choose_pkg_format
 	rm $TMPFILE 2>/dev/null
 	main_menu
@@ -490,7 +535,10 @@ Convert $LINE, in '$REPONAME' repo, into another format." 22 74 22 \
 		$LIST 2>$TMPFILE
 
 		# quit if 'Cancel' button used
-		RETVAL=$?; [ "$RETVAL" = 1 ] && continue
+		RETVAL=$?
+		if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+			continue
+		fi
 		ACTION="`cat $TMPFILE 2>/dev/null`"
 
 		echo '' > /tmp/pkgdialog_${whoami}_box_contents
@@ -597,8 +645,7 @@ search_pkgs () {
 
 		# quit if 'Cancel' button used
 		RETVAL=$?
-
-		if [ $RETVAL -eq 1 ];then
+		if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
 		  rm $TMPFILE 2>/dev/null
 		  $RETURN
 		fi
@@ -650,7 +697,11 @@ search_pkgs () {
 	fi
 
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && { rm $TMPFILE 2>/dev/null; $RETURN; }
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		rm $TMPFILE 2>/dev/null
+		$RETURN
+	fi
 
 	# get pkg to install .. remove quotes and / chars, put pkgs on newlines
 	PKG2INSTALL="`cat $TMPFILE 2>/dev/null | sed -e 's/\"//g' -e 's/\//\n/g'| tr ' ' '\n'`"
@@ -691,8 +742,10 @@ Choose a package category" 22 74 22 \
 "BuildingBlock" "important libraries for your system" 2>$TMPFILE
 
 	RETVAL=$?;
-
-	[ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && main_menu
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		rm $TMPFILE 2>/dev/null
+		main_menu
+	fi
 	[ -z ${TMPFILE} ] && rm $TMPFILE 2>/dev/null && main_menu
 
 	SEARCHTYPE="${SEARCHTYPE}" search_pkgs "`cat ${TMPFILE}`"
@@ -719,8 +772,11 @@ Choose an action for the '$REPONAME' repository." 22 74 22 \
 "Settings" "Show the current $PKG_VER config settings" \
 "Help" "Read the $PKG_VER help documentation" 2>$TMPFILE
 	# quit if 'Cancel' button used
-	RETVAL=$?; [ "$RETVAL" = 1 ] && rm $TMPFILE 2>/dev/null && exit 1
-
+	RETVAL=$?
+	if [ $RETVAL -eq 1 -o $RETVAL -eq 255 ];then
+		rm $TMPFILE 2>/dev/null
+		exit 1
+	fi
 	case "`cat $TMPFILE 2>/dev/null`" in
 		Search)  	SEARCHTYPE='-ss'; search_pkgs ;;
 		Search*All) SEARCHTYPE='-ssa'; search_pkgs ;;
