@@ -5659,7 +5659,7 @@ pkg_uninstall(){                  # remove an installed package ($1) FUNCLIST
 
   local is_installed=`is_installed_pkg "$PKGNAME"`
 
-  local pkg_is_sfs_file="`sfs_loadr -q -i | grep -v ^sfs_loadr | grep ^$PKGNAME`"
+  local pkg_is_sfs_file="`sfs_load -q -i | grep -v ^sfs_load | grep ^$PKGNAME`"
 
   # if pkg is SFS, "uninstall" it here
   if [ "$pkg_is_sfs_file" != "" -o "$pkg_ext" = "sfs" ];then
