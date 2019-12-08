@@ -6332,7 +6332,7 @@ get_deps(){                       # find, get and install the deps of pkgname ($
   local pkg_is_builtin=`is_builtin_pkg "$PKGNAME_ONLY" 2>/dev/null`
   local pkg_already_done=`LANG=C grep -m1 "^$PKGNAME_ONLY\$" $TMPDIR/PKGSDONE 2>/dev/null`
 
-  local pkg_is_blacklisted=`is_blacklisted_pkg "$PKG_NAME_ONLY" 2>/dev/null`
+  local pkg_is_blacklisted=`is_blacklisted_pkg "$PKGNAME_ONLY" 2>/dev/null`
 
   # if pkg is builtin, skip it, we dont need to get its dependencies
   [ "$pkg_is_builtin" = true -a "$HIDE_BUILTINS" = true ] && continue
