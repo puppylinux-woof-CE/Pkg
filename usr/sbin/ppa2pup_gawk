@@ -198,17 +198,9 @@ do
   echo "   ~/.packages/$repo_filename"
   echo
 
-# Warning:
-# We don't need to delete these files because they will be overwritten with IO redirection. 
-# Not deleting them is safer. 
-# Even safer would be to move them to a backup. 
-# for now just remove the /tmp/$repo_filename  since this is lower risk. 
-#  rm /tmp/$repo_filename ~/.packages/$repo_filename &>/dev/null
-rm /tmp/$repo_filename 
-# Also note that if the repo file goes missing this could cause an infinite loop. See: https://gitlab.com/sc0ttj/Pkg/issues/79#note_251505334
-# We need to make the code more robust so that there is no infnite loop!
-  
-			cat "$PACKAGES_PATH" | awk \
+  rm /tmp/$repo_filename &>/dev/null
+
+	cat "$PACKAGES_PATH" | awk \
 'function get_inequality(s){
 	switch(s){
 		case "<":
@@ -231,7 +223,7 @@ rm /tmp/$repo_filename
     return ""
 }
 function fixdepends(s,   p,a,dep_i,dep_split,pkg_i,ver_i,v,ineq,sout) {
-	split(s,a,",") 
+	split(s,a,",")
 	for (p in a) {
 		match(a[p],/^[ \t]*([^ \t]+)[ \t]*(\((.*)\))?/,dep_split)
 		pkg_i = dep_split[1]
@@ -257,7 +249,7 @@ function fixdepends(s,   p,a,dep_i,dep_split,pkg_i,ver_i,v,ineq,sout) {
 /^Pre-Depends:/ { sub(/^Pre-Depends: /,""); PKGDEP=fixdepends($0) "," PKGDEP; }
 /^Description:/ { sub(/^Description: /,""); PKGINFO=substr($0,1,200); }
 /^$/            { print PKG "_" PKGVER "|" PKG "|" PKGVER "||" PKGSECTION "|" PKGSIZE "|" PKGPATH "|" PKGFILE  "|" PKGDEP "|" PKGINFO "|" PKGOS "|" PKGOSVER  ;
-	
+
                   PKG=""; PKGVER=""; PKGSECTION=""; PKGSIZE=""; PKGFILE=""; PKGPATH=""; PKGDEP=""; PKGINFO=""; PKGPRIO="";    }
 ' > /tmp/$repo_filename
 
@@ -275,8 +267,8 @@ function fixdepends(s,   p,a,dep_i,dep_split,pkg_i,ver_i,v,ineq,sout) {
     exit 1
   fi
 
-  mv  /tmp/${repo_filename}_sorted  ~/.packages/$repo_filename 
-   
+  mv  /tmp/${repo_filename}_sorted  ~/.packages/$repo_filename
+
   echo "Success! File created."
   echo
 
