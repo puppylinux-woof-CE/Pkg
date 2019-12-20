@@ -779,14 +779,35 @@ get_pkg_filename(){              # return filename of $1, if its a local file or
 
   for repofile in $HOME/.packages/${REPOFILE} ~/.packages/*-installed-packages $all_supported_repofiles
   do
-    pkgname="$(grep -m1 "^$PKGNAME|" "$repofile" | cut -f8 -d'|')"
-    [ ! -z "$pkgname" ] && break
     pkgname="$(grep -m1 "|$PKGNAME_ONLY|" "$repofile" | cut -f8 -d'|')"
     [ ! -z "$pkgname" ] && break
+    pkgname="$(grep -m1 "^$PKGNAME|" "$repofile" | cut -f8 -d'|')"
+    [ ! -z "$pkgname" ] && break
   done
-  [ ! -z "$pkgname" ] && echo "$pkgname"
+  [ ! -z "$pkgname" ] && echo "$pkgname" | grep -v ^$ | head -1
 }
 
+
+get_pkg_category(){
+  # $1 must be PKGNAME_ONLY ('gimp', 'vlc', etc)
+  [ -z "$1" ] && return 1
+
+  local category=''
+  category="$(grep -i -m1 " ${1} " /usr/local/petget/categories.dat | cut -f1 -d'=' | cut -f2- -d'_' | tr '_' ';')"
+
+  # do this in a sub shell
+  (
+    \cd ~/.packages/ &>/dev/null || exit 1
+
+    if [ -z "$category" ];then
+      # search the repo files
+      category="$(cut -f1,2,5 -d'|' $(repo_file_list) \
+        | grep -i -m1 "^${1}.*|${1}|" \
+        | cut -f3 -d'|')"
+    fi
+    [ ! -z "$category" ] && echo "$category" | grep -v ^$
+  )
+}
 
 is_blacklisted_pkg(){             # return true if PKGNAME ($1) is blacklisted FUNCLIST
   # exit if no valid options
@@ -810,6 +831,8 @@ is_installed_pkg(){               # return true if PKGNAME ($1) is installed, el
   local EX=''
   local PKGNAME=''
   local PKGNAME_ONLY=''
+  local PKGFILENAME=''
+  local PKGFILENAME_NO_EX=''
   local check=''
   local repo_files="$HOME/.packages/woof-installed-packages $HOME/.packages/user-installed-packages"
 
@@ -821,25 +844,20 @@ is_installed_pkg(){               # return true if PKGNAME ($1) is installed, el
   PKGNAME=$(get_pkg_name "$PKGNAME")
 
   # we cant rely on the strings the user passes us, so...
+  [ -z "$check" ] && check="$(find ${HOME}/.packages/ -name "${PKGNAME}.files")"
 
-  # get the package name without version
+  PKGFILENAME="$(get_pkg_filename ${PKGNAME})"
+  PKGFILENAME_NO_EX="${PKGFILENAME//.$EX/}"
+  [ -z "$check" ] && check="$(find ${HOME}/.packages/ -name "${PKGFILENAME_NO_EX}.files" -print -quit)"
+  [ -z "$check" ] && check="$(cut -f1,2 -d'|' $repo_files | grep -m1 "^$PKGNAME|")"
+  [ -z "$check" ] && check="$(cut -f8   -d'|' $repo_files | grep -m1 "^${PKGNAME}.$EX")"
+  [ -z "$check" ] && check="$(cut -f8   -d'|' $repo_files | grep -m1 "^${PKGFILENAME}.deb)")"
+
   PKGNAME_ONLY=$(get_pkg_name_only "$PKGNAME")
-
-  # exit if no valid package name
-  if [ "$PKGNAME" = '' ] || [ "$PKGNAME_ONLY" = '' ];then
-    print_usage pkg-installed && exit 1
-  fi
-
-  # slow but reliable & simple: separately check fields 1,2,8 of the various files listing installed pkgs
-  [ "$check" = '' ] && check="$(cut -f1,2 -d'|' $repo_files | grep -m1 "^$PKGNAME|")"
-  [ "$check" = '' ] && check="$(cut -f1,2 -d'|' $repo_files | grep -m1 "^$PKGNAME" | grep -m1 "|$PKGNAME_ONLY\$")"
-  [ "$check" = '' ] && check="$(cut -f8   -d'|' $repo_files | grep -m1 "^$(get_pkg_filename ${PKGNAME//.$EX/.files})")"
-  # check the $HOME/.packages/*.files
-  [ "$check" = '' ] && check="$(find ${HOME}/.packages/ -name "$(get_pkg_filename ${PKGNAME//.$EX/.files})")"
-  [ "$check" = '' ] && check="$(find ${HOME}/.packages/ -name "$PKGNAME.files")"
+  [ -z "$check" ] && check="$(cut -f1,2 -d'|' $repo_files | grep -m1 "^$PKGNAME" | grep -m1 "|$PKGNAME_ONLY\$")"
    
   # if any checks above returned a result, $check will not be empty (ash didn't like grep -q, not sure why?)
-  [ "$check" != '' ] && echo true || echo false
+  [ ! -z "$check" ] && echo true || echo false
 }
 
 
@@ -1707,13 +1725,16 @@ add_repo(){                       # add Pkg/Ubuntu/Debian/Slackware third-party 
       add_pkg_repo "$1"
       ;;
 
-    'ppa:'*|'http://'*|'https://'*)
+    'ppa:'*|'http://'*|'https://'*|'ftp://'*)
       wget --quiet --timeout=2 --no-parent --spider "${1}install" 2>/dev/null && \
       {
         add_pkg_repo "${1}install"
         exit 0
-      } || exit 1
+      }
 
+      # if we got here, it's not a Pkg repo we're installing, 
+      # so it's probably a PPA, Ubuntu or Debian repo.
+      
       ppa2pup "$@"
       retval=$?
       if [ $retval -eq 0 ];then
@@ -1783,6 +1804,7 @@ rm_repo(){                        # remove an installed repo by name ($1) FUNCLI
   [ -f /tmp/pkg/sources     ] && mv /tmp/pkg/sources ~/.pkg/sources
 
   # remove from third-party lists
+  touch ~/.pkg/sources-user
   grep -v  "|${repo_url}|"  ~/.pkg/sources-user > /tmp/pkg/sources-user
   grep -vE "$repo_url|${repo_name//*-/}" /etc/apt/sources.list > /tmp/pkg/sources.list
   grep -v  "$repo_url" /etc/slackpkg/mirrors > /tmp/pkg/mirrors
@@ -4330,11 +4352,14 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
   local curr_repo=''      # name of current repo in the loop
   local curr_repo_ext=''  # pkg ext for the current repo in the loop
   local curr_repo_url=''  # mirror that is used to download the pkg
-  local curr_repo_url1='' # mirror1 for the current repo in the loop
-  local curr_repo_url2='' # mirror2 for the current repo in the loop
-  local curr_repo_url3='' # mirror3 for the current repo in the loop
-  local curr_repo_url4='' # mirror4 for the current repo in the loop
   local pkg_in_repo=''    # true if pkg found in ANY repo, else false
+
+  # the file with our repo URL info
+  sources_file="${HOME}/.pkg/sources"
+
+  # set download options
+  [ "$FORCE" = true  ] && CONTINUE='' || CONTINUE='-c'
+  [ "$ASK"  != true  ] && QTAG=''
 
   # get pkg extension
   pkg_ext=$(get_pkg_ext "$1")
@@ -4347,17 +4372,26 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
   # the file to save to.. not reliable till we checked the repos
   PKGFILE="${WORKDIR}/${PKGNAME}.$pkg_ext"
   [ ! -f "$PKGFILE" ] && PKGFILE="${WORKDIR}/$(get_pkg_filename "$PKGNAME")"
+
   #PKG_FNAME_GUESS="$PKGFILE"
-  
-  # set download options
-  [ "$FORCE" = true  ] && CONTINUE='' || CONTINUE='-c'
-  [ "$ASK"  != true  ] && QTAG=''
+
+  PKG_FILENAME="$(basename $PKGFILE)"
+
+  if [ -z "${PKG_FILENAME}" ];then
+    error "Cant find the package file name needed to download"
+    return 1
+  fi
+
+  # skip if downloaded already, print msg
+  [ -f "$PKGFILE" ] && [ "$FORCE" = false ] && DONE=true && echo -e "Already downloaded ${magenta}${PKG_FILENAME}${endcolour}" && return 0
 
   #if pkg not yet downloaded, or we are downloading all, or we are forcing downloads
   if [ ! -f "$PKGFILE" ] || [ "$NO_INSTALL" = true ] || [ "$FORCE" = true ];then
 
     # mark this pkg as not yet downloaded
     DONE=false
+
+    PKGNAME_ONLY=$(get_pkg_name_only "$PKGNAME")
 
     # exit if no internet connection
     #NET="`check_net`"; [ $NET -eq 1 ] && echo "You need an internet connection" && exit 2
@@ -4366,255 +4400,203 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
     repo_file_list | while read repo_file
     do
 
-      # the file with our repo URL info
-      sources_file="${HOME}/.pkg/sources"
+      # get name of current repo in loop
+      prev_repo="$curr_repo"
+      curr_repo_info="$(LANG=C grep -m1 "|$repo_file|" "$sources_file" 2>/dev/null | cut -f1,2 -d'|')"
+      curr_repo="${curr_repo_info/|*/}"
+      curr_repo_ext="${curr_repo_info/*|/}"
 
       # check if $repo_file contains the given pkg
-      pkg_in_this_repo="$(LANG=C cut -f1,2,7,8 -d'|' ${HOME}/.packages/$repo_file 2>/dev/null \
-        | grep -m1 "^${PKGNAME}|")"
+      pkg_in_this_repo="$(LANG=C cut -f1,2,7,8 -d'|' ${HOME}/.packages/$repo_file 2>/dev/null | grep -m1 "^${PKGNAME}|")"
+      [ "$pkg_in_this_repo" = '' ] && pkg_in_this_repo="$(LANG=C cut -f1,2,7,8 -d'|' ${HOME}/.packages/$repo_file 2>/dev/null | grep -m1 "|${PKG_FILENAME}\$")"
+      [ "$pkg_in_this_repo" = '' ] && pkg_in_this_repo="$(LANG=C cut -f1,2,7,8 -d'|' ${HOME}/.packages/$repo_file 2>/dev/null | grep -m1 "|${PKGNAME_ONLY}|")"
 
-      [ "$pkg_in_this_repo" = '' ] && pkg_in_this_repo="$(LANG=C cut -f1,2,7,8 -d'|' ${HOME}/.packages/$repo_file 2>/dev/null \
-        | grep -m1 "|${PKGNAME_ONLY}|")"
+      # skip this repo if no exact match of package file found
+      if [ -z "$pkg_in_this_repo" ];then
+        continue
+      fi 
 
-      [ "$pkg_in_this_repo" = '' ] && pkg_in_this_repo="$(LANG=C cut -f1,2,7,8 -d'|' ${HOME}/.packages/$repo_file 2>/dev/null \
-        | grep -m1 "|${PKGFILENAME}\$")"
+      # skip pings and download if already downloaded.. unless forcing download
+      if [ -f "$PKGFILE" ] && [ "$FORCE" != true ];then
+        DONE=true
+        break
+      fi
 
-      # if package file found in current repo file
-      if [ "$pkg_in_this_repo" != "" ];then #if true, its an exact match
+      # ask user to download
+      echo -en "Download ${magenta}${PKGNAME_ONLY}${endcolour} from ${lightblue}${curr_repo}${endcolour} repo$QTAG:  "
+      [ "$ASK" = true ] && read -n 1 CONFIRM </dev/tty || CONFIRM=y
+      [ "$CONFIRM" != 'y' ] && echo
 
-        # get name of current repo in loop
-        prev_repo="$curr_repo"
-        curr_repo="$(LANG=C grep -m1 $repo_file $sources_file 2>/dev/null | cut -f1 -d'|')"
+      # if user answered yes, we will now download the pkgs
+      if [ "$CONFIRM" != "y" ];then #25073
+        DONE=true
+        break
+      fi
 
-        # get ext of cur repo, it might be different
-        curr_repo_ext="$(LANG=C grep -m1 $repo_file $sources_file 2>/dev/null| cut -f2 -d'|')"
+      # only ask once
+      ASK=false
 
-        # get full pkg FILENAME (inc name-ver.ext) from the repo
-        PKG_FILENAME="$(basename "$PKGFILE")"
+      echo # start a new line
 
-        # just in case its empty, revert back to the earlier value
-        [ "$PKG_FILENAME" = "" ] && PKG_FILENAME="$PKGNAME.$pkg_ext"
+      # get the subdir (from repo line) that the package lives in
+      sub_dir="$(echo "$pkg_in_this_repo" | cut -f3 -d'|' | sed 's/^\.//')"
 
-        # update the filename to check/download
-        PKGFILE="${WORKDIR}/${PKG_FILENAME}"
+      if [ "$sub_dir" = "." ];then
+        sub_dir=''
+      fi
 
-        # skip if downloaded already, print msg
-        [ -f "$PKGFILE" ] && [ "$FORCE" = false ] && DONE=true && echo -e "Already downloaded ${magenta}${PKG_FILENAME}${endcolour}" && continue
+      # make a space separated list of all our repo URLs .. 
+      # we also add a final /, fixing any double slashes
+      curr_repo_url_list="$(LANG=C grep -m1 "|$repo_file|" $sources_file 2>/dev/null \
+        | cut -f4,5,6,7 -d'|' \
+        | tr '|' '\n'         \
+        | sed                 \
+          -e 's#\$#/#g'       \
+          -e 's#//\$#/#g'     \
+        | tr '\n' ' '         )"
 
-        # update the package name, based on PKG_FILENAME
-        PKGNAME="$(basename "$PKG_FILENAME" .$curr_repo_ext)"
+      # update the ext to that of current repo
+      pkg_ext="$curr_repo_ext"
 
-        # update generic name
-        PKGNAME_ONLY="$(get_pkg_name_only "$PKGNAME")"
-
-        if [ "${PKG_FILENAME}" = '' ];then
-          error "Cant find pkg file name, needed to download"
-          return 1
-        fi
-
-        # skip pings and download if already downloaded.. unless forcing download
-        if [ ! -f "$PKGFILE" ] || [ "$FORCE" = true ];then
-
-          # ask user to download
-          echo -en "Download ${magenta}${PKGNAME_ONLY}${endcolour} from ${lightblue}${curr_repo}${endcolour} repo$QTAG:  "
-          [ "$ASK" = true ] && read -n 1 CONFIRM </dev/tty || CONFIRM=y
-          [ "$CONFIRM" != 'y' ] && echo
-
-          # if user answered yes, we will now download the pkgs
-          if [ "$CONFIRM" = "y" ];then #25073
-
-            # only ask once
-            ASK=false
-
-            echo # start a new line
-
-            # get the subdir (from repo line) that the package lives in
-            sub_dir="$(echo "$pkg_in_this_repo" | cut -f3 -d'|' | sed 's/^\.//')"
-
-            if [ "$sub_dir" = "." ];then
-              sub_dir=''
-            fi
-
-            # get repo mirrors (only url1 is required .. we also add a final /)
-            curr_repo_url1="$(LANG=C grep -m1 $repo_file $sources_file 2>/dev/null| cut -f4 -d'|')/"
-            curr_repo_url2="$(LANG=C grep -m1 $repo_file $sources_file 2>/dev/null| cut -f5 -d'|')/"
-            curr_repo_url3="$(LANG=C grep -m1 $repo_file $sources_file 2>/dev/null| cut -f6 -d'|')/"
-            curr_repo_url4="$(LANG=C grep -m1 $repo_file $sources_file 2>/dev/null| cut -f7 -d'|')/"
-
-            # make a space separated list of all our repo URLs
-            curr_repo_url_list="$curr_repo_url1 $curr_repo_url2 $curr_repo_url3 $curr_repo_url4"
-
-            # clean up the list, remove any double slashes at the end of each URL
-            curr_repo_url_list="$(echo "$curr_repo_url_list" | sed -e "s|// |/ |g" -e "s|//\$|/\$|g")"
-
-            # update the ext to that of current repo
-            pkg_ext="$curr_repo_ext"
-
-            # get the best repo mirror
-            #if [ "$prev_repo" != "$current_repo"  ] && [ -f $TMPDIR/curr_repo_url ] || [ ! -f $TMPDIR/curr_repo_url ];then
-              #echo "Checking '$curr_repo' repo mirrors..."
-              for URL in $curr_repo_url_list
-              do
-                [ -z "$URL" ] && continue
-                [ "$URL" = '/' ] && continue
-                [ "$URL" = '' ] && continue
-                # add some system values into the repo URL (arch, distro version, etc.. from DISTRO_SPECS)
-                URL="$(echo "$URL"| sed -e 's@${DBIN_ARCH}@'$DBIN_ARCH'@g')"
-                URL="$(echo "$URL"| sed -e 's@${DISTRO_COMPAT_VERSION}@'$DISTRO_COMPAT_VERSION'@g')"
-                URL="$(echo "$URL"| sed -e 's@${DDB_COMP}@'$DDB_COMP'@g')"
-                URL="$(echo "$URL"| sed -e 's@${SLACKWARE}@'$SLACKWARE'@g')"
-                URL="$(echo "$URL"| sed -e 's@${SLACKARCH}@'$SLACKARCH'@g')"
-                URL="$(echo "$URL"| sed -e 's@${lxDISTRO_COMPAT_VERSION}@'$lxDISTRO_COMPAT_VERSION'@g')"
-                #ping -W2 -c1 -q $(echo  "${URL}" | awk -F/ '{print $3}') &>/dev/null
-                wget --quiet --timeout=2 --no-parent --spider "${URL}" &>/dev/null && \
-                {
-                  # set the current URL
-                  curr_repo_url="$URL"
-                  if [ ! -z "$curr_repo_url" ];then
-                    echo "$curr_repo_url" > $TMPDIR/curr_repo_url
-                    break
-                  fi
-                }
-              done
-            #else
-            # curr_repo_url="`cat $TMPDIR/curr_repo_url`"
-            #fi
-
-            # exit if URL is not found or empty
-            if [ -z "$curr_repo_url" ]; then
-              error "Package URL not found"
-              return 8
-            fi
-
-            # lets build our DOWNLOAD_URL: set it to the working repo mirror we found above
-            DOWNLOAD_URL="${curr_repo_url}"
-
-            # now add the subdir to DOWNLOAD_URL .. sub_dir may be empty, but we add a trailing '/' anyway
-            DOWNLOAD_URL="${DOWNLOAD_URL}${sub_dir}/"
-
-            # add some system values into the repo URL (arch, distro version, etc.. from DISTRO_SPECS)
-            DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e 's@${DBIN_ARCH}@'$DBIN_ARCH'@g')"
-            DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e 's@${DISTRO_COMPAT_VERSION}@'$DISTRO_COMPAT_VERSION'@g')"
-            DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e 's@${DDB_COMP}@'$DDB_COMP'@g')"
-            DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e 's@${SLACKWARE}@'$SLACKWARE'@g')"
-            DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e 's@${SLACKARCH}@'$SLACKARCH'@g')"
-            DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e 's@${lxDISTRO_COMPAT_VERSION}@'$lxDISTRO_COMPAT_VERSION'@g')"
-
-            # add our package to the URL
-            DOWNLOAD_URL="${DOWNLOAD_URL}${PKG_FILENAME}"
-
-            # remove any double forward slashes (the main URL or subdir may have ended in slashes, it may not, we added our own to be sure)
-            DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e "s@//$PKG_FILENAME@/$PKG_FILENAME@g")"
-
-            # if sub_dir not empty, lets clean that bit too
-            [ "$sub_dir" != '' ] && DOWNLOAD_URL="$(echo "$DOWNLOAD_URL" \
-              | sed \
-                -e "s@//${sub_dir}@/${sub_dir}@g" \
-                -e "s@${sub_dir}//@${sub_dir}/@g")"
-
-            # exit if URL is not found (if we get a 404 back)
-            if [ -z "$DOWNLOAD_URL" ]; then
-              error "Package URL not found   $DOWNLOAD_URL"
-              return 8
-            else
-              wget -S --spider "$DOWNLOAD_URL" &>/dev/null || \
-              {
-                error "Package URL not found   $DOWNLOAD_URL"
-                return 8
-              }
-            fi
-
-            # we may be using multiple URLs, so each time we change URL,
-            #  remember the new one
-            if [ "$OLDURL" != "$DOWNLOAD_URL" ];then
-              OLDURL="$DOWNLOAD_URL";
-              echo -e "URL: ${lightblue}${DOWNLOAD_URL}${endcolour}";
-            fi
-
-            # if --force, remove the package if it already exists
-            [ "$FORCE" = true ] && rm -f "${WORKDIR}/${PKG_FILENAME}" &>/dev/null
-
-            # if file not downloaded, or forcing downloads
-            if [ ! -f "${WORKDIR}/${PKG_FILENAME}" ] || [ "$FORCE" = true ];then
-
-              # BEGIN DOWNLOAD file here..
-
-              # print DOWNLOADING msg
-              echo -en "Downloading ${magenta}${PKG_FILENAME}${endcolour}. Please wait:     "
-
-              # if called as 'gpkg', give a pop GUI (uses Xdialog) showing download progress..
-              # can be used by X apps to easily start (and show!) downloads
-              if [ "$SELF" = "gpkg" ];then
-
-                download_progress "$DOWNLOAD_URL" "${WORKDIR}/${PKG_FILENAME}" 2>/dev/null
-
-              else # if called as 'pkg', dont use Xdialog, output to terminal
-
-                if [ "$QUIET" = true ];then
-                  echo
-                  echo -n "Downloading now..."
-                  LANG=C wget \
-                    --no-check-certificate \
-                    --progress=dot -O "${WORKDIR}/${PKG_FILENAME}" \
-                    -4 $CONTINUE "$DOWNLOAD_URL" &>/dev/null
-                else
-                  # START DOWNLOAD, show percentage as we go
-                  LANG=C wget \
-                    --no-check-certificate \
-                    --progress=dot -O "${WORKDIR}/${PKG_FILENAME}" \
-                    -4 $CONTINUE "$DOWNLOAD_URL" 2>&1 \
-                    | grep --line-buffered "%" \
-                    | sed -u -e "s#\.##g" \
-                    | awk '{printf("\b\b\b\b%4s", $2)}' #220613
-                fi
-
-              fi
-
-            fi # end if WORKDIR/PKG not a file or FORCE=true
-
-            # clean up output
-            [ "$QUIET" != true ] && echo -ne "\b\b\b\b"
-            echo
-#            ln -s "${PKG_FILENAME}" "$PKG_FNAME_GUESS" 2>/dev/null #TODO use relative symbolic links + symbolic link cleanup.
-            # if file downloaded ok
-            if [ -f "${WORKDIR}/${PKG_FILENAME}" ];then
-              echo -e "${green}Downloaded:${endcolour} ${WORKDIR}/${PKG_FILENAME}"
-              DONE=true
+      # get the best repo mirror
+      #if [ "$prev_repo" != "$current_repo"  ] && [ -f $TMPDIR/curr_repo_url ] || [ ! -f $TMPDIR/curr_repo_url ];then
+        #echo "Checking '$curr_repo' repo mirrors..."
+        for URL in $curr_repo_url_list
+        do
+          [ -z "$URL" ] && continue
+          [ "$URL" = '/' ] && continue
+          [ "$URL" = '' ] && continue
+          # add some system values into the repo URL (arch, distro version, etc.. from DISTRO_SPECS)
+          URL="$(echo "$URL"| sed -e 's@${DBIN_ARCH}@'$DBIN_ARCH'@g')"
+          URL="$(echo "$URL"| sed -e 's@${DISTRO_COMPAT_VERSION}@'$DISTRO_COMPAT_VERSION'@g')"
+          URL="$(echo "$URL"| sed -e 's@${DDB_COMP}@'$DDB_COMP'@g')"
+          URL="$(echo "$URL"| sed -e 's@${SLACKWARE}@'$SLACKWARE'@g')"
+          URL="$(echo "$URL"| sed -e 's@${SLACKARCH}@'$SLACKARCH'@g')"
+          URL="$(echo "$URL"| sed -e 's@${lxDISTRO_COMPAT_VERSION}@'$lxDISTRO_COMPAT_VERSION'@g')"
+          #ping -W2 -c1 -q $(echo  "${URL}" | awk -F/ '{print $3}') &>/dev/null
+          wget --quiet --timeout=2 --no-parent --spider "${URL}" &>/dev/null && \
+          {
+            # set the current URL
+            curr_repo_url="$URL"
+            if [ ! -z "$curr_repo_url" ];then
+              echo "$curr_repo_url" > $TMPDIR/curr_repo_url
               break
-
-            else # file NOT downloaded ok
-
-              error "Failed to download '${WORKDIR}/${PKG_FILENAME}'."
-              echo "Check '$DOWNLOAD_URL'"
-
-              # remove the page we tried to get pkg from (if exists)
-              rm "${WORKDIR}/index.html" &>/dev/null
-              DONE=true
-              exit 6
             fi
+          }
+        done
+      #else
+      # curr_repo_url="`cat $TMPDIR/curr_repo_url`"
+      #fi
 
-          fi # end if CONFIRM=y
+      # exit if URL is not found or empty
+      if [ -z "$curr_repo_url" ]; then
+        error "Package URL not found"
+        return 8
+      fi
 
-          # user chose not to do anything
-          DONE=true
-          break
+      # lets build our DOWNLOAD_URL: set it to the working repo mirror we found above
+      DOWNLOAD_URL="${curr_repo_url}"
 
-        else # Already downloaded, skip to next iteration
+      # now add the subdir to DOWNLOAD_URL .. sub_dir may be empty, but we add a trailing '/' anyway
+      DOWNLOAD_URL="${DOWNLOAD_URL}${sub_dir}/"
 
-          #echo "Package $1 already downloaded"
-          DONE=true
-          break
+      # add some system values into the repo URL (arch, distro version, etc.. from DISTRO_SPECS)
+      DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e 's@${DBIN_ARCH}@'$DBIN_ARCH'@g')"
+      DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e 's@${DISTRO_COMPAT_VERSION}@'$DISTRO_COMPAT_VERSION'@g')"
+      DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e 's@${DDB_COMP}@'$DDB_COMP'@g')"
+      DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e 's@${SLACKWARE}@'$SLACKWARE'@g')"
+      DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e 's@${SLACKARCH}@'$SLACKARCH'@g')"
+      DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e 's@${lxDISTRO_COMPAT_VERSION}@'$lxDISTRO_COMPAT_VERSION'@g')"
+
+      # add our package to the URL
+      DOWNLOAD_URL="${DOWNLOAD_URL}${PKG_FILENAME}"
+
+      # remove any double forward slashes (the main URL or subdir may have ended in slashes, it may not, we added our own to be sure)
+      DOWNLOAD_URL="$(echo "$DOWNLOAD_URL"| sed -e "s@//$PKG_FILENAME@/$PKG_FILENAME@g")"
+
+      # if sub_dir not empty, lets clean that bit too
+      [ "$sub_dir" != '' ] && DOWNLOAD_URL="$(echo "$DOWNLOAD_URL" \
+        | sed \
+          -e "s@//${sub_dir}@/${sub_dir}@g" \
+          -e "s@${sub_dir}//@${sub_dir}/@g")"
+
+      # exit if URL is not found (if we get a 404 back)
+      if [ -z "$DOWNLOAD_URL" ]; then
+        error "Package URL not found   $DOWNLOAD_URL"
+        return 8
+      else
+        wget -S --spider "$DOWNLOAD_URL" &>/dev/null || \
+        {
+          error "Package URL not found   $DOWNLOAD_URL"
+          return 8
+        }
+      fi
+
+      # we may be using multiple URLs, so each time we change URL,
+      #  remember the new one
+      if [ "$OLDURL" != "$DOWNLOAD_URL" ];then
+        OLDURL="$DOWNLOAD_URL";
+        echo -e "URL: ${lightblue}${DOWNLOAD_URL}${endcolour}";
+      fi
+
+      # if --force, remove the package if it already exists
+      [ "$FORCE" = true ] && rm -f "${PKGFILE}" &>/dev/null
+
+      # BEGIN DOWNLOAD file here..
+
+      # print DOWNLOADING msg
+      echo -en "Downloading ${magenta}${PKG_FILENAME}${endcolour}. Please wait:     "
+
+      # if called as 'gpkg', give a pop GUI (uses Xdialog) showing download progress..
+      # can be used by X apps to easily start (and show!) downloads
+      if [ "$SELF" = "gpkg" ];then
+
+        download_progress "$DOWNLOAD_URL" "${PKGFILE}" 2>/dev/null
+
+      else # if called as 'pkg', dont use Xdialog, output to terminal
+
+        if [ "$QUIET" = true ];then
+          echo
+          echo -n "Downloading now..."
+          LANG=C wget \
+            --no-check-certificate \
+            --progress=dot -O "${PKGFILE}" \
+            -4 $CONTINUE "$DOWNLOAD_URL" &>/dev/null
+        else
+          # START DOWNLOAD, show percentage as we go
+          LANG=C wget \
+            --no-check-certificate \
+            --progress=dot -O "${PKGFILE}" \
+            -4 $CONTINUE "$DOWNLOAD_URL" 2>&1 \
+            | grep --line-buffered "%" \
+            | sed -u -e "s#\.##g" \
+            | awk '{printf("\b\b\b\b%4s", $2)}' #220613
         fi
 
-      else # no repo match, nothing to download
+      fi
 
-        # go to next repo, try to ge tthe pkg there
-        DONE=false
+      # clean up output
+      [ "$QUIET" != true ] && echo -ne "\b\b\b\b"
+      echo
 
-      fi # end if repo match was found
+      # ln -s "${PKG_FILENAME}" "$PKG_FNAME_GUESS" 2>/dev/null #TODO use relative symbolic links + symbolic link cleanup.
 
-      # if download not successful, keep going to next repo
-      [ "$DONE" = true ] && continue
+      # if file downloaded ok
+      if [ -f "${PKGFILE}" ];then
+        echo -e "${green}Downloaded:${endcolour} ${PKGFILE}"
+        DONE=true
+        break
+
+      else # file NOT downloaded ok
+
+        error "Failed to download '${PKGFILE}'."
+        echo "Check '$DOWNLOAD_URL'"
+
+        # remove the page we tried to get pkg from (if exists)
+        rm "${WORKDIR}/index.html" &>/dev/null
+        DONE=true
+        exit 6
+      fi
 
     done #done while read list of repo files
 
@@ -4657,6 +4639,7 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
   else
     # get the real file name (inc path) from the given PKGFILE and pkg_ext (which may be empty)
     PKGFILE=$(find "$CURDIR" -mount -maxdepth 1 -type f -name "${PKGNAME}*${pkg_ext}" | head -1)
+    [ ! -f "$PKGFILE" ] && PKGFILE=$(find "$CURDIR" -mount -maxdepth 1 -type f -name "$(get_pkg_filename "$PKGNAME")" | head -1)
     [ ! -f "$PKGFILE" ] && PKGFILE=$(find "$CURDIR" -mount -maxdepth 1 -type f -name "${PKGNAME}*${EX}" | grep -m1 $EX)
     [ -f "$PKGFILE" ] && PKGNAME=$(basename "$1" .$pkg_ext)
   fi
@@ -4682,383 +4665,378 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
     fi
   fi
 
-  # if the file exists, or using --force
-  if [ -f "$PKGFILE" ] || [ "$FORCE" = true ];then
+  if [ ! -f "$PKGFILE" ];then
+    echo "Package '$PKGNAME' not yet downloaded."
 
-    [ ! -f "$PKGFILE" ] && echo "The file $1 was not found." && return 1
+    matching_local_pkgs="$(list_downloaded_pkgs $PKGNAME)"
 
-    # get the extension of this newly found pkg (which we should have found by now)
-    pkg_ext=$(get_pkg_ext "$PKGFILE")
-    # get extension again, we may have been given only a pkg name, find its extension from repo files
-    [ "$pkg_ext" = "" ] && pkg_ext=$(get_pkg_ext "$PKGNAME")
+    if [ "$matching_local_pkgs" != "" ];then
+      echo "You could install one of the following packages with \`$SELF -i PKGNAME\`:"
+      list_downloaded_pkgs "$(basename "$PKGNAME" .$pkg_ext 2>/dev/null)"
 
-    [ "$pkg_ext" = '' ] && echo "Not installing $PKGFILE." && error "Invalid file extension ($pkg_ext)." && return 1
+    elif [ -z "$matching_local_pkgs" ] && grep -q -m1 "^${PKGNAME}|" "${HOME}/.packages/${REPOFILE}"; then
+      echo "You must first download one of the following packages with \`$SELF -d PKGNAME\`:"
+      $PKGSEARCH "$(basename $PKGNAME .$pkg_ext 2>/dev/null)"
 
-    # remove any previous PET/pkg stuff lying around from previous installs
-    rm -f /pet.specs /pinstall.sh /puninstall.sh /install/doinst.sh
+    else
+      not_found "${PKGNAME}"
+    fi
+    return 1
+  fi
 
-    # if pkg is not yet installed, or we are force re-installing
+  # get the extension of this newly found pkg (which we should have found by now)
+  pkg_ext=$(get_pkg_ext "$PKGFILE")
+  [ "$pkg_ext" = "" ] && pkg_ext=$(get_pkg_ext "$PKGNAME")
 
-    # get filename from download file
-    PKGNAME=$(basename "$PKGFILE" .$pkg_ext)
+  if [ "$pkg_ext" = '' ];then
+    echo "Not installing $PKGFILE."
+    error "Invalid file extension ($pkg_ext)."
+    return 1
+  fi
 
-    # ask/inform user before install
-    echo -n "Install package ${PKGNAME}$QTAG:  "
-    [ "$ASK" = true ] && read -n 1 CONFIRM </dev/tty || CONFIRM=y
-    [ "$ASK" = true ] && echo -ne "\b\b\n"
+  # remove any previous PET/pkg stuff lying around from previous installs
+  rm -f /pet.specs /pinstall.sh /puninstall.sh /install/doinst.sh
+  #remove the old error log
+  rm $TMPDIR/$SELF-cp-errlog 2>/dev/null
 
-    # if user answered yes, we will now download the pkgs
-    if [ "$CONFIRM" = "y" ];then
+  # get filename from download file
+  PKGNAME=$(basename "$PKGFILE" .$pkg_ext)
 
-      # print new line if we didnt take any user input on tty
-      [ "$ASK" != true ] && echo
+  # ask/inform user before install
+  echo -n "Install package ${PKGNAME}$QTAG:  "
+  [ "$ASK" = true ] && read -n 1 CONFIRM </dev/tty || CONFIRM=y
+  [ "$ASK" = true ] && echo -ne "\b\b\n"
 
-      # only ask once
-      ASK=false
+  # if user answered yes, we will now download the pkgs
+  if [ "$CONFIRM" != "y" ];then
+    return 0
+  fi
 
-      #if [ "`pkg_contents "$PKGFILE" 2>/dev/null`" = '' ];then
-      # error "$PKGFILE not a valid package."
-      # exit 1
-      #fi
+  # print new line if we didnt take any user input on tty
+  [ "$ASK" != true ] && echo
 
-      # fallback to repo pkg ext if none found
-      [ "$pkg_ext" = "" ] && pkg_ext="$EX"
+  # only ask once
+  ASK=false
 
-      #remove the old error log
-      rm $TMPDIR/$SELF-cp-errlog 2>/dev/null
+  #if [ "`pkg_contents "$PKGFILE" 2>/dev/null`" = '' ];then
+  # error "$PKGFILE not a valid package."
+  # exit 1
+  #fi
 
-      # extract the archive file into a $CURDIR/$PKGNAME folder
-      case "$pkg_ext" in
+  # extract the archive file into a $CURDIR/$PKGNAME folder
+  case "$pkg_ext" in
 
-        pet) # needs tar 1.26+
-          rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
-          mkdir -p "${CURDIR}/${PKGNAME}"
-          PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.pet")"
-          PETPKG=${PKGFILE%.pet} #remove trailing ".pet"
-          head -c -32 ${PETPKG}.pet > ${PETPKG}.tar
-          PETFILES="$(tar -tf ${PETPKG}.tar)"
-          PETPREFIX="$(echo "$PETFILES" | head -1)"
-          case "$PETPREFIX" in
-            "./"*)
-              pPATTERN="s%^\\./${PETPKG##*/}%% ; /pet\.specs/d ; /pinstall\.sh/d ; /puninstall\.sh/d ; /^\\/$/d ; "
-              tar --strip=2 --directory="${CURDIR}/${PKGNAME}/" -xf ${PETPKG}.tar
-              ;;
-            *)
-              pPATTERN="s%^${PETPKG##*/}%%     ; /pet\.specs/d ; /pinstall\.sh/d ; /puninstall\.sh/d ; /^\\/$/d ; "
-              tar --strip=1 --directory="${CURDIR}/${PKGNAME}/" -xf ${PETPKG}.tar
-              ;;
-          esac
-          if [ $? -ne 0 ] ; then
-            echo "ERROR: failed to unpack ${PETPKG}.pet"
-            rm -f ${PETPKG}.tar
-            exit 1
-          fi
-          rm -f ${PETPKG}.tar
-          # save the uninstall script for later
-          if [ -f "${CURDIR}/${PKGNAME}/puninstall.sh" ];then
-            mv "${CURDIR}/${PKGNAME}/puninstall.sh" ${HOME}/.packages/${PKGNAME}.remove
-          fi
-          echo "$PETFILES" \
-            | sed \
-              -e "$pPATTERN" \
-              -e "s#^\.\/#\/#g" \
-              -e "s#^#\/#g" \
-              -e "s#^\/\/#\/#g" \
-              -e 's#^\/$##g' \
-              -e 's#^\/\.$##g' > ${HOME}/.packages/${PKGNAME}.files
-        ;;
-
-        sfs)
-          PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.sfs")"
-          [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${WORKDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.sfs")"
-          echo sfs_load -q --cli +"$PKGFILE" #2>/dev/null
-          sfs_load -q --cli +"$PKGFILE" #2>/dev/null
-          rm -f $HOME/.packages/${PKGNAME}.files 2>/dev/null
-          # create $HOME/.packages/$PKGNAME.files
-          pkg_contents "$PKGFILE" | while read line
-          do
-            [ -f "$line" ] && echo "$line" >> $HOME/.packages/${PKGNAME}.files
-          done
-          # exit, we dont need to unpack and copy
-          return 0
-        ;;
-
-        deb)
-
-          rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
-          mkdir -p "${CURDIR}/${PKGNAME}"
-          [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.deb")"
-          cp "${PKGFILE}" "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" || exit 4
-          cd "${CURDIR}/${PKGNAME}/" || exit 1
-
-          if [ -f "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" ];then
-            dpkg-deb --contents "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" \
-              | grep -v '/$' \
-              | tr -s ' ' \
-              | cut -f6 -d' ' \
-              | grep -v '^$' > $HOME/.packages/${PKGNAME}.files
-          fi
-
-          dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${CURDIR}/${PKGNAME}
-          [ $? -ne 0 ] && exit 1
-          [ -d /DEBIAN ] && rm -rf /DEBIAN #130112 precaution.
-          dpkg-deb -e "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" /DEBIAN #130112 extracts deb control files to dir /DEBIAN. may have a post-install script, see below.
-          rm "${PKGNAME}.deb"
-
-          cd - 1>/dev/null || exit 1
-        ;;
-
-        *tgz|*txz|*tzst|*tar.gz|*tar.xz|*tar.zst|*tlz|*tar.lzma|*tbz|*tar.bz2)
-          rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
-          mkdir -p "${CURDIR}/${PKGNAME}"
-          PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.${pkg_ext}")"
-          cp "$PKGFILE" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
-          cd "${CURDIR}/${PKGNAME}/" || exit 1
-          case "$pkg_ext" in
-            *tbz|*tar.bz2)  bzip2 -dc "${PKGNAME}.$pkg_ext" | tar -xf - 2> $TMPDIR/$SELF-cp-errlog ;;
-            *tlz|*tar.lzma) lzma -dc "${PKGNAME}.$pkg_ext"  | tar -xf - 2> $TMPDIR/$SELF-cp-errlog ;;
-            *) tar -xf "${PKGNAME}.$pkg_ext" 2> $TMPDIR/$SELF-cp-errlog ;;
-          esac
-          tar -tf "${PKGNAME}.$pkg_ext" > $HOME/.packages/${PKGNAME}.files
-          rm "${PKGNAME}.$pkg_ext"
-          cd - 1>/dev/null || exit 1
-        ;;
-
-        rpm)
-          PKGNAME="$(basename "${PKGFILE}" .rpm)"
-          busybox rpm -qp "$PKGFILE" > /dev/null 2>&1
-          [ $? -ne 0 ] && exit 1
-          PFILES="$(busybox rpm -qpl "$PKGFILE")"
-          [ $? -ne 0 ] && exit 1
-          echo "$PFILES" > $HOME/.packages/${PKGNAME}.files
-          pkg_unpack "$PKGFILE" 1>/dev/null
-        ;;
-
+    pet) # needs tar 1.26+
+      rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
+      mkdir -p "${CURDIR}/${PKGNAME}"
+      PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.pet")"
+      PETPKG=${PKGFILE%.pet} #remove trailing ".pet"
+      head -c -32 ${PETPKG}.pet > ${PETPKG}.tar
+      PETFILES="$(tar -tf ${PETPKG}.tar)"
+      PETPREFIX="$(echo "$PETFILES" | head -1)"
+      case "$PETPREFIX" in
+        "./"*)
+          pPATTERN="s%^\\./${PETPKG##*/}%% ; /pet\.specs/d ; /pinstall\.sh/d ; /puninstall\.sh/d ; /^\\/$/d ; "
+          tar --strip=2 --directory="${CURDIR}/${PKGNAME}/" -xf ${PETPKG}.tar
+          ;;
+        *)
+          pPATTERN="s%^${PETPKG##*/}%%     ; /pet\.specs/d ; /pinstall\.sh/d ; /puninstall\.sh/d ; /^\\/$/d ; "
+          tar --strip=1 --directory="${CURDIR}/${PKGNAME}/" -xf ${PETPKG}.tar
+          ;;
       esac
-
-      # now extract pkg contents to /
-      [ ! -d "${PKGNAME}/" ] && error "Cannot enter directory '${PKGNAME}/', it doesn't exist." && exit 4
-      cd "${PKGNAME}/" 1>/dev/null || exit 1
-
-      cp -a --remove-destination ./* ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
-
-      #source is a directory, target is a symlink...
-      if [ -s $TMPDIR/$SELF-cp-errlog ];then
-        grep -E 'Cannot create symlink to|cannot overwrite non-directory' $TMPDIR/$SELF-cp-errlog  2>/dev/null \
-          | cut -f 1 -d "'" \
-          | cut -f 2 -d '`' \
-          | while read ONEDIRSYMLINK
-            do
-              #adding that extra trailing / does the trick...
-              cp -a --remove-destination ${ONEDIRSYMLINK}/* /${ONEDIRSYMLINK}/ 2> $TMPDIR/$SELF-cp-errlog #260713
-            done
+      if [ $? -ne 0 ] ; then
+        echo "ERROR: failed to unpack ${PETPKG}.pet"
+        rm -f ${PETPKG}.tar
+        exit 1
       fi
-      sync
-      cd .. 1>/dev/null || exit 1
-
-      # move the *.files to $HOME/.packages
-      FILES=''
-      FILES="$(find "$CURDIR" -mount -maxdepth 1 -iname "*.files" | head -1)"
-      [ -f "$FILES" ] && mv "$FILES" "${HOME}/.packages/" 2>/dev/null #260713
-
-      #pkgname.files may need to be fixed...
-      grep -v '/$' ${HOME}/.packages/${PKGNAME}.files \
+      rm -f ${PETPKG}.tar
+      # save the uninstall script for later
+      if [ -f "${CURDIR}/${PKGNAME}/puninstall.sh" ];then
+        mv "${CURDIR}/${PKGNAME}/puninstall.sh" ${HOME}/.packages/${PKGNAME}.remove
+      fi
+      echo "$PETFILES" \
         | sed \
-          -e "s#^\.\/#\/#g"   \
-          -e "s#^#\/#g"       \
-          -e "s#^\/\/#\/#g"   \
-          -e 's#^\/$##g'      \
-          -e 's#^\/\.$##g'    \
-          -e '\%^/install/%d' \
-        | sort -u > ${HOME}/.packages/${PKGNAME}.files2
+          -e "$pPATTERN" \
+          -e "s#^\.\/#\/#g" \
+          -e "s#^#\/#g" \
+          -e "s#^\/\/#\/#g" \
+          -e 's#^\/$##g' \
+          -e 's#^\/\.$##g' > ${HOME}/.packages/${PKGNAME}.files
+    ;;
 
-      mv ${HOME}/.packages/${PKGNAME}.files2 ${HOME}/.packages/${PKGNAME}.files
-      # some pets add images and icons at / so move them
-      mv /{*.xpm,*.png,*.ico} /usr/share/pixmaps/ 2>/dev/null
-
-      # run the post install scripts (for puppy, slackware, arch, debian/ubuntu, etc)
-      for i in /pinstall.sh /install/doinst.sh /DEBIAN/postinst
+    sfs)
+      PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.sfs")"
+      [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${WORKDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.sfs")"
+      echo sfs_load -q --cli +"$PKGFILE" #2>/dev/null
+      sfs_load -q --cli +"$PKGFILE" #2>/dev/null
+      rm -f $HOME/.packages/${PKGNAME}.files 2>/dev/null
+      # create $HOME/.packages/$PKGNAME.files
+      pkg_contents "$PKGFILE" | while read line
       do
-        [ -z ${i} ] || [ ! -e /${i} ] && continue
-        chmod +x /${i}
-        cd /
-        nohup sh ${i} &>/dev/null
-        sleep 0.2
-        rm -f ${i:-?}
-        cd ${CURDIR}/ || exit 1
+        [ -f "$line" ] && echo "$line" >> $HOME/.packages/${PKGNAME}.files
       done
-      rm -rf /install
-      rm -rf /DEBIAN
+      # exit, we dont need to unpack and copy
+      return 0
+    ;;
 
-      #130314 run arch linux pkg post-install script...
-      #precaution. see 3builddistro, script created by noryb009.
-      if [ -f /.INSTALL ] && [ -f /usr/local/petget/ArchRunDotInstalls ];then 
-        #this code is taken from below...
-        dlPATTERN='|'"$(echo -n "${PKGNAME}" | sed -e 's%\\-%\\\\-%')"'|'
-        archVER="$(cat $TMPDIR/petget_missing_dbentries-Packages-* 2>/dev/null \
-          | grep "$dlPATTERN" \
-          | head -n 1 \
-          | cut -f 3 -d '|')"
-        if [ "$archVER" ];then #precaution.
-          cd /
-          mv -f .INSTALL .INSTALL1-${archVER}
-          cp -a /usr/local/petget/ArchRunDotInstalls ArchRunDotInstalls
-          LANG=$LANGUSER ./ArchRunDotInstalls
-          rm -f ArchRunDotInstalls
-          rm -f .INSTALL*
-          cd ${CURDIR}/ || exit 1
-        fi
+    deb)
+
+      rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
+      mkdir -p "${CURDIR}/${PKGNAME}"
+      [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.deb")"
+      cp "${PKGFILE}" "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" || exit 4
+      cd "${CURDIR}/${PKGNAME}/" || exit 1
+
+      if [ -f "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" ];then
+        dpkg-deb --contents "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" \
+          | grep -v '/$' \
+          | tr -s ' ' \
+          | cut -f6 -d' ' \
+          | grep -v '^$' > $HOME/.packages/${PKGNAME}.files
       fi
 
-      PKGCAT=''
-      PKGSIZE=''
-      PKGDESC=''
-      DEPLIST=''
+      dpkg-deb -x ${CURDIR}/${PKGNAME}.deb ${CURDIR}/${PKGNAME}
+      [ $? -ne 0 ] && exit 1
+      [ -d /DEBIAN ] && rm -rf /DEBIAN #130112 precaution.
+      dpkg-deb -e "${CURDIR}/${PKGNAME}/${PKGNAME}.deb" /DEBIAN #130112 extracts deb control files to dir /DEBIAN. may have a post-install script, see below.
+      rm "${PKGNAME}.deb"
 
-      # clean up pet installs
-      if [ "$pkg_ext" = "pet" ];then
-        cd /
+      cd - 1>/dev/null || exit 1
+    ;;
 
-        # get pkg info from pet.spec before we delete it, because the PET may not be a repo pkg
-        petspecs="$(cat /pet.specs 2>/dev/null)"
+    *tgz|*txz|*tzst|*tar.gz|*tar.xz|*tar.zst|*tlz|*tar.lzma|*tbz|*tar.bz2)
+      rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
+      mkdir -p "${CURDIR}/${PKGNAME}"
+      PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.${pkg_ext}")"
+      cp "$PKGFILE" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
+      cd "${CURDIR}/${PKGNAME}/" || exit 1
+      case "$pkg_ext" in
+        *tbz|*tar.bz2)  bzip2 -dc "${PKGNAME}.$pkg_ext" | tar -xf - 2> $TMPDIR/$SELF-cp-errlog ;;
+        *tlz|*tar.lzma) lzma -dc "${PKGNAME}.$pkg_ext"  | tar -xf - 2> $TMPDIR/$SELF-cp-errlog ;;
+        *) tar -xf "${PKGNAME}.$pkg_ext" 2> $TMPDIR/$SELF-cp-errlog ;;
+      esac
+      tar -tf "${PKGNAME}.$pkg_ext" > $HOME/.packages/${PKGNAME}.files
+      rm "${PKGNAME}.$pkg_ext"
+      cd - 1>/dev/null || exit 1
+    ;;
 
-        if [ "$petspecs" != '' ];then
-          # now get pkg info
-          PKGCAT="$(echo $petspecs|  cut -f5  -d'|')"
-          PKGSIZE="$(echo $petspecs| cut -f6  -d'|')"
-          PKGDESC="$(echo $petspecs| cut -f10 -d'|')"
-          DEPSLIST="$(echo $petspecs|cut -f9  -d'|')"
-        fi
+    rpm)
+      PKGNAME="$(basename "${PKGFILE}" .rpm)"
+      busybox rpm -qp "$PKGFILE" > /dev/null 2>&1
+      [ $? -ne 0 ] && exit 1
+      PFILES="$(busybox rpm -qpl "$PKGFILE")"
+      [ $? -ne 0 ] && exit 1
+      echo "$PFILES" > $HOME/.packages/${PKGNAME}.files
+      pkg_unpack "$PKGFILE" 1>/dev/null
+    ;;
 
-        cd ${CURDIR}/ || exit 1
-      fi
+  esac
 
-      # cleanup a bit
-      rm -R "${PKGNAME:-?}/" 2>/dev/null || echo "${yellow}Warning:${endcolour} Cannot remove directory '${PKGNAME}/'." #150213
+  # now extract pkg contents to /
+  [ ! -d "${PKGNAME}/" ] && error "Cannot enter directory '${PKGNAME}/', it doesn't exist." && exit 4
+  cd "${PKGNAME}/" 1>/dev/null || exit 1
 
-      #flush unionfs cache, so files in pup_save layer will appear "on top"...
-      if [ "$DIRECTSAVEPATH" != "" ];then
-       #but first, clean out any bad whiteout files...
-       # 22sep10 shinobar: bugfix was not working clean out whiteout files
-       find /initrd/pup_rw -mount -type f -name .wh.\*  -printf '/%P\n'|
-       while read ONEWHITEOUT
-       do
-        ONEPATTERN="$(echo -n "$ONEWHITEOUT" | sed -e 's%/\\.wh\\.%/%')"'/*' ;#echo "$ONEPATTERN" >&2
-        grep -q -x "$ONEPATTERN" /root/.packages/${PKGNAME}.files && rm -f "/initrd/pup_rw/$ONEWHITEOUT"
-       done
-       # /usr/local/petget/removepreview.sh when uninstalling a pkg, 
-       # may have copied a file from sfs-layer to top, check...
-       # shellcheck disable=SC2002
-       cat ${HOME}/.packages/${PKGNAME}.files |
-       while read ONESPEC
-       do
-        [ "$ONESPEC" = "" ] && continue #precaution.
-        if [ ! -d "$ONESPEC" ];then
-         [ -e "/initrd/pup_rw${ONESPEC}" ] && rm -f "/initrd/pup_rw${ONESPEC}"
-        fi
-       done
-       #now re-evaluate all the layers...
-       busybox mount -t aufs -o remount,udba=reval unionfs / #remount with faster evaluation mode.
-       [ $? -ne 0 ] && logger -s -t "pkg" "Failed to remount aufs / with udba=reval"
-       sync
-      fi
+  cp -a --remove-destination ./* ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
 
-      # get pkg size, category and description
-      [ "$PKGCAT" = ''  ] && PKGCAT=$(LANG=C  grep -m1 "|${PKGNAME_ONLY}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f5 -d'|' | head -1)
-      [ "$PKGCAT" = ''  ] && PKGCAT=$(LANG=C  grep -m1 "^${PKGNAME}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f5 -d'|' | head -1)
-      [ "$PKGDESC" = '' ] && PKGDESC=$(LANG=C grep -m1 "|${PKGNAME_ONLY}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null| cut -f10 -d'|' | head -1)
-      [ "$PKGDESC" = '' ] && PKGDESC=$(LANG=C grep -m1 "^${PKGNAME}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null| cut -f10 -d'|' | head -1)
-      [ "$PKGSIZE" = '' ] && PKGSIZE=$(LANG=C du -s -k ${CURDIR}/${PKG} 2>/dev/null | cut -f1)
-      # get pkg version
-      PKGVER="$(get_pkg_version "$PKGNAME")"
-#      PKGARCH="`LANG=C echo "$PKGNAME" | cut -f3 -d'-' | grep -E 'i[3-9]|x[8-9]|arm64|armel|armhf|noarch'`"
+  #source is a directory, target is a symlink...
+  if [ -s $TMPDIR/$SELF-cp-errlog ];then
+    grep -E 'Cannot create symlink to|cannot overwrite non-directory' $TMPDIR/$SELF-cp-errlog  2>/dev/null \
+      | cut -f 1 -d "'" \
+      | cut -f 2 -d '`' \
+      | while read ONEDIRSYMLINK
+        do
+          #adding that extra trailing / does the trick...
+          cp -a --remove-destination ${ONEDIRSYMLINK}/* /${ONEDIRSYMLINK}/ 2> $TMPDIR/$SELF-cp-errlog #260713
+        done
+  fi
+  sync
+  cd .. 1>/dev/null || exit 1
 
-      # last check for pkg info
-      [ "$DEPSLIST" = '' ] && DEPSLIST="$(grep -m1 "^${PKGNAME}|" ${HOME}/.packages/Packages-* 2>/dev/null | cut -f9 -d'|' | grep '+' | head -1)"
-      [ "$PKGDESC" = ''  ] && PKGDESC="No description"
+  # move the *.files to $HOME/.packages
+  FILES=''
+  FILES="$(find "$CURDIR" -mount -maxdepth 1 -iname "*.files" | head -1)"
+  [ -f "$FILES" ] && mv "$FILES" "${HOME}/.packages/" 2>/dev/null #260713
 
-      #080917 - build woof compatible repo line .. #090817
-      if cut -f1 -d'|' ${HOME}/.packages/user-installed-packages 2>/dev/null | grep -q -m1 "^${PKGNAME}"; then
+  #pkgname.files may need to be fixed...
+  grep -v '/$' ${HOME}/.packages/${PKGNAME}.files \
+    | sed \
+      -e "s#^\.\/#\/#g"   \
+      -e "s#^#\/#g"       \
+      -e "s#^\/\/#\/#g"   \
+      -e 's#^\/$##g'      \
+      -e 's#^\/\.$##g'    \
+      -e '\%^/install/%d' \
+    | sort -u > ${HOME}/.packages/${PKGNAME}.files2
 
-        # get the package db entry to add to user-installed-packages...
-        # first, get it from petspecs if possible, or from the pkgs repo, or make one
-        if [ -f /pet.specs ];then
-          DB_ENTRY="$(head -n1 /pet.specs)"
-        elif grep -1 -m1 "^${PKGNAME}|" "${HOME}/.packages/$REPOFILE"; then
-          DB_ENTRY="$(grep -m1 "^${PKGNAME}|" "${HOME}/.packages/$REPOFILE")"
-        else
-          DB_ENTRY="${PKGNAME}|${PKGNAME_ONLY}|${PKGVER}|${BUILD}|${PKGCAT}|${PKGSIZE}|${PKGDIR}|${PKGNAME}.${pkg_ext}|${DEPSLIST}|${PKGDESC}|${DISTRO_BINARY_COMPAT}|${DISTRO_COMPAT_VERSION}"
-        fi
+  mv ${HOME}/.packages/${PKGNAME}.files2 ${HOME}/.packages/${PKGNAME}.files
+  # some pets add images and icons at / so move them
+  mv /{*.xpm,*.png,*.ico} /usr/share/pixmaps/ 2>/dev/null
 
-        # now add the db entry to user-installed-packages
-        echo "$DB_ENTRY" >> ${HOME}/.packages/user-installed-packages #130913
+  # run the post install scripts (for puppy, slackware, arch, debian/ubuntu, etc)
+  (
+    for i in /pinstall.sh /install/doinst.sh /DEBIAN/postinst
+    do
+      [ -z ${i} ] || [ ! -e /${i} ] && continue
+      chmod +x /${i}
+      cd /
+      nohup sh ${i} &>/dev/null
+      sleep 0.2
+      rm -f ${i:-?}
+      cd ${CURDIR}/ || exit 1
+    done
+    rm -rf /install
+    rm -rf /DEBIAN
+  )
 
-      fi
+  #130314 run arch linux pkg post-install script...
+  #precaution. see 3builddistro, script created by noryb009.
+  if [ -f /.INSTALL ] && [ -f /usr/local/petget/ArchRunDotInstalls ];then 
+    #this code is taken from below...
+    dlPATTERN='|'"$(echo -n "${PKGNAME}" | sed -e 's%\\-%\\\\-%')"'|'
+    archVER="$(cat $TMPDIR/petget_missing_dbentries-Packages-* 2>/dev/null \
+      | grep "$dlPATTERN" \
+      | head -n 1 \
+      | cut -f 3 -d '|')"
+    if [ "$archVER" ];then #precaution.
+      cd /
+      mv -f .INSTALL .INSTALL1-${archVER}
+      cp -a /usr/local/petget/ArchRunDotInstalls ArchRunDotInstalls
+      LANG=$LANGUSER ./ArchRunDotInstalls
+      rm -f ArchRunDotInstalls
+      rm -f .INSTALL*
+      cd ${CURDIR}/ || exit 1
+    fi
+  fi
 
-      # now delete the petspecs file(s), we already added our PKG info to installed-packages
-      rm /pet.specs &>/dev/null
-      rm /*.pet.specs &>/dev/null
+  PKGCAT=''
+  PKGSIZE=''
+  PKGDESC=''
+  DEPLIST=''
 
-      # make sure /tmp has correct permission, a pkg may have overwritten it
-      # shellcheck disable=SC2010
-      ls -dl /tmp | grep -q '^drwxrwxrwt' || chmod 1777 /tmp #130305 rerwin.
+  # clean up pet installs
+  if [ "$pkg_ext" = "pet" ];then
+    cd /
 
-      if [ "$(is_installed_pkg $PKGNAME)" = true ] && [ -s $HOME/.packages/${PKGNAME}.files ];then
-        echo -e "${green}Installed:${endcolour} $PKGNAME"
-        # show if pkg has menu entry
-        menu_entry_msg "$PKGNAME_ONLY"
-        # do fixmenus, if menu entry found
-        if grep -q -m1 '/usr/share/applications/.*.desktop' $HOME/.packages/${PKGNAME}.files 2>/dev/null; then
-          [ ! -f /tmp/pkg/update_menus_busy ] && update_menus &
-        fi
-        [ "$(which logger)" != '' ] && logger "$0 Package $PKGNAME installed by $APP $APPVER"
-      else
-        error "$PKGNAME may not have installed correctly."
-      fi
+    # get pkg info from pet.spec before we delete it, because the PET may not be a repo pkg
+    petspecs="$(cat /pet.specs 2>/dev/null)"
 
-      # clean up user-installed-packages (remove duplicates and empty lines, but DONT sort)
-      grep -v "^\$" ${HOME}/.packages/user-installed-packages | uniq > ${HOME}/.packages/user-installed-packages_clean
-      mv ${HOME}/.packages/user-installed-packages_clean ${HOME}/.packages/user-installed-packages
-
-      # puppy specific fixes for installed package
-      postinstall_hacks "$PKGNAME" "$PKGNAME_ONLY" &
-
-      # update system cache
-      update_system_cache $HOME/.packages/${PKGNAME}.files 1>/dev/null 2>&1
-
-    fi #if CONFIRM = y #100213,0.9  moved down to here, fixes install, and output msgs
-
-  else # file doesn't exists, user must download it first
-
-    if [ "$PKGNAME" != '' ];then
-
-      echo "Package '$PKGNAME' not yet downloaded."
-
-      matching_local_pkgs="$(list_downloaded_pkgs $PKGNAME)"
-
-      # if no matching pkgs downloaded
-      if [ "$matching_local_pkgs" != "" ];then
-        echo "You could install one of the following packages with \`$SELF -i PKGNAME\`:"
-        list_downloaded_pkgs "$(basename "$PKGNAME" .$pkg_ext 2>/dev/null)"
-
-      # else if not downloaded, and in the current repo, list the matching repo pkgs
-      elif [ -z "$matching_local_pkgs" ] && grep -q -m1 "^${PKGNAME}|" "${HOME}/.packages/${REPOFILE}"; then
-        echo "You must first download one of the following packages with \`$SELF -d PKGNAME\`:"
-        $PKGSEARCH "$(basename $PKGNAME .$pkg_ext 2>/dev/null)"
-
-      else
-        not_found "${PKGNAME}"
-      fi
-
-    else # PKGNAME is empty
-
-      echo "Package could not be identified."
-
+    if [ "$petspecs" != '' ];then
+      # now get pkg info
+      PKGCAT="$(echo $petspecs|  cut -f5  -d'|')"
+      PKGSIZE="$(echo $petspecs| cut -f6  -d'|')"
+      PKGDESC="$(echo $petspecs| cut -f10 -d'|')"
+      DEPSLIST="$(echo $petspecs|cut -f9  -d'|')"
     fi
 
-    exit 1
+    cd ${CURDIR}/ || exit 1
+  fi
+
+  # cleanup a bit
+  rm -R "${PKGNAME:-?}/" 2>/dev/null || echo "${yellow}Warning:${endcolour} Cannot remove directory '${PKGNAME}/'." #150213
+
+  #flush unionfs cache, so files in pup_save layer will appear "on top"...
+  if [ "$DIRECTSAVEPATH" != "" ];then
+   #but first, clean out any bad whiteout files...
+   # 22sep10 shinobar: bugfix was not working clean out whiteout files
+   find /initrd/pup_rw -mount -type f -name .wh.\*  -printf '/%P\n'|
+   while read ONEWHITEOUT
+   do
+    ONEPATTERN="$(echo -n "$ONEWHITEOUT" | sed -e 's%/\\.wh\\.%/%')"'/*' ;#echo "$ONEPATTERN" >&2
+    grep -q -x "$ONEPATTERN" /root/.packages/${PKGNAME}.files && rm -f "/initrd/pup_rw/$ONEWHITEOUT"
+   done
+   # /usr/local/petget/removepreview.sh when uninstalling a pkg, 
+   # may have copied a file from sfs-layer to top, check...
+   # shellcheck disable=SC2002
+   cat ${HOME}/.packages/${PKGNAME}.files |
+   while read ONESPEC
+   do
+    [ "$ONESPEC" = "" ] && continue #precaution.
+    if [ ! -d "$ONESPEC" ];then
+     [ -e "/initrd/pup_rw${ONESPEC}" ] && rm -f "/initrd/pup_rw${ONESPEC}"
+    fi
+   done
+   #now re-evaluate all the layers...
+   busybox mount -t aufs -o remount,udba=reval unionfs / #remount with faster evaluation mode.
+   [ $? -ne 0 ] && logger -s -t "pkg" "Failed to remount aufs / with udba=reval"
+   sync
+  fi
+
+  # get pkg size from local file, or repos
+  [ "$PKGSIZE" = '' ] && PKGSIZE=$(LANG=C du -s -k ${CURDIR}/${PKG} 2>/dev/null | cut -f1)
+  [ "$PKGSIZE" = '' ] && PKGSIZE=$(grep -m1 "^${PKGNAME}|" "${HOME}/.packages/Packages-"* 2>/dev/null | cut -f6 -d'|' | head -1)
+  # get category and description from current repo
+  [ "$PKGCAT" = ''  ] && PKGCAT=$(LANG=C  grep -m1 "|${PKGNAME_ONLY}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f5 -d'|' | head -1)
+  [ "$PKGCAT" = ''  ] && PKGCAT=$(LANG=C  grep -m1 "^${PKGNAME}|"      "${HOME}/.packages/${REPOFILE}" 2>/dev/null | cut -f5 -d'|' | head -1)
+  [ "$PKGDESC" = '' ] && PKGDESC=$(LANG=C grep -m1 "|${PKGNAME_ONLY}|" "${HOME}/.packages/${REPOFILE}" 2>/dev/null| cut -f10 -d'|' | head -1)
+  [ "$PKGDESC" = '' ] && PKGDESC=$(LANG=C grep -m1 "^${PKGNAME}|"      "${HOME}/.packages/${REPOFILE}" 2>/dev/null| cut -f10 -d'|' | head -1)
+  # if details not found in current repo, check all repos
+  [ "$PKGCAT" = ''  ] && PKGCAT=$(LANG=C  grep -h -m1 "|${PKGNAME_ONLY}|" "${HOME}/.packages/Packages-"* 2>/dev/null | cut -f5 -d'|' | head -1)
+  [ "$PKGCAT" = ''  ] && PKGCAT=$(LANG=C  grep -h -m1 "^${PKGNAME}|"      "${HOME}/.packages/Packages-"* 2>/dev/null | cut -f5 -d'|' | head -1)
+  [ "$PKGDESC" = '' ] && PKGDESC=$(LANG=C grep -h -m1 "|${PKGNAME_ONLY}|" "${HOME}/.packages/Packages-"* 2>/dev/null| cut -f10 -d'|' | head -1)
+  [ "$PKGDESC" = '' ] && PKGDESC=$(LANG=C grep -h -m1 "^${PKGNAME}|"      "${HOME}/.packages/Packages-"* 2>/dev/null| cut -f10 -d'|' | head -1)
+
+  # add unit to size
+  PKGSIZE="${PKGSIZE}K"
+  PKGSIZE="${PKGSIZE//KK$/K}"
+
+  # get pkg version
+  PKGVER="$(get_pkg_version "$PKGNAME")"
+  #PKGARCH="`LANG=C echo "$PKGNAME" | cut -f3 -d'-' | grep -E 'i[3-9]|x[8-9]|arm64|armel|armhf|noarch'`"
+
+  # last check for pkg info
+  [ "$DEPSLIST" = '' ] && DEPSLIST="$(grep -m1 "^${PKGNAME}|" ${HOME}/.packages/Packages-* 2>/dev/null | cut -f9 -d'|' | grep '+' | head -1)"
+  [ "$PKGDESC" = ''  ] && PKGDESC="No description"
+
+  #080917 - build woof compatible repo line .. #090817
+  if ! cut -f1 -d'|' ${HOME}/.packages/user-installed-packages 2>/dev/null | grep -q -m1 "^${PKGNAME}"; then
+
+    # get the package db entry to add to user-installed-packages...
+    # first, get it from petspecs if possible, or from the pkgs repo, or make one
+    if [ -f /pet.specs ];then
+      DB_ENTRY="$(head -n1 /pet.specs)"
+    elif grep -1 -m1 "^${PKGNAME}|" "${HOME}/.packages/$REPOFILE"; then
+      DB_ENTRY="$(grep -m1 "^${PKGNAME}|" "${HOME}/.packages/$REPOFILE")"
+    else
+      DB_ENTRY="${PKGNAME}|${PKGNAME_ONLY}|${PKGVER}|${BUILD}|${PKGCAT}|${PKGSIZE}|${PKGDIR}|${PKGNAME}.${pkg_ext}|${DEPSLIST}|${PKGDESC}|${DISTRO_BINARY_COMPAT}|${DISTRO_COMPAT_VERSION}"
+    fi
+
+    # now add the db entry to user-installed-packages
+    echo "$DB_ENTRY" >> ${HOME}/.packages/user-installed-packages #130913
 
   fi
+
+  # now delete the petspecs file(s), we already added our PKG info to installed-packages
+  rm /pet.specs &>/dev/null
+  rm /*.pet.specs &>/dev/null
+
+  # make sure /tmp has correct permission, a pkg may have overwritten it
+  # shellcheck disable=SC2010
+  ls -dl /tmp | grep -q '^drwxrwxrwt' || chmod 1777 /tmp #130305 rerwin.
+
+  if [ "$(is_installed_pkg $PKGNAME)" != true ] || [ ! -s $HOME/.packages/${PKGNAME}.files ];then
+    error "$PKGNAME may not have installed correctly."
+  fi
+
+  # installed OK! output message
+  echo -e "${green}Installed:${endcolour} $PKGNAME"
+  [ "$(which logger)" != '' ] && logger "$0 Package $PKGNAME installed by $APP $APPVER"
+
+  # show if pkg has menu entry
+  menu_entry_msg "$PKGNAME_ONLY"
+  # do fixmenus, if menu entry found
+  if grep -q -m1 '/usr/share/applications/.*.desktop' $HOME/.packages/${PKGNAME}.files 2>/dev/null; then
+    [ ! -f /tmp/pkg/update_menus_busy ] && update_menus &
+  fi
+
+  # clean up user-installed-packages (remove duplicates and empty lines, but DONT sort)
+  grep -v "^\$" ${HOME}/.packages/user-installed-packages | uniq > ${HOME}/.packages/user-installed-packages_clean
+  mv ${HOME}/.packages/user-installed-packages_clean ${HOME}/.packages/user-installed-packages
+
+  # puppy specific fixes for installed package
+  postinstall_hacks "$PKGNAME" "$PKGNAME_ONLY" &
+
+  # update system cache
+  update_system_cache $HOME/.packages/${PKGNAME}.files 1>/dev/null 2>&1
 
   # go back to the dir we started in
   cd "$PREVDIR" || exit 1
@@ -5679,154 +5657,7 @@ pkg_uninstall(){                  # remove an installed package ($1) FUNCLIST
 
   local is_installed=$(is_installed_pkg "$PKGNAME")
 
-  if [ "$is_installed" = true ] || [ "$FORCE" = true ];then #250713
-
-    PKGFILENAME="$(get_pkg_filename "$PKGNAME")"
-    # get the list of files to be deleted, exact match
-    PKGFILE="$(find ${HOME}/.packages/ -maxdepth 1 -type f -name "$(basename "$PKGFILENAME" .$pkg_ext).files")"
-    # if no exact match, search for pkgname*
-    [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${HOME}/.packages/ -maxdepth 1 -type f -name "${PKGNAME}*.files")"
-    [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${HOME}/.packages/ -maxdepth 1 -type f -name "${PKGNAME_ONLY}_*.files")"
-    [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${HOME}/.packages/ -maxdepth 1 -type f -name "${PKGNAME_ONLY}-*.files")"
-    [ ! -f "$PKGFILE" ] && PKGFILE="${PKGNAME}.files"
-    [ ! -f "$PKGFILE" ] && PKGFILE="${PKGNAME}.sfs.files"
-    [ ! -f "$PKGFILE" ] && PKGFILE="${PKGNAME}-${CP_SUFFIX}.sfs.files"
-
-    #if PKG.files not found, then remove it from alien packages list
-    if [ ! -f "$PKGFILE" ];then
-
-      #error "'${PKGFILE}' not found.. Cleaning up.."
-
-      # backup the original list of user installed pkgs
-      cp ${HOME}/.packages/user-installed-packages $TMPDIR/user-installed-packages.backup
-
-      # remove $PKGNAME from list of installed pkgs
-      grep -v "^${PKGNAME}" ${HOME}/.packages/user-installed-packages 2>/dev/null > ${HOME}/.packages/user-installed-packages.updated
-
-      # if we created a new file ok
-      if [ -f ${HOME}/.packages/user-installed-packages.updated ];then
-        # replace the user-installed-packages file with our new one
-        mv ${HOME}/.packages/user-installed-packages.updated ${HOME}/.packages/user-installed-packages
-      fi
-
-      # clean up user-installed-packages (remove duplicates and empty lines)
-      grep -v "^\$" ${HOME}/.packages/user-installed-packages | uniq > ${HOME}/.packages/user-installed-packages.clean
-      mv ${HOME}/.packages/user-installed-packages.clean ${HOME}/.packages/user-installed-packages
-
-      # no *.files to process, so if not forcing full uninstall, we can exit here
-      [ "$FORCE" = false ] && return 1
-    fi
-
-    # if we are here, we have a $HOME/.packages/***.files to work with (or using --force)
-
-    # get pkgs that depend on $PKGNAME
-    [ "$FORCE" = false ] && dependents="$(list_dependents "$PKGNAME")" || dependents=''
-
-    # if we have dependents, we should not uninstall and just exit, unless --force was given
-    if [ ! -z "$dependents" ] && [ "$(echo "$dependents" | grep -m1 'not installed')" = '' ] && [ "$FORCE" != true ];then
-
-      # inform user of dependent pkgs
-      echo -e "${yellow}Warning${endcolour}: $PKGNAME_ONLY is needed by:  "
-      echo -e "${magenta}$dependents${endcolour}"
-      echo "Uninstall the packages above first, or use:"
-      echo -e "${bold}pkg --force uninstall $PKGNAME${endcolour}."
-      echo
-      return 1
-
-    fi
-
-    # ask/inform user before uninstall
-    echo -n "Uninstall the package ${PKGNAME}$QTAG:  "
-    [ "$ASK" = true ] && read -n 1 CONFIRM </dev/tty || CONFIRM=y
-    [ "$ASK" = true ] && echo -ne "\b\b\n"
-
-    # if user answered yes, we will now uninstall the pkgs
-    if [ "$CONFIRM" = "y" ];then
-
-      # print new line if we didnt take any user input on tty
-      [ "$ASK" != true ] && echo
-
-      # execute uninstall script.
-      if [ -x "${HOME}/.packages/${PKGNAME}.remove" ];then
-        ${HOME}/.packages/${PKGNAME}.remove &>/dev/null
-        rm -f ${HOME}/.packages/${PKGNAME}.remove &>/dev/null
-      fi
-
-      # if we have no pkg file (listing of pkg contents), we cant cat/grep it
-      if [ ! -f "$PKGFILE" ];then
-        echo "Not found: $HOME/.packages/$PKGNAME.files"
-        return 1
-      fi
-
-      # check if has menu entry
-      grep -q -m1 ".desktop\$" "$PKGFILE" && HASMENUENTRY=true || HASMENUENTRY=false
-
-      # remove files listed in *.files
-      cat "$PKGFILE" | while read LINE
-      do
-        # some symlinks may not get removed. '-e' will not work if symlink
-        # is pointing to a non-existent file. So, check for symlink...
-        REMFILE=""
-        [ -h "$LINE" ] && REMFILE="yes"
-        [ -e "$LINE" ] && REMFILE="yes"
-        if [ "$REMFILE" = "yes" ];then
-          if [ ! -d "$LINE" ];then
-            if [ -e "/initrd/pup_ro2$LINE" ];then
-              # deleting the file on the top layer places a ".wh" whiteout file, that hides the original file.
-              # what we want is to remove the installed file, and restore the original pristine file...
-              cp -af "/initrd/pup_ro2${LINE}" "$LINE"
-            else
-              rm -f "$LINE" &>/dev/null
-            fi
-            #delete empty dirs...
-            DELDIR="$(dirname "$LINE" 2>/dev/null)"
-            [ "$(ls -1 "$DELDIR")" = "" ] && rmdir "$DELDIR" &>/dev/null
-          fi
-        fi
-      done
-
-      # go through again and remove any empty dirs...
-      cat "$PKGFILE" 2>/dev/null  | while read LINE
-      do
-        DELDIR="$(dirname "$LINE" 2>/dev/null)"
-        [ -d "$DELDIR" ] && [ "$(ls -1 "$DELDIR")" = "" ] && rmdir "$DELDIR"
-        #check one level up... but do not delete top dir, like /opt...
-        DELLEVELS=$(echo -n "$DELDIR" | sed -e 's/[^/]//g' | wc -c | sed -e 's/ //g')
-        if [ $DELLEVELS -gt 2 ];then
-          DELDIR="$(dirname "$DELDIR" 2>/dev/null)"
-          [ -d "$DELDIR" ] && [ "$(ls -1 "$DELDIR")" = "" ] && rmdir $DELDIR
-        fi
-      done
-
-      # remove $PKGNAME from user-installed-packages
-      NEWUSERPKGS="$(grep -v "^${PKGNAME}" ${HOME}/.packages/user-installed-packages)"
-      [ "$NEWUSERPKGS" != "" ] && echo "$NEWUSERPKGS" > ${HOME}/.packages/user-installed-packages
-
-      # clean up user-installed-packages (remove duplicates and empty lines)
-      grep -v "^\$" ${HOME}/.packages/user-installed-packages | uniq > ${HOME}/.packages/user-installed-packages_clean
-      mv ${HOME}/.packages/user-installed-packages_clean ${HOME}/.packages/user-installed-packages
-
-      # update system cache
-      update_system_cache ${PKGFILE} 1>/dev/null 2>&1
-
-      # remove $HOME/.packages/$PKGNAME.files
-      rm $PKGFILE ${PKGFILE} 2>/dev/null
-
-      # do fixmenus, if menu entry found
-      if [ "$HASMENUENTRY" = true ];then
-        [ ! -f /tmp/pkg/update_menus_busy ] && update_menus &
-      fi
-
-      # UNINSTALL DONE .. print message
-      echo -e "${green}Uninstalled:${endcolour} $PKGNAME"
-
-      # log uninstall with the system logs
-      [ "$(which logger)" != '' ] && logger "$0 Package $PKGNAME uninstalled by $APP $APPVER"
-
-    fi #end if $CONFIRM=yes
-
-  else # $PKGNAME is not installed
-
+  if [ "$is_installed" = false ] && [ "$FORCE" != true ];then
     # if any installed pkg matches $PKGNAME
     if [ "$(list_installed_pkgs $PKGNAME)" != "" ];then #290613
       # list the matching pkgs
@@ -5835,8 +5666,151 @@ pkg_uninstall(){                  # remove an installed package ($1) FUNCLIST
     fi
 
     return 1
+  fi
 
-  fi # endif installed or not
+  PKGFILENAME="$(get_pkg_filename "$PKGNAME")"
+  # get the list of files to be deleted, exact match
+  PKGFILE="$(find ${HOME}/.packages/ -maxdepth 1 -type f -name "$(basename "$PKGFILENAME" .$pkg_ext).files")"
+  # if no exact match, search for pkgname*
+  [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${HOME}/.packages/ -maxdepth 1 -type f -name "${PKGNAME}*.files")"
+  [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${HOME}/.packages/ -maxdepth 1 -type f -name "${PKGNAME_ONLY}_*.files")"
+  [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${HOME}/.packages/ -maxdepth 1 -type f -name "${PKGNAME_ONLY}-*.files")"
+  [ ! -f "$PKGFILE" ] && PKGFILE="${PKGNAME}.files"
+  [ ! -f "$PKGFILE" ] && PKGFILE="${PKGNAME}.sfs.files"
+  [ ! -f "$PKGFILE" ] && PKGFILE="${PKGNAME}-${CP_SUFFIX}.sfs.files"
+
+  #if PKG.files not found, then remove it from alien packages list
+  if [ ! -f "$PKGFILE" ];then
+
+    #error "'${PKGFILE}' not found.. Cleaning up.."
+
+    # backup the original list of user installed pkgs
+    cp ${HOME}/.packages/user-installed-packages $TMPDIR/user-installed-packages.backup
+
+    # remove $PKGNAME from list of installed pkgs
+    grep -v "^${PKGNAME}" ${HOME}/.packages/user-installed-packages 2>/dev/null > ${HOME}/.packages/user-installed-packages.updated
+
+    # if we created a new file ok
+    if [ -f ${HOME}/.packages/user-installed-packages.updated ];then
+      # replace the user-installed-packages file with our new one
+      mv ${HOME}/.packages/user-installed-packages.updated ${HOME}/.packages/user-installed-packages
+    fi
+
+    # clean up user-installed-packages (remove duplicates and empty lines)
+    grep -v "^\$" ${HOME}/.packages/user-installed-packages | uniq > ${HOME}/.packages/user-installed-packages.clean
+    mv ${HOME}/.packages/user-installed-packages.clean ${HOME}/.packages/user-installed-packages
+
+    # no *.files to process, so if not forcing full uninstall, we can exit here
+    [ "$FORCE" != true ] && return 1
+  fi
+
+  # if we are here, we have a $HOME/.packages/***.files to work with (or using --force)
+
+  # get pkgs that depend on $PKGNAME
+  [ "$FORCE" = true ] && dependents='' || dependents="$(list_dependents "$PKGNAME")"
+
+  # if we have dependents, we should not uninstall and just exit, unless --force was given
+  if [ ! -z "$dependents" ] && [ "$(echo "$dependents" | grep -m1 'not installed')" = '' ] && [ "$FORCE" != true ];then
+    # inform user of dependent pkgs
+    echo -e "${yellow}Warning${endcolour}: $PKGNAME_ONLY is needed by:  "
+    echo
+    echo -e "${magenta}$(echo "$dependents" | sed 's/^/  /g')${endcolour}"
+    echo
+    echo "Uninstall the packages above first, or use:"
+    echo -e "${bold}pkg uninstall $PKGNAME$ --force${endcolour}"
+    echo
+    return 1
+  fi
+
+  # ask/inform user before uninstall
+  echo -n "Uninstall the package ${PKGNAME}$QTAG:  "
+  [ "$ASK" = true ] && read -n 1 CONFIRM </dev/tty || CONFIRM=y
+  [ "$ASK" = true ] && echo -ne "\b\b\n"
+
+  # if user answered yes, we will now uninstall the pkgs
+  if [ "$CONFIRM" != "y" ];then
+    return 0
+  fi
+
+  # print new line if we didnt take any user input on tty
+  [ "$ASK" != true ] && echo
+
+  # execute uninstall script.
+  if [ -x "${HOME}/.packages/${PKGNAME}.remove" ];then
+    ${HOME}/.packages/${PKGNAME}.remove &>/dev/null
+    rm -f ${HOME}/.packages/${PKGNAME}.remove &>/dev/null
+  fi
+
+  # if we have no pkg file (listing of pkg contents), we cant cat/grep it
+  if [ ! -f "$PKGFILE" ];then
+    echo "Not found: $HOME/.packages/$PKGNAME.files"
+    return 1
+  fi
+
+  # check if has menu entry
+  grep -q -m1 ".desktop\$" "$PKGFILE" && HASMENUENTRY=true || HASMENUENTRY=false
+
+  # remove files listed in *.files
+  cat "$PKGFILE" | while read LINE
+  do
+    # some symlinks may not get removed. '-e' will not work if symlink
+    # is pointing to a non-existent file. So, check for symlink...
+    REMFILE=""
+    [ -h "$LINE" ] && REMFILE="yes"
+    [ -e "$LINE" ] && REMFILE="yes"
+    if [ "$REMFILE" = "yes" ];then
+      if [ ! -d "$LINE" ];then
+        if [ -e "/initrd/pup_ro2$LINE" ];then
+          # deleting the file on the top layer places a ".wh" whiteout file, that hides the original file.
+          # what we want is to remove the installed file, and restore the original pristine file...
+          cp -af "/initrd/pup_ro2${LINE}" "$LINE"
+        else
+          rm -f "$LINE" &>/dev/null
+        fi
+        #delete empty dirs...
+        DELDIR="$(dirname "$LINE" 2>/dev/null)"
+        [ "$(ls -1 "$DELDIR")" = "" ] && rmdir "$DELDIR" &>/dev/null
+      fi
+    fi
+  done
+
+  # go through again and remove any empty dirs...
+  cat "$PKGFILE" 2>/dev/null  | while read LINE
+  do
+    DELDIR="$(dirname "$LINE" 2>/dev/null)"
+    [ -d "$DELDIR" ] && [ "$(ls -1 "$DELDIR")" = "" ] && rmdir "$DELDIR"
+    #check one level up... but do not delete top dir, like /opt...
+    DELLEVELS=$(echo -n "$DELDIR" | sed -e 's/[^/]//g' | wc -c | sed -e 's/ //g')
+    if [ $DELLEVELS -gt 2 ];then
+      DELDIR="$(dirname "$DELDIR" 2>/dev/null)"
+      [ -d "$DELDIR" ] && [ "$(ls -1 "$DELDIR")" = "" ] && rmdir $DELDIR
+    fi
+  done
+
+  # remove $PKGNAME from user-installed-packages
+  NEWUSERPKGS="$(grep -v "^${PKGNAME}" ${HOME}/.packages/user-installed-packages)"
+  [ "$NEWUSERPKGS" != "" ] && echo "$NEWUSERPKGS" > ${HOME}/.packages/user-installed-packages
+
+  # clean up user-installed-packages (remove duplicates and empty lines)
+  grep -v "^\$" ${HOME}/.packages/user-installed-packages | uniq > ${HOME}/.packages/user-installed-packages_clean
+  mv ${HOME}/.packages/user-installed-packages_clean ${HOME}/.packages/user-installed-packages
+
+  # update system cache
+  update_system_cache ${PKGFILE} 1>/dev/null 2>&1
+
+  # remove $HOME/.packages/$PKGNAME.files
+  rm $PKGFILE ${PKGFILE} 2>/dev/null
+
+  # do fixmenus, if menu entry found
+  if [ "$HASMENUENTRY" = true ];then
+    [ ! -f /tmp/pkg/update_menus_busy ] && update_menus &
+  fi
+
+  # UNINSTALL DONE .. print message
+  echo -e "${green}Uninstalled:${endcolour} $PKGNAME"
+
+  # log uninstall with the system logs
+  [ "$(which logger)" != '' ] && logger "$0 Package $PKGNAME uninstalled by $APP $APPVER"
 }
 
 
@@ -5964,30 +5938,37 @@ get_deps_entry(){                 # $1 is PKGNAME, returns dep entry from repo d
     # get the repo that $PKGNAME lives in
     repo_of_pkg=$(which_repo "$PKGNAME" | cut -f2 -d' ' | head -1)
     # then get the repo file for that repo.. that is where this pkg lists its deps
-    repo_file_of_pkg=$(grep -m1 ^"$repo_of_pkg" ~/.pkg/sources-all | cut -f3 -d'|')
+    repo_file_of_pkg=$(grep -m1 ^"$repo_of_pkg|" ~/.pkg/sources-all | cut -f3 -d'|')
 
   fi
 
   # add the full path to the repo file
   repo_file_of_pkg="$HOME/.packages/$repo_file_of_pkg"
 
-  # search for deps entry in repo file.. look for |pkgname.ext|
-  deps_list="$(LANG=C grep -m1 "|${PKGNAME}.$pkg_ext|" $repo_file_of_pkg 2>/dev/null)"
+  # search for deps entry in repo file.. look for ^pkgname|
+  deps_list="$(LANG=C grep -m1 "^${PKGNAME}|" $repo_file_of_pkg 2>/dev/null)"
 
-  # try again if needed.. look for ^pkgname|
-  [ "$deps_list" = "" ] && [ "$PKGNAME" != '' ] && deps_list="$(LANG=C grep -m1 "^${PKGNAME}|" $repo_file_of_pkg 2>/dev/null)"
+  # try again if needed.. look for |pkgname.$pkg_ext|
+  [ -z "$deps_list" ] && [ "$PKGNAME" != '' ] && deps_list="$(LANG=C grep -m1 "|${PKGNAME}.$pkg_ext|" $repo_file_of_pkg 2>/dev/null)"
 
   # try again if needed.. look for |pkgname|
-  [ "$deps_list" = "" ] && [ "$PKGNAME" != '' ] && deps_list="$(LANG=C grep -m1 "|${PKGNAME}|" $repo_file_of_pkg 2>/dev/null)"
+  [ -z "$deps_list" ] && [ "$PKGNAME" != '' ] && deps_list="$(LANG=C grep -m1 "|${PKGNAME}|" $repo_file_of_pkg 2>/dev/null)"
 
-  # try again, look for dep-*
-  [ "$deps_list" = "" ] && [ "$PKGNAME" != '' ] && deps_list="$(LANG=C grep -m1 "^${PKGNAME}-" $repo_file_of_pkg 2>/dev/null)"
-
-  # try again if needed.. with underscore.. dep_*
-  [ "$deps_list" = "" ] && [ "$PKGNAME" != '' ] && deps_list="$(LANG=C grep -m1 "^${PKGNAME}_" $repo_file_of_pkg 2>/dev/null)"
+  # try again if needed.. look for |pkgfilename|
+  [ -z "$deps_list" ] && [ "$PKGNAME" != '' ] && deps_list="$(LANG=C grep -m1 "|$(get_pkg_filename ${PKGNAME})|" $repo_file_of_pkg 2>/dev/null | head -1 | grep -m1 ^$PKGNAME)"
 
   # if no deps, exit with error
-  [ "$deps_list" != "" ] && echo "$deps_list" | cut -f9 -d'|' | grep '+' | sed -e "s/:any//g" -e "s/&[geql][eqt][0-9a-z._-]*//g" | grep -vE '/ge|/le'
+  [ -z "$deps_list" ] && return 1
+
+  if [ ! -z "$deps_list" ];then
+    echo "$deps_list"  \
+      | cut -f9 -d'|'  \
+      | grep '+'       \
+      | sed            \
+        -e "s/:any//g" \
+        -e "s/&[geql][eqt][0-9a-z._-]*//g" \
+      | grep -vE '/ge|/le'
+  fi
 }
 
 
@@ -6010,11 +5991,6 @@ list_all_installed_pkgs(){        # list inc builtins if HIDE_BUILTINS=false
     cut -f2 -d'|' $HOME/.packages/devx-installed-packages >> $TMPDIR/installed_pkgs
   fi
 
-  if [ -f $HOME/.packages/layers-installed-packages ];then
-    # add layers list of pkgs to remove from final output
-    cut -f2 -d'|' $HOME/.packages/layers-installed-packages >> $TMPDIR/installed_pkgs
-  fi
-
   if [ -f $TMPDIR/installed_pkgs ] && [ -s $TMPDIR/installed_pkgs ];then
     sort -u $TMPDIR/installed_pkgs | grep -v ^$ > $TMPDIR/installed_pkgs__sorted
     mv $TMPDIR/installed_pkgs__sorted $TMPDIR/installed_pkgs
@@ -6032,9 +6008,6 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
   [ "$1" = '' ] || [ "$1" = "-" ] && print_usage list-deps && exit 1
 
   echo true > /tmp/pkg/list_deps_busy
-
-  # create list of installed pkgs ($TMPDIR/installed_pkgs) for later
-  list_all_installed_pkgs
 
   # get current $REPOFILE, $DEPSEARCH
   #. ${PKGRC}
@@ -6056,7 +6029,6 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
   PKGNAME_ONLY=$(get_pkg_name_only "$PKGNAME")
 
   # get the deps of the pkg, note, in the repo deps are NOT listed by proper pkg names, .. they are +dbus,+glib,+SDL
-
   # search for deps entry in repo file.. look for |pkgname.ext|
   deps_list="$(LANG=C get_deps_entry "$PKGNAME")"
 
@@ -6073,8 +6045,11 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
     # put all deps of pkg in a tmp file
     echo "${deps// /,}" | tr ',' '\n' | grep -v ^$ | sort -u > $TMPDIR/all_deps_0
 
-    grep -vE "'$PKG_BLACKLIST_REGEX'" ${TMPDIR}/all_deps_1 2>/dev/null | sort -u > ${TMPDIR}/all_deps_1_without_blacklisted_packages
-    mv ${TMPDIR}/all_deps_1_without_blacklisted_packages ${TMPDIR}/all_deps_1
+    # create list of installed pkgs ($TMPDIR/installed_pkgs)
+    list_all_installed_pkgs
+
+    grep -vE "'$PKG_BLACKLIST_REGEX'" ${TMPDIR}/all_deps_0 2>/dev/null | sort -u > ${TMPDIR}/all_deps_1_without_blacklisted_packages
+    mv ${TMPDIR}/all_deps_1_without_blacklisted_packages ${TMPDIR}/all_deps_0
 
     # remove any deps in installed pkgs list from all deps.. to leave only missing deps
     comm -23 ${TMPDIR}/all_deps_0 ${TMPDIR}/installed_pkgs 2>/dev/null | grep -v ^$ | sort -u > ${TMPDIR}/all_deps_1
@@ -6087,7 +6062,6 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
       do
         deps_list_file="${TMPDIR}/all_deps_${i}"
 
-
         [ ! -f $deps_list_file ] && continue
 
         # remove all blacklisted packages from the list
@@ -6095,34 +6069,29 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
         mv ${TMPDIR}/deps_list_file_without_blacklisted_pkgs  $deps_list_file
 
         # remove done packages from the list
-        if [ -f ${TMPDIR}/DEP_DONE ];then
-          # shellcheck disable=SC2002
-          deps_done_regex="$(cat ${TMPDIR}/DEP_DONE | tr '\n' '|' | grep -v ^$ | sed -e 's/^|//g' -e 's/|$//g')"
-          grep -vE "'$deps_done_regex'" $deps_list_file > ${TMPDIR}/deps_list_file_without_completed_pkgs
-          mv ${TMPDIR}/deps_list_file_without_completed_pkgs $deps_list_file
+        if [ -s ${TMPDIR}/DEP_DONE ];then
+          comm -23 $deps_list_file ${TMPDIR}/DEP_DONE 2>/dev/null | grep -v ^$ | sort -u > ${deps_list_file}_cleaned
+          mv ${deps_list_file}_cleaned ${deps_list_file}
         fi
 
+        if [ -s ${TMPDIR}/installed_pkgs ];then
+          # remove any deps in installed pkgs list from all deps.. to leave only missing deps
+          comm -23 $deps_list_file ${TMPDIR}/installed_pkgs 2>/dev/null | grep -v ^$ | sort -u > ${deps_list_file}_cleaned
+          mv ${deps_list_file}_cleaned ${deps_list_file}
+        fi
+        
         next_deps_list_file="${TMPDIR}/all_deps_$(($i + 1))"
 
         # for each dep in $deps, get their deps too
-        for subdep in $(sort -u $deps_list_file | grep -v ^$)
+        for subdep in $(sort -u $deps_list_file | grep -v ^$ | sed -e "s/,$//g")
         do
           [ "$subdep" = '' ] || [ "$subdep" = ' ' ] && continue
 
+          grep -q -m1 "$subdep" ${TMPDIR}/DEP_DONE 2>/dev/null && continue
+          
           local subdeps_entry=''
           local subdeps=''
           local subdeps_list=''
-          local is_builtin
-          local is_in_devx
-
-          grep -q -m1 "^${subdep}\$" ${TMPDIR}/DEP_DONE 2>/dev/null && continue
-
-          if [ "$HIDE_BUILTINS" = true ];then
-            is_builtin=$(is_builtin_pkg "$subdep")
-            [ "$is_builtin" = true ] && continue
-            is_in_devx=$(is_devx_pkg "$subdep")
-            [ "$is_in_devx" = true ] && continue
-          fi
 
           subdeps_entry="$(get_deps_entry "$subdep")"
           subdeps="${subdeps_entry/+/}" # remove first + at start of line
@@ -6223,26 +6192,18 @@ find_deps(){                      # given a package name ($1), makes 2 lists: DE
   rm $TMPDIR/deps_missing   &>/dev/null
   rm $TMPDIR/deps_missing1  &>/dev/null
 
-  # loop through all repo files, or current repo only, depending on PKGSEARCH in RC file
-  # add the full path to the file(s) while we are getting the list of repo files
-  repo_files="$HOME/.packages/$REPOFILE"
-  [ "$DEPSEARCH" = "list_all_pkg_names" ] && repo_files="$(repo_file_list | sed -e "s|^|$HOME/.packages/|g" | tr '\n' ' ')"
-
   # get the list of deps from the repo entry of this pkg
   deps_list="$(LANG=C list_deps "$PKGNAME")"
 
-  # remove builtins from list unless HIDE_BUILTINS=false
-  if [ "${HIDE_BUILTINS}" = true ];then
-    echo "${deps_list// /
+  echo "${deps_list// /
 }" | grep -v ^$ | sort -u > ${TMPDIR}/all_deps
 
-    # add woof pkgs to list of pkgs to remove from final output
-    cut -f2 -d'|' $HOME/.packages/woof-installed-packages | grep -v ^$ | sort -u >> $TMPDIR/installed_pkgs 
+  # create list of installed pkgs ($TMPDIR/installed_pkgs)
+  list_all_installed_pkgs
 
-    # remove any deps in installed pkgs list from all deps.. to leave only missing deps
-    comm -23 ${TMPDIR}/all_deps ${TMPDIR}/installed_pkgs 2>/dev/null | grep -v ^$ | sort -u > ${TMPDIR}/missing_deps
-    deps_list="$(grep -v "^$" "${TMPDIR}/missing_deps")"
-  fi
+  # remove any deps in installed pkgs list from all deps.. to leave only missing deps
+  comm -23 ${TMPDIR}/all_deps ${TMPDIR}/installed_pkgs 2>/dev/null | grep -v ^$ | sort -u > ${TMPDIR}/missing_deps
+  deps_list="$(grep -v "^$" "${TMPDIR}/missing_deps")"
 
   # exit if no deps to parse
   [ "$deps_list" = '' ] && return 1
@@ -7660,7 +7621,7 @@ fi
 
 
 # remove tmp dir used by pkg_get and get_deps
-rm $TMPDIR/PKGSDONE 2>/dev/null
+rm $TMPDIR/PKGSDONE $TMPDIR/DEP_DONE 2>/dev/null
 
 # reset lang options as we found them
 LANG=$USER_LANG
