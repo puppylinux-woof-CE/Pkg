@@ -134,6 +134,7 @@ Disable package suggestions on missing command with:
     │   ├── gpkg -> pkg
     │   ├── gpkgdialog
     │   ├── ppa2pup
+    │   ├── ppa2pup_gawk
     │   ├── pkg
     │   ├── pkgdialog
     │   ├── slack2pup
@@ -221,6 +222,10 @@ These commands can be used with the options above, but not each other:
  uninstall-all|ua           uninstall all installed packages
  delete|l PKGNAME           delete a downloaded package
  delete-all|la              delete ALL downloaded packages
+
+ blacklist PKGNAME          ignore a package, so it doesnt get installed
+ whitelist PKGNAME          remove a package from the blacklist
+
  clean [PKGNAME]            delete downloaded pkg files of installed pkgs
  autoclean [yes|no]         auto delete pkg files after download+install
 
@@ -256,7 +261,7 @@ These commands can be used with the options above, but not each other:
  repo-convert|rc FILE       convert repo files to pre/post Woof format
 
  add-repo                   add a Pkg, PPA, Ubuntu, Debian or Slackware repo
- rm-repo                    remove a user-installed repo
+ rm-repo                    remove an installed repo
  dir2repo                   create a Puppy repo from a directory of packages
  add-source                 add a Puppy repo (needs repo file in ~/.packages/)
  update-sources             update the list of available repos
@@ -286,8 +291,30 @@ These commands can be used with the options above, but not each other:
  help|h                     show this help information
  help-all|H                 show a full description, with added info
  usage [CMD]                show usage of CMD, or list available cmds
- examples|ex                show example command line usage of $SELF
+ examples|ex                show example command line usage of pkg
  func-list                  list all functions used in this program
+```
+
+## Environment Variables:
+
+```
+ HIDE_INSTALLED [=false]    if true, ignore/hide installed packages
+ HIDE_BUILTINS   [=true]    if true, ignore/hide builtin packages
+ HIDE_USER_PKGS  [=true]    if true, ignore/hide user installed packages
+ NO_ALIASES     [=false]    if true, ignore package name aliases in searches
+ NO_INSTALL     [=false]    if true, skip installing of packages
+ PKG_NO_COLOURS [=false]    if true, disable coloured output
+
+ PKG_BLACKLIST  [=empty]    a space separated list of packages to ignore,
+                            which will be appended to the contents of
+                            $HOME/.pkg/blackisted_packages
+```
+
+When `BUILDTOOL=buildpet` in `~/.pkg/pkgrc` (use with `pkg build` command):
+
+```
+ PKG_CONFIGURE  [='']       custom configure options fpr building packages
+ PKG_CFLAGS     [='']       custom CFLAG options for buiding packages
 ```
 
 ## Example commands:
@@ -338,22 +365,4 @@ These commands can be used with the options above, but not each other:
  pkg unpack /path/to/file   # extract the given package file
 
  pkg split /path/to/file    # split a single package into DEV, DOC and NLS packages
-```
-
-## Environment Variables:
-
-```
- HIDE_INSTALLED [=false]    if true, ignore/hide installed packages
- HIDE_BUILTINS  [=true]     if true, ignore/hide builtin packages
- HIDE_USER_PKGS [=true]     if true, ignore/hide user installed packages
- NO_ALIASES     [=false]    if true, ignore package name aliases in searches
- NO_INSTALL     [=false]    if true, skip installing of packages
- PKG_NO_COLOURS [=false]    if true, disable coloured output
-```
-
-When BUILDTOOL=buildpet in ~/.pkg/pkgrc (use with `pkg build` command):
-
-```
- PKG_CONFIGURE  [='']       custom configure options fpr building packages
- PKG_CFLAGS     [='']       custom CFLAG options for buiding packages
 ```
