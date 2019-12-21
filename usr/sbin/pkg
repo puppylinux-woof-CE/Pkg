@@ -599,6 +599,9 @@ get_pkg_name_only_from_ext(){     # return package name from $1 (must include fi
   PKGNAME_ONLY="${PKGNAME_ONLY//_i[3-6]86/}"
   PKGNAME_ONLY="${PKGNAME_ONLY//_x84_64/}"
 
+  # remove the +20080738 from packages with dates in the version
+  PKGNAME_ONLY="$(echo "$PKGNAME_ONLY" | sed -e 's/+19.*//g' -e 's/+20.*//g')"
+
   [ "$PKGNAME_ONLY" != '' ] && echo "$PKGNAME_ONLY" || echo "$1"
 }
 
@@ -617,11 +620,11 @@ get_pkg_name_only(){              # return pkg name only from $1, with no versio
   local pkg_ext=$(get_pkg_ext "$1")
   local repo_of_pkg=''
   local repo_ext="$EX"      # from $PKGRC
-
   # check the repos
   local pkg_name_only="$(grep -m1 "|${1}|" ${REPO_DIR}/Packages-* 2>/dev/null | cut -f2 -d'|')"
   [ "$pkg_name_only" = '' ] && pkg_name_only="$(grep -m1 "^${1}|" ${REPO_DIR}/Packages-* 2>/dev/null | cut -f2 -d'|' | head -1)"
-  [ "$pkg_name_only" = '' ] && pkg_name_only="$(grep -m1 "|${1}.${pkg_ext}|" ${REPO_DIR}/Packages-* 2>/dev/null | cut -f2 -d'|' | head -1)"
+  [ "$pkg_name_only" = '' ] && pkg_name_only="$(grep -m1 "|${1}|" ${REPO_DIR}/Packages-* 2>/dev/null | cut -f2 -d'|' | head -1)"
+  [ "$pkg_name_only" = '' ] && pkg_name_only="$(grep -m1 "|${1}.${pkg_ext:-$EX}|" ${REPO_DIR}/Packages-* 2>/dev/null | cut -f2 -d'|' | head -1)"
 
   pkg_name_only="${pkg_name_only// */}"
 
@@ -632,12 +635,26 @@ get_pkg_name_only(){              # return pkg name only from $1, with no versio
   fi
 
   # if not, but we have an extension, try  get_pkg_name_only_from_ext()
-  case $DISTRO_BINARY_COMPAT in ubuntu|trisquel|debian|devuan)
-    name_only=$(get_pkg_name_only_from_ext "$(basename "${1}.${repo_ext}")"| head -1)
-    name_only="${name_only// */}"
-    [ "$name_only" != '' ] && [ "$name_only" != "$1" ] && echo "$name_only" && return 0
-    ;;
-  esac
+  if [ ! -z "$pkg_ext" ] || [ ! -z "$EX" ];then
+    case $DISTRO_BINARY_COMPAT in
+      ubuntu|trisquel|debian|devuan)
+        name_only=$(get_pkg_name_only_from_ext "$(basename "${1}.${pkg_ext:-$EX}")"| head -1)
+
+        name_only="${name_only// */}"
+        name_only="${name_only//.pet/}"
+        name_only="${name_only//.$EX/}"
+        name_only="${name_only//.$pkg_ext/}"
+        name_only="${name_only//_amd64/}"
+        name_only="${name_only//_arm64/}"
+        name_only="${name_only//_armel/}"
+        name_only="${name_only//_armhf/}"
+        name_only="${name_only//_i[3-6]86/}"
+        name_only="${name_only//_x84_64/}"
+
+        [ "$name_only" != '' ] && [ "$name_only" != "$1" ] && echo "$name_only" && return 0
+        ;;
+    esac
+  fi
 
   ## ...if we didn't find the name using the above, do the horrible checks below
 
@@ -692,6 +709,9 @@ get_pkg_name_only(){              # return pkg name only from $1, with no versio
   if [ "$(echo "$pkg_name_only" | grep -o "\-[0-9]")" != '' ];then
     pkg_name_only="${pkg_name_only/-[0-9]*/}"
   fi
+
+  # remove the +20080738 from packages with dates in the version
+  pkg_name_only="$(echo "$pkg_name_only" | sed -e 's/\+19.*//g' -e 's/\+20.*//g')"
 
   pkg_name_only="${pkg_name_only//.pet/}"
   pkg_name_only="${pkg_name_only//.$EX/}"
@@ -3930,8 +3950,6 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
     done
 
     chmod +x $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall.sh 2>/dev/null
-
-    #xmessage "$(cat $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall.sh)"
 
     # remove any debian/ubuntu/slackware pre/post install stuff left in the package
     rm -rf $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall_*
