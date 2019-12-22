@@ -26,7 +26,7 @@ do
   [ -f $existing_file ] && mv $existing_file /root/.pkg/
 done
 
-[ ! -z ~/.packages/${pkgname}.files ] && echo -e "Package contents listed in ~/.packages/${pkgname}.files \n"
+[ -s ~/.packages/${pkgname}.files ] && echo -e "Package contents listed in ~/.packages/${pkgname}.files \n"
 
 echo -e "Setting up Pkg... \n"
 
