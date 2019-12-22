@@ -231,6 +231,7 @@ These commands can be used with the options above, but not each other:
 
  list-downloaded|ld [PKG]   list downloaded packages, PKGNAME is a filter
  list-installed|li|LI [PKG] list installed packages, PKGNAME is a filter
+ list-builtins|lb [PKG]     list "builtin" packages, PKG is a filter
  list-deps|le|LE PKGNAME    list the dependencies of PKGNAME
 
  build-list|pbl [PKG]       list all build scripts, PKGNAME is optional
