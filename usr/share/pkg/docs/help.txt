@@ -41,7 +41,7 @@ These commands can be used with the options above, but not each other:
  delete|l PKGNAME           delete a downloaded package
  delete-all|la              delete ALL downloaded packages
 
- blacklist PKGNAME          ignore a package, so it doesnt get installed                  
+ blacklist PKGNAME          ignore a package, so it doesnt get installed
  whitelist PKGNAME          remove a package from the blacklist
 
  clean [PKGNAME]            delete downloaded pkg files of installed pkgs
@@ -49,6 +49,7 @@ These commands can be used with the options above, but not each other:
 
  list-downloaded|ld [PKG]   list downloaded packages, PKGNAME is a filter
  list-installed|li|LI [PKG] list installed packages, PKGNAME is a filter
+ list-builtins|lb [PKG]     list "builtin" packages, PKG is a filter
  list-deps|le|LE PKGNAME    list the dependencies of PKGNAME
 
  build-list|pbl [PKG]       list all build scripts, PKGNAME is optional
