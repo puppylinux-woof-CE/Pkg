@@ -522,6 +522,7 @@ get_pkg_version(){                # returns version of PKGNAME ($1) FUNCLIST
         -e "s/${CP_SUFFIX}.*//g" \
         -e "s/-WITHDEPS.*//g" \
         -e "s/-PLUSDEPS.*//g" \
+        -e "s/_all//g" \
         -e 's@\\\@@g'`
   fi
 
@@ -590,14 +591,15 @@ get_pkg_name_only_from_ext(){     # return package name from $1 (must include fi
   esac
 
   PKGNAME_ONLY="${PKGNAME_ONLY//.pet/}"
-  PKGNAME_ONLY="${PKGNAME_ONLY//.$EX/}"
-  PKGNAME_ONLY="${PKGNAME_ONLY//.$pkg_ext/}"
+  PKGNAME_ONLY="${PKGNAME_ONLY//\.${EX:-noextension}/}"
+  PKGNAME_ONLY="${PKGNAME_ONLY//\.${pkg_ext:-noextension}/}"
   PKGNAME_ONLY="${PKGNAME_ONLY//_amd64/}"
   PKGNAME_ONLY="${PKGNAME_ONLY//_arm64/}"
   PKGNAME_ONLY="${PKGNAME_ONLY//_armel/}"
   PKGNAME_ONLY="${PKGNAME_ONLY//_armhf/}"
   PKGNAME_ONLY="${PKGNAME_ONLY//_i[3-6]86/}"
   PKGNAME_ONLY="${PKGNAME_ONLY//_x84_64/}"
+  PKGNAME_ONLY="${PKGNAME_ONLY//_all/}"
 
   # remove the +20080738 from packages with dates in the version
   PKGNAME_ONLY="$(echo "$PKGNAME_ONLY" | sed -e 's/+19.*//g' -e 's/+20.*//g')"
@@ -642,14 +644,15 @@ get_pkg_name_only(){              # return pkg name only from $1, with no versio
 
         name_only="${name_only// */}"
         name_only="${name_only//.pet/}"
-        name_only="${name_only//.$EX/}"
-        name_only="${name_only//.$pkg_ext/}"
+        name_only="${name_only//\.${EX:-noextension}/}"
+        name_only="${name_only//\.${pkg_ext:-noextension}/}"
         name_only="${name_only//_amd64/}"
         name_only="${name_only//_arm64/}"
         name_only="${name_only//_armel/}"
         name_only="${name_only//_armhf/}"
         name_only="${name_only//_i[3-6]86/}"
         name_only="${name_only//_x84_64/}"
+        name_only="${name_only//_all/}"
 
         [ "$name_only" != '' ] && [ "$name_only" != "$1" ] && echo "$name_only" && return 0
         ;;
@@ -714,14 +717,15 @@ get_pkg_name_only(){              # return pkg name only from $1, with no versio
   pkg_name_only="$(echo "$pkg_name_only" | sed -e 's/\+19.*//g' -e 's/\+20.*//g')"
 
   pkg_name_only="${pkg_name_only//.pet/}"
-  pkg_name_only="${pkg_name_only//.$EX/}"
-  pkg_name_only="${pkg_name_only//.$pkg_ext/}"
+  pkg_name_only="${pkg_name_only//\.${EX:-noextension}/}"
+  pkg_name_only="${pkg_name_only//\.${pkg_ext:-noextension}/}"
   pkg_name_only="${pkg_name_only//_amd64/}"
   pkg_name_only="${pkg_name_only//_arm64/}"
   pkg_name_only="${pkg_name_only//_armel/}"
   pkg_name_only="${pkg_name_only//_armhf/}"
   pkg_name_only="${pkg_name_only//_i[3-6]86/}"
   pkg_name_only="${pkg_name_only//_x84_64/}"
+  pkg_name_only="${pkg_name_only//_all/}"
 
   # the sed bit changes 'liblzma5+20120614' to 'liblzma5'
   # shellcheck disable=SC2001
@@ -732,7 +736,7 @@ get_pkg_name_only(){              # return pkg name only from $1, with no versio
 get_pkg_name(){                   # return full pkg name (with version) from $1 FUNCLIST
 
   # get config settings, inc current repo file
-  #. ${PKGRC}
+  . ${PKGRC}
 
   local pkg_ext=''
   local pkg_name=''
@@ -742,7 +746,7 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
   # get the extension of the given package name, if any
   local pkg_ext=$(get_pkg_ext "$1")
   # get the name without path and extension
-  local pkg_name="$(basename "$1" .$pkg_ext)"
+  local pkg_name="$(basename "$1" .${pkg_ext:-$EX})"
 
   # get the repos files in the correct (fall back) order, then add file paths
   supported_repo_files="$(repo_file_list | sed -e "s#^#${REPO_DIR}/#g")"
@@ -750,7 +754,7 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
   # get the relevant repo contents (fields 1,2,8) from all repos,
   # then add pipes to line start/end for easier parsing later, then do
   # a basic search, for $pkg* (we'll refine it later), to avoid 'Argument list too long'..
-  cut -f1,2,8 $supported_repo_files ${REPO_DIR}/user-installed-packages ${REPO_DIR}/woof-installed-packages \
+  cut -f1,2,8 $supported_repo_files ${REPO_DIR}/woof-installed-packages \
     | sed \
       -e "s/^/|/g" \
       -e "s/$/|/g" 2>/dev/null \
@@ -773,17 +777,18 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
       full_name=$(grep -m1 "^${pkg_name}_"      "${TMPDIR}/repo_contents")
 
       full_name="${full_name//.pet/}"
-      full_name="${full_name//.$EX/}"
-      full_name="${full_name//.$pkg_ext/}"
+      full_name="${full_name//.${EX:-noextension}/}"
+      full_name="${full_name//.${pkg_ext:-noextension}/}"
       full_name="${full_name//_amd64/}"
       full_name="${full_name//_arm64/}"
       full_name="${full_name//_armel/}"
       full_name="${full_name//_armhf/}"
       full_name="${full_name//_i[3-6]86/}"
       full_name="${full_name//_x84_64/}"
-
-    rm ${TMPDIR}/repo_contents &>/dev/null
+      full_name="${full_name//_all/}"
   fi
+
+  rm ${TMPDIR}/repo_contents &>/dev/null
 
   # if we found pkg in repo, keep only the package name ('|pkg-123|pkg|blah|' -> 'pkg-123')
   [ "$full_name" != '' ] && full_name=$(echo $full_name| cut -f2 -d '|' | tr -d '|') || full_name="$pkg_name"
@@ -799,10 +804,11 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
   pkg_name="${pkg_name//_armhf/}"
   pkg_name="${pkg_name//_i[3-6]86/}"
   pkg_name="${pkg_name//_x84_64/}"
+  pkg_name="${pkg_name//all/}"
 
   # if no pkg found in repos, we cant translate/lookup its longer name,
   # so just return what we got, without path, without pkg extension
-  [ "$full_name" = '' ] && basename "$pkg_name" .${pkg_ext:-$EX}
+  [ "$full_name" = '' ] && basename "$pkg_name" .${pkg_ext:-${EX:-noextension}}
 }
 
 
@@ -827,11 +833,18 @@ get_pkg_filename(){              # return filename of $1, if its a local file or
 
   for repofile in ${REPO_DIR}/${REPOFILE} $REPO_DIR/*-installed-packages $all_supported_repofiles
   do
-    pkgname="$(grep -m1 "|$PKGNAME_ONLY|" "$repofile" | cut -f8 -d'|')"
-    [ ! -z "$pkgname" ] && break
     pkgname="$(grep -m1 "^$PKGNAME|" "$repofile" | cut -f8 -d'|')"
     [ ! -z "$pkgname" ] && break
   done
+
+  if [ -z "$pkgname" ];then
+    for repofile in ${REPO_DIR}/${REPOFILE} $REPO_DIR/*-installed-packages $all_supported_repofiles
+    do
+      pkgname="$(grep -m1 "|$PKGNAME_ONLY|" "$repofile" | cut -f8 -d'|')"
+      [ ! -z "$pkgname" ] && break
+    done
+  fi
+
   [ ! -z "$pkgname" ] && echo "$pkgname" | grep -v ^$ | head -1
 }
 
@@ -841,7 +854,10 @@ get_pkg_category(){
   [ -z "$1" ] && return 1
 
   local category=''
-  category="$(grep -i -m1 " ${1} " /usr/local/petget/categories.dat | cut -f1 -d'=' | cut -f2- -d'_' | tr '_' ';')"
+  category="$(grep -i -m1 " ${1} " /usr/local/petget/categories.dat \
+    | cut -f1 -d'='  \
+    | cut -f2- -d'_' \
+    | tr '_' ';')"
 
   # do this in a sub shell
   (
@@ -5527,6 +5543,13 @@ pkg_get(){                        # find, download and install $1 and its deps F
   done
 }
 
+get_latest_pkg() {
+  [ -z "$1" ] && exit 1
+
+  list_all_pkg_names "${1}${separator}" \
+    | sort -n -r  \
+    | head -1
+}
 
 pkg_update(){                     # update installed pkgs, $1 is optional filter FUNCLIST
 
@@ -5567,72 +5590,51 @@ pkg_update(){                     # update installed pkgs, $1 is optional filter
   rm -f $TMPDIR/USRPKGLIST 2>/dev/null
 
   # iterate over the list
-  echo "$INSTALLED_PKG_LIST"  | grep -v ^$ | sort -u | while read installed_pkg; do
+  echo "$INSTALLED_PKG_LIST"  | grep -v ^$ | sort -u | while read installed_pkg
+  do
 
-    [ ! "$installed_pkg" ] || [ "$installed_pkg" = '' ] && continue
-
-    # if this pkg ($installed_pkg) is not from a known repo, we cant compare its version to anything else, skip it
-    #[ "`is_repo_pkg "$installed_pkg"`" = false ] && echo -e "Package ${magenta}$installed_pkg${endcolour} not found in any repos." && continue
-
-    local PNAME=''
-    local latest_repo_pkg=''
-    local ASKREPLY='y'
-    # get pkg name (without version) and version of current PKG
-
-    PNAME=$(get_pkg_name_only $installed_pkg)
-
-    [ "$PNAME" = '' ] && continue
-
-    local pkg_is_blacklisted=$(is_blacklisted_pkg "$PNAME")
+    [ -z "$installed_pkg" ] && continue
 
     # skip pkg if its a builtin
-    [ "$pkg_is_blacklisted" = true ] && continue
+    installed_pkg_name_only="$(get_pkg_name_only "${installed_pkg}")"
+    [ "$(is_blacklisted_pkg "$installed_pkg_name_only")" = true ] && continue
 
-    latest_repo_pkg="$(grep -m1 "^${PNAME}${separator}" ${REPO_DIR}/Packages-* |cut -f1 -d'|' | cut -f2 -d':')"
+    latest_pkg="$(get_latest_pkg "$installed_pkg_name_only")"
+    [ -z "$latest_pkg" ] && continue
 
-    # skip if we didn't find the right package (it might not be from a repo at all)_
-    [ "$(echo "$latest_repo_pkg" | grep "^${PNAME}${separator}")" = '' ] && continue
 
-    latest_version=$(get_pkg_version "$latest_repo_pkg")
-    installed_version=$(get_pkg_version "$installed_pkg")
+    if ! vercmp $(get_pkg_version "$latest_pkg") gt $(get_pkg_version "$installed_pkg")
+    then
+      echo -e "${green}Latest${endcolour}: $installed_pkg"
+      continue
+    fi
 
-    # get latest versions
+    ASKREPLY=y
+    if [ "$ASK" = true ];then
+      echo "Do you want to update to ${latest_pkg}? [y/N]   "
+      read -n 1 ASKREPLY </dev/tty
+      [ "$ASK" = true ] && echo -ne "\b\b\n"
+    fi
 
-    # check pkg version against installed version
-    if [ "$latest_version" != "" ] && [ "$installed_version" != "" ];then
-      vercmp $latest_version gt $installed_version 2>/dev/null
-      RESULT=$?
+    if [ "$ASK" = false ] || [ "$ASKREPLY" = "y" ];then
+        (
+          cd "$WORKDIR" &>/dev/null || exit 1
 
-      if [ "$RESULT" = 0 ];then #newer version available
+          repo_pkg="$(get_pkg_name "$installed_pkg")"
+          echo -e "${yellow}Updating${endcolour} $repo_pkg"
 
-        if [ "$ASK" = true ];then
-          echo "Do you want to update to ${PNAME}${separator}${latest_version}? [y/N]   "
-          read -n 1 ASKREPLY </dev/tty
-          [ "$ASK" = true ] && echo -ne "\b\b\n"
-        fi
-
-        if [ "$ASK" = false ] || [ "$ASKREPLY" = "y" ];then
-          (
-          cd "$WORKDIR" || exit 1
-          ASK=$ASK FORCE=$FORCE pkg_download "$latest_repo_pkg" &>/dev/null && \
+          ASK=$ASK FORCE=$FORCE pkg_download "$latest_pkg" &>/dev/null && \
           {
-            FORCE=true pkg_uninstall "$installed_pkg" &>/dev/null && pkg_install "$latest_repo_pkg" &>/dev/null
-            echo -e "${yellow}Updated${endcolour} ${magenta}$PNAME${endcolour} from ${bold}$installed_version${endcolour} to ${bold}$latest_version${endcolour}"
-          } || pkg delete "$latest_repo_pkg" &>/dev/null
-          cd "$CURDIR" || exit 1
-          )
-        fi
 
-      else #280613 inform user if no update found
-        echo -e "${green}Latest${endcolour}: $PNAME${separator}$latest_version"
-      fi #end if vercmp XX gt YY = 0
+            ASK=$ASK FORCE=true pkg_uninstall "$installed_pkg" &>/dev/null \
+              && pkg_install "$latest_pkg" &>/dev/null
 
-    elif [ "$PNAME" = '' ];then
-      error "${installed_pkg} not found."
-    else #280613
-      error "$installed_pkg package versions could not be compared: ${latest_version:-unknown latest} => ${installed_version:-unknown installed version}"
-      #return 1
-    fi #end if PKGVER != ""
+            echo -e "${yellow}Updated${endcolour}: ${bold}${magenta}$latest_pkg${endcolour}"
+
+          } || pkg delete "$latest_pkg" &>/dev/null
+        )
+    fi
+
   done
 }
 
@@ -6065,12 +6067,12 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
   [ "$deps_list" = "" ] && rm /tmp/pkg/list_deps_busy 2>/dev/null && return 1
 
   # remove the '+' from the start of each dep
-  deps="${deps_list/+/}"       # remove first + at start of line
-  deps="${deps//,+/ }"         # remove others .. DEPS will now be just 'dep1 dep2 dep3'
-  deps="${deps//  / }"         # remove double spaces
-  deps="${deps//.pet/}"        # remove extensions (creeping in from somewhere!)
-  deps="${deps//.${EX}/}"      # remove extensions (creeping in from somewhere!)
-  deps="${deps//.${pkg_ext}/}" # remove extensions (creeping in from somewhere!)
+  deps="${deps_list/+/}"           # remove first + at start of line
+  deps="${deps//,+/ }"             # remove others .. DEPS will now be just 'dep1 dep2 dep3'
+  deps="${deps//  / }"             # remove double spaces
+  deps="${deps//.pet/}"            # remove extensions (creeping in from somewhere!)
+  deps="${deps//.${EX:-noextension}/}"      # remove extensions (creeping in from somewhere!)
+  deps="${deps//.${pkg_ext:-noextension}/}" # remove extensions (creeping in from somewhere!)
 
 
   if [ "$deps" != '' ] && [ "$deps" != ' ' ];then
@@ -6127,12 +6129,12 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
           local subdeps_list=''
 
           subdeps_entry="$(get_deps_entry "$subdep")"
-          subdeps="${subdeps_entry/+/}"        # remove first + at start of line
-          subdeps="${subdeps//,+/ }"           # remove others .. DEPS will now be just 'dep1 dep2 dep3'
-          subdeps="${subdeps//  / }"           # remove double spaces
-          subdeps="${subdeps//.pet/}"          # remove extensions (creeping in from somewhere!)
-          subdeps="${subdeps//.${EX}/}"        # remove extensions (creeping in from somewhere!)
-          subdeps="${subdeps//.${pkg_ext}/}"   # remove extensions (creeping in from somewhere!)
+          subdeps="${subdeps_entry/+/}"           # remove first + at start of line
+          subdeps="${subdeps//,+/ }"              # remove others .. DEPS will now be just 'dep1 dep2 dep3'
+          subdeps="${subdeps//  / }"              # remove double spaces
+          subdeps="${subdeps//.pet/}"             # remove extensions (creeping in from somewhere!)
+          subdeps="${subdeps//.${EX:-noextension}/}"       # remove extensions (creeping in from somewhere!)
+          subdeps="${subdeps//.${pkg_ext:-noextension}/}"  # remove extensions (creeping in from somewhere!)
 
           if [ "$subdeps" != '' ] && [ "$subdeps" != ' ' ];then
             # remove everything after the + (if the + is followed by alphanumeric chars), then add to tmp files
@@ -6147,7 +6149,7 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
       done
 
       # add all deps together, sorted, duplicated removed
-      cat ${TMPDIR}/all_deps_* | sort -u | grep -v ^$ > ${TMPDIR}/all_deps_sorted
+      cat ${TMPDIR}/all_deps_* 2>/dev/null | sort -u | grep -v ^$ > ${TMPDIR}/all_deps_sorted
       mv ${TMPDIR}/all_deps_sorted ${TMPDIR}/all_deps
 
     fi
@@ -6391,9 +6393,9 @@ get_deps(){                       # find, get and install the deps of pkgname ($
 
       # clean up our deps list, and make space separated only (no commas)
       DEPS_MISSING="${DEPS_MISSING//,/ }"
-      DEPS_MISSING="${DEPS_MISSING//.pet/}"          # remove extensions (creeping in from somewhere!)
-      DEPS_MISSING="${DEPS_MISSING//.${EX}/}"        # remove extensions (creeping in from somewhere!)
-      DEPS_MISSING="${DEPS_MISSING//.${pkg_ext}/}"   # remove extensions (creeping in from somewhere!)
+      DEPS_MISSING="${DEPS_MISSING//.pet/}"             # remove extensions (creeping in from somewhere!)
+      DEPS_MISSING="${DEPS_MISSING//.${EX:-noextension}/}"       # remove extensions (creeping in from somewhere!)
+      DEPS_MISSING="${DEPS_MISSING//.${pkg_ext:-noextension}/}"  # remove extensions (creeping in from somewhere!)
 
 
       # show deps info, if any available
