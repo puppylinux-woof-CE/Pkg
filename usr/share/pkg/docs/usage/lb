@@ -1,4 +1,1 @@
-USAGE="Usage: ${bold}pkg list-builtins [PKGNAME]${endcolour}
-
-List the "builtin" packages.
-PKGNAME is an optional search filter.
+list-builtins
