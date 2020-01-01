@@ -766,15 +766,15 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
   # if no exact match, look for $pkg_name-*, then $pkg_name_*
   if [ -f ${TMPDIR}/repo_contents ];then
 
-    full_name=$(  grep -m1 "|${pkg_name}|"      "${TMPDIR}/repo_contents")  || \
-      full_name=$(grep -m1 "|${pkg_name//-*/}|" "${TMPDIR}/repo_contents")  || \
-      full_name=$(grep -m1 "|${pkg_name//_*/}|" "${TMPDIR}/repo_contents")  || \
-      full_name=$(grep -m1 "|${pkg_name}-"      "${TMPDIR}/repo_contents")  || \
-      full_name=$(grep -m1 "|${pkg_name}_"      "${TMPDIR}/repo_contents")  || \
-      full_name=$(grep -m1 "|${pkg_name}"       "${TMPDIR}/repo_contents")  || \
-      full_name=$(grep -m1 "^${pkg_name}|"      "${TMPDIR}/repo_contents")  || \
-      full_name=$(grep -m1 "^${pkg_name}-"      "${TMPDIR}/repo_contents")  || \
-      full_name=$(grep -m1 "^${pkg_name}_"      "${TMPDIR}/repo_contents")
+    full_name=$(  grep -m1 "|${pkg_name}|"      "${TMPDIR}/repo_contents" 2>/dev/null)  || \
+      full_name=$(grep -m1 "|${pkg_name//-*/}|" "${TMPDIR}/repo_contents" 2>/dev/null)  || \
+      full_name=$(grep -m1 "|${pkg_name//_*/}|" "${TMPDIR}/repo_contents" 2>/dev/null)  || \
+      full_name=$(grep -m1 "|${pkg_name}-"      "${TMPDIR}/repo_contents" 2>/dev/null)  || \
+      full_name=$(grep -m1 "|${pkg_name}_"      "${TMPDIR}/repo_contents" 2>/dev/null)  || \
+      full_name=$(grep -m1 "|${pkg_name}"       "${TMPDIR}/repo_contents" 2>/dev/null)  || \
+      full_name=$(grep -m1 "^${pkg_name}|"      "${TMPDIR}/repo_contents" 2>/dev/null)  || \
+      full_name=$(grep -m1 "^${pkg_name}-"      "${TMPDIR}/repo_contents" 2>/dev/null)  || \
+      full_name=$(grep -m1 "^${pkg_name}_"      "${TMPDIR}/repo_contents" 2>/dev/null)
 
       full_name="${full_name//.pet/}"
       full_name="${full_name//.${EX:-noextension}/}"
@@ -789,7 +789,6 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
   fi
 
   rm ${TMPDIR}/repo_contents &>/dev/null
-
   # if we found pkg in repo, keep only the package name ('|pkg-123|pkg|blah|' -> 'pkg-123')
   [ "$full_name" != '' ] && full_name=$(echo $full_name| cut -f2 -d '|' | tr -d '|') || full_name="$pkg_name"
 
@@ -3743,7 +3742,7 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
     echo "$ALL_DEPS_LIST" | while read LINE
     do
 
-      [ "$LINE" = "" ] || [ "$LINE" = "-" ] || [ "$LINE" = " " ] || [ "$LINE" = "," ] || [ "$LINE" = ", " ] && continue
+      [ "$LINE" = "" ] || [ "$LINE" = "-" ] || [ "$LINE" = " " ] || [ "$LINE" = ", " ] && continue
 
       # only include builtins if HIDE_BUILTINS=true
       [ "$(is_builtin_pkg "$LINE")" = true ] && [ "$HIDE_BUILTINS" = true ] && continue
@@ -4877,21 +4876,21 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
 
   esac
 
-  # now extract pkg contents to /
   [ ! -d "${PKGNAME}/" ] && error "Cannot enter directory '${PKGNAME}/', it doesn't exist." && exit 4
+
   cd "${PKGNAME}/" 1>/dev/null || exit 1
 
+  # now extract pkg contents to /
   cp -a --remove-destination ./* ${DIRECTSAVEPATH}/ 2> $TMPDIR/$SELF-cp-errlog
 
-  #source is a directory, target is a symlink...
+  # if source is a directory, target is a symlink... process again
   if [ -s $TMPDIR/$SELF-cp-errlog ];then
     grep -E 'Cannot create symlink to|cannot overwrite non-directory' $TMPDIR/$SELF-cp-errlog  2>/dev/null \
-      | cut -f 1 -d "'" \
-      | cut -f 2 -d '`' \
+      | cut -f 2 -d "'" \
       | while read ONEDIRSYMLINK
         do
-          #adding that extra trailing / does the trick...
-          cp -a --remove-destination ${ONEDIRSYMLINK}/* /${ONEDIRSYMLINK}/ 2> $TMPDIR/$SELF-cp-errlog #260713
+          # adding that extra trailing / does the trick...
+          cp -a --remove-destination ./${ONEDIRSYMLINK}/* /${ONEDIRSYMLINK}/ 2> $TMPDIR/$SELF-cp-errlog #260713
         done
   fi
   sync
