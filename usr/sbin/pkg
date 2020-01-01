@@ -2848,10 +2848,11 @@ pkg_contents(){                   # list package ($1) contents FUNCLIST
   local pkg_is_installed
 
   # get pkg extension
-  ext=$(get_pkg_ext "${1:-$EX}")
   PKGNAME="$(basename "$1" .$ext)"
   PKGNAME=$(get_pkg_name "$PKGNAME")
   PKGFILE="$(get_pkg_filename "$1")"
+  ext=$(get_pkg_ext "${PKGFILE}")
+
   pkg_is_installed=$(HIDE_BUILTINS=true is_installed_pkg "$PKGNAME")
 
   if [ "$pkg_is_installed" = true ] && [ -f "${REPO_DIR}/${PKGFILE//.$ext/}.files" ];then
@@ -2859,41 +2860,36 @@ pkg_contents(){                   # list package ($1) contents FUNCLIST
     return 0
   fi
 
-  if [ "$pkg_is_installed" = true ];then
+  if [ "$pkg_is_installed" = true ] && [ -f "${REPO_DIR}/${PKGNAME}.files" ];then
     PKGNAME=$(list_installed_ $PKGNAME | head -1)
     cat "${REPO_DIR}/${PKGNAME}.files"
     return 0
   fi
 
-  if [ "$pkg_is_installed" = true ] && [ -f "${REPO_DIR}/${PKGNAME}.files" ];then
-    cat "${REPO_DIR}/${PKGNAME}.files"
-    return 0
-  fi
-
   # try a file in the current dir if needed
-  [ ! -f "${PKGFILE}.${ext}" ] && PKGFILE="$(find "$CURDIR" -type f -name "${PKGFILE}.${ext}")"
-  [ ! -f "${PKGFILE}.${ext}" ] && PKGFILE="$(find "$WORKDIR" -type f -name "${PKGFILE}.${ext}")"
+  [ ! -f "${PKGPATH}" ] && PKGPATH="$(find "$WORKDIR" -type f -name "${PKGFILE}")"
+  [ ! -f "${PKGPATH}" ] && PKGPATH="$(find ~/pkg/ -type f -name "${PKGFILE}")"
 
   # if the pkg is a local file
-  if [ -f "$PKGFILE" ];then
+  if [ -f "$PKGPATH" ];then
     #list contents based on extension
     case "$ext" in
     sfs)
-      unsquashfs -l "$PKGFILE"  | cut -f2-99 -d'/'| sed -e 's#^#/#g' 2>/dev/null | grep -v -E 'unsquashfs:|/squashfs-root|) to write' | grep -v "^/$"
+      unsquashfs -l "$PKGPATH"  | cut -f2-99 -d'/'| sed -e 's#^#/#g' 2>/dev/null | grep -v -E 'unsquashfs:|/squashfs-root|) to write' | grep -v "^/$"
     ;;
     deb)
-      dpkg-deb -c "$PKGFILE" 2>/dev/null | grep -v "^/$"
+      dpkg-deb -c "$PKGPATH" 2>/dev/null | grep -v "^/$"
      ;;
     pet|tar|tar**tcz|*txz|*tgz|*xz|*gz)
       # remove leading pkg name from each line of file list
       # (shown if listing *some* pkg file contents)
-      tar -tf "$PKGFILE" 2>/dev/null \
+      tar -tf "$PKGPATH" 2>/dev/null \
         | sed -e "s#^./${PKGNAME}/#/#g" -e "s#^${PKGNAME}/#/#g" -e "s#^./##g" 2>/dev/null \
         | grep -v ^$ 2>/dev/null \
         | grep -v "^/$"
     ;;
     rpm)
-      busybox rpm -qlp "$PKGFILE" 2>/dev/null | grep -v "^/$"
+      busybox rpm -qlp "$PKGPATH" 2>/dev/null | grep -v "^/$"
     ;;
     esac
     exit $?
