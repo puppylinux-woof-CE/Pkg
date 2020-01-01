@@ -3738,7 +3738,9 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
     echo "$ALL_DEPS_LIST" | while read LINE
     do
 
-      [ "$LINE" = "" ] || [ "$LINE" = "-" ] || [ "$LINE" = " " ] || [ "$LINE" = ", " ] && continue
+      [ "$LINE" = "" ] || [ "$LINE" = "-" ] || [ "$LINE" = " " ] && continue
+
+      [ "$(is_blacklisted_pkg "$LINE")" = true ] && continue
 
       # only include builtins if HIDE_BUILTINS=true
       [ "$(is_builtin_pkg "$LINE")" = true ] && [ "$HIDE_BUILTINS" = true ] && continue
@@ -3803,6 +3805,10 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
       name_only=$(get_pkg_name_only "$i")
 
       [ ! "$name_only" ] || [ "$name_only" = ' ' ] || [ "$name_only" = '' ] && continue
+
+      if [ "$(is_blacklisted_pkg "$name_only")" = true ];then
+        continue
+      fi
 
       CONFIRM=y
       if [ "$ask_opt" = true ];then
@@ -4072,9 +4078,20 @@ merge_pkg(){                      # merge the given comma-separated packages FUN
   cd "$WORKDIR" 1>/dev/null || exit 1
 
   local PKG_LIST="$(echo "${1}" | tr ',' '\n' | sort -u)"
-  local SUFFIX=''
+  local SUFFIX='' WITH_DEPS='' SPLIT_PKG=''
 
-  if [ "$2" = "--with-deps" ];then
+  # process options
+  for opt in "$@"
+  do
+    if [ "$opt" = '--with-deps' ];then
+      WITH_DEPS=true
+    fi
+    if [ "$opt" = '--split' ];then
+      SPLIT_PKG=true
+    fi
+  done
+
+  if [ "$WITH_DEPS" = true ];then
     SUFFIX="-WITHDEPS"
     echo "Gathering dependencies to include.."
     echo
@@ -4088,8 +4105,12 @@ merge_pkg(){                      # merge the given comma-separated packages FUN
     # strip out local file names, keep only PKGNAME_ONLY
     PKG_LIST="$(for package in $PKG_LIST
     do
-     get_pkg_name "$(basename "$package")" 2>/dev/null
-    done | sort -u)"
+      pkgname=$(get_pkg_name "$(basename "$package")" 2>/dev/null)
+      if [ "$(is_blacklisted_pkg "$pkgname")" = true ];then
+        continue
+      fi
+      echo $pkgname
+    done | sort -u | grep -v ^$)"
   fi
 
   echo "Merging the following packages:"
@@ -4136,8 +4157,7 @@ merge_pkg(){                      # merge the given comma-separated packages FUN
     }
 
     # get the downloaded file
-    [ ! -f "$PKGFILE" ] && \
-      PKGFILE="$(find $WORKDIR -maxdepth 1 -type f -name "$(get_pkg_filename "$PKGNAME")")"
+    PKGFILE="$(find $WORKDIR -maxdepth 1 -type f -name "$(get_pkg_filename "$PKGNAME")")"
 
     [ ! -f "$PKGFILE" ] && \
       PKGFILE="$(find $WORKDIR -maxdepth 1 -type f -name "${PKGNAME}*${PKGEXT}")"
@@ -4149,8 +4169,9 @@ merge_pkg(){                      # merge the given comma-separated packages FUN
       PKGFILE="$(find $WORKDIR -maxdepth 1 -type f -name "${PKGNAME_ONLY}-*${PKGEXT}")"
 
     if [ ! -f "$PKGFILE" ];then
-      echo -e "${red}Error${endcolour}: could not find downloaded package '$PKGFILE'"
-      return 1
+      # the dep may not be in the repos (wings3d wants 'erlang-abi', for example)
+      # in which case, it won't have been downloaded, so skip it in that case
+      continue
     fi
 
     # unpack the downloaded file
@@ -4194,6 +4215,13 @@ merge_pkg(){                      # merge the given comma-separated packages FUN
     echo
     echo -e "${red}Error${endcolour}: Package ${yellow}${NEWPKGFILENAME}${endcolour} NOT created!"
     return 1
+  fi
+
+  if [ "$SPLIT_PKG" = true ];then
+    echo
+    echo "Splitting package into separate EXE, DEV, DOC, NLS packages..."
+    echo
+    split_pkg "$NEWPKGFILENAME"
   fi
 
   return 0
@@ -4349,6 +4377,7 @@ split_pkg(){                      # split package ($1) into dev, doc, nls packag
   for dir in "$EXE_PKG" "$DEV_PKG" "$DOC_PKG" "$NLS_PKG"
   do
     if [ -d "$dir" ];then
+      echo
       dir2${PKGEXT//./} "$dir" && rm -rf "$dir"
     fi
   done
@@ -4362,7 +4391,8 @@ split_pkg(){                      # split package ($1) into dev, doc, nls packag
   if [ "$new_pkgs" != "" ];then
     echo
     echo -e "${green}Success${endcolour}: Package split into these new files:"
-    echo "$new_pkgs" | sed 's/^.\// /'
+    echo
+    echo "$new_pkgs" | sed 's/^.\//  /'
   fi
 
   # cleanup
@@ -4771,10 +4801,16 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       mkdir -p "${CURDIR}/${PKGNAME}"
       PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.pet")"
       PETPKG=${PKGFILE%.pet} #remove trailing ".pet"
+
       head -c -32 ${PETPKG}.pet > ${PETPKG}.tar
-      PETFILES="$(tar -tf ${PETPKG}.tar)"
-      PETPREFIX="$(echo "$PETFILES" | head -1)"
-      case "$PETPREFIX" in
+      tar -tf ${PETPKG}.pet 2>/dev/null > /tmp/pkg/file_contents
+
+      sort -u /tmp/pkg/file_contents > /tmp/pkg/file_contents_sorted
+      mv /tmp/pkg/file_contents_sorted /tmp/pkg/file_contents
+
+      LINE_PREFIX="$(head -1 /tmp/pkg/file_contents)"
+
+      case "$LINE_PREFIX" in
         "./"*)
           pPATTERN="s%^\\./${PETPKG##*/}%% ; /pet\.specs/d ; /pinstall\.sh/d ; /puninstall\.sh/d ; /^\\/$/d ; "
           tar --strip=2 --directory="${CURDIR}/${PKGNAME}/" -xf ${PETPKG}.tar
@@ -4784,17 +4820,21 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
           tar --strip=1 --directory="${CURDIR}/${PKGNAME}/" -xf ${PETPKG}.tar
           ;;
       esac
+
       if [ $? -ne 0 ] ; then
         echo "ERROR: failed to unpack ${PETPKG}.pet"
         rm -f ${PETPKG}.tar
         exit 1
       fi
+
       rm -f ${PETPKG}.tar
+
       # save the uninstall script for later
       if [ -f "${CURDIR}/${PKGNAME}/puninstall.sh" ];then
         mv "${CURDIR}/${PKGNAME}/puninstall.sh" ${REPO_DIR}/${PKGNAME}.remove
       fi
-      echo "$PETFILES" \
+
+      cat /tmp/pkg/file_contents 2>/dev/null \
         | sed \
           -e "$pPATTERN" \
           -e "s#^\.\/#\/#g" \
@@ -4802,6 +4842,8 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
           -e "s#^\/\/#\/#g" \
           -e 's#^\/$##g' \
           -e 's#^\/\.$##g' > ${REPO_DIR}/${PKGNAME}.files
+
+      rm /tmp/pkg/file_contents 2>/dev/null
     ;;
 
     sfs)
@@ -6866,8 +6908,11 @@ dir2pet(){                        # dir to PET, $1 must be valid dir FUNCLIST
 
     # clean up
     rm -f -R $CURDIR/build_pkg/
+
+    size=$(LANG=C du -m "${DIR}.pet" | sed "s/\s.*//")
+
     echo
-    echo -e "Package ${magenta}${DIR}.pet${endcolour} created."
+    echo -e "Package ${magenta}${DIR}.pet${endcolour} created ($size MB)"
     echo "The md5sum is: `md5sum ${DIR}.pet | cut -f1 -d' '`."
   else
     echo "Directory '$DIR' not found."
@@ -7543,7 +7588,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --pkg-update|-pu|update|pu)         [ ! "$2" ] && pkg_update  || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && pkg_update "$x";   done;;
       --pkg-combine|-pc|pkg-combine|pc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && COMBINE2SFS=false pkg_combine "$x"; done;;
       --pkg-split|split)                  [ ! "$2" ] && split_pkg   || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && split_pkg "$x"; done;;
-      --pkg-merge|merge)                  [ ! "$2" ] && merge_pkg   || merge_pkg "$2" "$3"; exit 0;;
+      --pkg-merge|merge)                  [ ! "$2" ] && merge_pkg   || merge_pkg "$2" "$3" "$4"; exit 0;;
       --sfs-combine|-sc|sfs-combine|sc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && COMBINE2SFS=true  pkg_combine "$x"; done;;
       -PS|PS)                             [ ! "$2" ] && pkg_status  || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && HIDE_USER_PKGS=false FULL_PKG_STATUS=true pkg_status "$x"; done;; # full pkg status, with sorted deps
 
