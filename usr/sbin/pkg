@@ -4078,9 +4078,20 @@ merge_pkg(){                      # merge the given comma-separated packages FUN
   cd "$WORKDIR" 1>/dev/null || exit 1
 
   local PKG_LIST="$(echo "${1}" | tr ',' '\n' | sort -u)"
-  local SUFFIX=''
+  local SUFFIX='' WITH_DEPS='' SPLIT_PKG=''
 
-  if [ "$2" = "--with-deps" ];then
+  # process options
+  for opt in "$@"
+  do
+    if [ "$opt" = '--with-deps' ];then
+      WITH_DEPS=true
+    fi
+    if [ "$opt" = '--split' ];then
+      SPLIT_PKG=true
+    fi
+  done
+
+  if [ "$WITH_DEPS" = true ];then
     SUFFIX="-WITHDEPS"
     echo "Gathering dependencies to include.."
     echo
@@ -4204,6 +4215,13 @@ merge_pkg(){                      # merge the given comma-separated packages FUN
     echo
     echo -e "${red}Error${endcolour}: Package ${yellow}${NEWPKGFILENAME}${endcolour} NOT created!"
     return 1
+  fi
+
+  if [ "$SPLIT_PKG" = true ];then
+    echo
+    echo "Splitting package into separate EXE, DEV, DOC, NLS packages..."
+    echo
+    split_pkg "$NEWPKGFILENAME"
   fi
 
   return 0
@@ -4359,6 +4377,7 @@ split_pkg(){                      # split package ($1) into dev, doc, nls packag
   for dir in "$EXE_PKG" "$DEV_PKG" "$DOC_PKG" "$NLS_PKG"
   do
     if [ -d "$dir" ];then
+      echo
       dir2${PKGEXT//./} "$dir" && rm -rf "$dir"
     fi
   done
@@ -4372,7 +4391,8 @@ split_pkg(){                      # split package ($1) into dev, doc, nls packag
   if [ "$new_pkgs" != "" ];then
     echo
     echo -e "${green}Success${endcolour}: Package split into these new files:"
-    echo "$new_pkgs" | sed 's/^.\// /'
+    echo
+    echo "$new_pkgs" | sed 's/^.\//  /'
   fi
 
   # cleanup
@@ -6888,8 +6908,11 @@ dir2pet(){                        # dir to PET, $1 must be valid dir FUNCLIST
 
     # clean up
     rm -f -R $CURDIR/build_pkg/
+
+    size=$(LANG=C du -m "${DIR}.pet" | sed "s/\s.*//")
+
     echo
-    echo -e "Package ${magenta}${DIR}.pet${endcolour} created."
+    echo -e "Package ${magenta}${DIR}.pet${endcolour} created ($size MB)"
     echo "The md5sum is: `md5sum ${DIR}.pet | cut -f1 -d' '`."
   else
     echo "Directory '$DIR' not found."
@@ -7565,7 +7588,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --pkg-update|-pu|update|pu)         [ ! "$2" ] && pkg_update  || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && pkg_update "$x";   done;;
       --pkg-combine|-pc|pkg-combine|pc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && COMBINE2SFS=false pkg_combine "$x"; done;;
       --pkg-split|split)                  [ ! "$2" ] && split_pkg   || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && split_pkg "$x"; done;;
-      --pkg-merge|merge)                  [ ! "$2" ] && merge_pkg   || merge_pkg "$2" "$3"; exit 0;;
+      --pkg-merge|merge)                  [ ! "$2" ] && merge_pkg   || merge_pkg "$2" "$3" "$4"; exit 0;;
       --sfs-combine|-sc|sfs-combine|sc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && COMBINE2SFS=true  pkg_combine "$x"; done;;
       -PS|PS)                             [ ! "$2" ] && pkg_status  || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && HIDE_USER_PKGS=false FULL_PKG_STATUS=true pkg_status "$x"; done;; # full pkg status, with sorted deps
 
