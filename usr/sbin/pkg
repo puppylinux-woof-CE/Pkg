@@ -2414,7 +2414,7 @@ list_pkg_names(){                 # list pkg names in current repo only ($1 is o
         fi
       done # for each alias
       # sort and clean the search results
-      LANG=C sort -u -t '-' -k1,1df -k2gr -k3gr -k4gr $TMPDIR/pkglist > $TMPDIR/pkglist1
+      LANG=C sort -u -t "$separator" -k1,1df -k2n -k3gr -k4gr $TMPDIR/pkglist > $TMPDIR/pkglist1
       # replace the original search results
       mv $TMPDIR/pkglist1 $TMPDIR/pkglist
     fi
@@ -2438,12 +2438,12 @@ list_all_pkg_names(){             # list pkg names in any repo  ($1 is optional 
   # if bleeding edge disabled, output the list repo by repo, in the fallback order, current repo first (that order is set in update_sources)
   repo_file_list | while read repo_file
   do
-    cut -f1 -d'|' ${REPO_DIR}/${repo_file} 2>/dev/null | grep "^$1" | sort -u -t '-' -k1,1df -k2gr -k3gr -k4gr >> $TMPDIR/pkglist
+    cut -f1 -d'|' ${REPO_DIR}/${repo_file} 2>/dev/null | grep "^$1" | sort -u -t "$separator" -k1,1df -k2n -k3gr -k4gr >> $TMPDIR/pkglist
   done
 
   # if bleeding edge enabled, re-order the whole list, so Pkg returns the most recent pgk versions from ANY repos
   if [ "$BLEDGE" = "yes" ];then
-    LANG=C sort -u -t '-' -k1,1df -k2gr -k3gr -k4gr $TMPDIR/pkglist 2>/dev/null > $TMPDIR/pkglist_sorted
+    LANG=C sort -u -t "$separator" -k1,1df -k2n -k3gr -k4gr $TMPDIR/pkglist 2>/dev/null > $TMPDIR/pkglist_sorted
     mv $TMPDIR/pkglist_sorted $TMPDIR/pkglist
   fi
 
@@ -2482,7 +2482,7 @@ list_all_pkg_names(){             # list pkg names in any repo  ($1 is optional 
   fi
 
   # return the search results
-  [ -s $TMPDIR/pkglist ] && LANG=C sort -u -t '-' -k1,1df -k2gr -k3gr -k4gr $TMPDIR/pkglist
+  [ -s $TMPDIR/pkglist ] && LANG=C sort -t "$separator" -k1,1df -k2n -k3gr -k4gr $TMPDIR/pkglist | uniq
 
   # clean up
   [ ! -f $TMPDIR/pkglist ] && return 1
@@ -2648,7 +2648,7 @@ search_fast(){                    # given $1, searches current repo, show pkg na
   # get matching pkgs
   LANG=C grep -i "$search" ${REPO_DIR}/${REPOFILE} 2>/dev/null \
     | cut -f1 -d'|' \
-    | sort -u -t $separator -k1,1df -k2gr -k3gr -k4gr > $TMPDIR/pkglist
+    | sort -u -t "$separator" -k1,1df -k2n -k3gr -k4gr > $TMPDIR/pkglist
 
   # error if no result
   [ ! -s "$TMPDIR/pkglist" ] && return 1
@@ -2686,18 +2686,18 @@ search_all_pkgs(){                # given $1, search all repos, show name and de
     # convert repo file to nice columnised output
     grep -i "$search" ${REPO_DIR}/${repo_file} 2>/dev/null | while read repo_line;
     do
-    # get details from repo
-    name=$(echo  "$repo_line"|cut -f2  -d'|')
-    descfull="$(echo "$repo_line"|cut -f10 -d'|')"
-    desc="$(echo "$descfull" | head -c 57)"
-    [ "$desc" != "$descfull" ] && desc="${desc}.."
-    # remove spaces and comments (slackware-extra repo has some dodgy entries.. dogy names, descriptions with comments, etc)
-    name="${name// /}"
-    name="${name//#/}"
-    [ "$name" = '' ] && continue
-    # print columnised output
-    printf "%-20s" "$name" " ${desc:-No description}"
-    echo
+      # get details from repo
+      name=$(echo  "$repo_line"|cut -f2  -d'|')
+      descfull="$(echo "$repo_line"|cut -f10 -d'|')"
+      desc="$(echo "$descfull" | head -c 57)"
+      [ "$desc" != "$descfull" ] && desc="${desc}.."
+      # remove spaces and comments (slackware-extra repo has some dodgy entries.. dogy names, descriptions with comments, etc)
+      name="${name// /}"
+      name="${name//#/}"
+      [ "$name" = '' ] && continue
+      # print columnised output
+      printf "%-20s" "$name" " ${desc:-No description}"
+      echo
     done
   done
 }
@@ -2717,7 +2717,7 @@ search_all_fast(){                # given $1, search all repos, show pkg names o
   # current repo first (that order is set in update_sources)
   for RF in $(repo_file_list)
   do
-    grep -i "$search" ${REPO_DIR}/${RF} 2>/dev/null | cut -f1 -d'|' | sort -u -t $separator -k1,1df -k2gr -k3gr -k4gr | sed -e '/^$/d' >> $TMPDIR/pkglist
+    grep -i "$search" ${REPO_DIR}/${RF} 2>/dev/null | cut -f1 -d'|' | sort -u -t "$separator" -k1,1df -k2n -k3gr -k4gr | sed -e '/^$/d' >> $TMPDIR/pkglist
   done
 
   # error if no result
@@ -2736,7 +2736,7 @@ search_all_fast(){                # given $1, search all repos, show pkg names o
   # if bleeding edge, re-order the whole list, so output no longer
   # repo by repo, but newest packages at the top
   if [ "$BLEDGE" = "yes" ];then
-    sort -u -t $separator -k1,1df -k2gr -k3gr -k4gr "$TMPDIR/pkglist" > "$TMPDIR/pkglist_sorted"
+    sort -u -t "$separator" -k1,1df -k2n -k3gr -k4gr "$TMPDIR/pkglist" > "$TMPDIR/pkglist_sorted"
     mv "$TMPDIR/pkglist_sorted" "$TMPDIR/pkglist"
   fi
 
