@@ -26,6 +26,13 @@ do
   [ -f $existing_file ] && mv $existing_file /root/.pkg/
 done
 
+# fix version and date in man page - get version from recently installed
+VER=$(while read ver; do [ "${ver:0:6}" = 'APPVER' ] && ver=${ver#*=} && ver=${ver/\"/} && ver=${ver/\"/} && echo $ver && break;done < /usr/sbin/pkg)
+DATE="$(date '+%B %Y')"
+sed -e "s/VERSION_PLACEHOLDER/$VER/g" \
+	-e "s/DATE_PLACEHOLDER/$DATE/" \
+	< usr/share/man/man1/pkg.1 > /usr/share/man/man1/pkg.1
+
 [ -s ~/.packages/${pkgname}.files ] && echo -e "Package contents listed in ~/.packages/${pkgname}.files \n"
 
 echo -e "Setting up Pkg... \n"
