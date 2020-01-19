@@ -21,13 +21,18 @@
 
 {
 #==================  setup script vars  =====================#
-
 APPNAME="Pkg"
 APPVER="1.9.23"
 
 # get current locale settings
 USER_LANG=$LANG
 USER_LC_ALL=$LC_ALL
+
+#run as root only
+whoami=$(whoami)
+
+TMPDIR=/tmp/pkg/${whoami}/$$  # set the tmp dir
+mkdir -p "$TMPDIR" &>/dev/null
 
 SELF=$(basename "$0")      # this script
 QTAG=''                    # gets set to (y/n) if ASK=-true
@@ -36,13 +41,9 @@ LC_ALL=C                   # speed up
 EDITOR=${EDITOR:-vi}       # just in case
 PAGER=${PAGER:-less}       # just in case
 CURDIR="${PWD}"            # get current dir, before cd to WORKDIR
-TMPDIR=/tmp/pkg/${whoami}  # set the tmp dir
 REPO_DIR=~/.packages       # where the repo files live
 [ -d /var/packages ] && REPO_DIR=/var/packages
 export REPO_DIR
-
-#run as root only
-whoami=$(whoami)
 
 # set colours true by default
 green="\e[32m"; red="\e[91m"; magenta="\e[95m"; lightblue="\e[36m"; yellow="\e[93m"; bold="\e[1m"; endcolour="\e[0m"
@@ -50,6 +51,7 @@ green="\e[32m"; red="\e[91m"; magenta="\e[95m"; lightblue="\e[36m"; yellow="\e[9
 # ENVIRONMENT VARS, which may be overridden later
 [ -z "$PKGRC" ] && export PKGRC=${HOME}/.pkg/pkgrc      # config file for this script
 [ -z "$ASK"   ] && ASK=false                            # if true, ask user before doing stuff. Overridden by --ask
+[ -z "$ASK"   ] && PLUGIN_ASK="${ASK:-false}"           # if true, plugins will respect --ask, will making sure Pkg itself still only "asks once"
 [ -z "$QUIET" ] && QUIET=false                          # if true, hide output that doesnt log well in Xdialog, Gtkdialog, etc
 [ -z "$FORCE" ] && FORCE=false                          # if true, force (re)install/remove pkgs. Overridden by --force
 [ -z "$HIDE_INSTALLED" ] && export HIDE_INSTALLED=false # if true, hide installed pkgs from pkg searches (-n, -na, -ss, -ssa)
@@ -76,20 +78,22 @@ error(){
 # for correct error output, trap commands early
 cleanup(){
   # shellcheck disable=SC2086
-  rm -f ${TMPDIR}/missing_dep* ${TMPDIR}/installed_pkg* ${TMPDIR}/all_dep* ${TMPDIR}/DEP_DONE /tmp/pkg/list_deps_busy ${TMPDIR}/pkg_file_list ${TMPDIR}/dependents_list ${TMPDIR}/DEP_DONE ${TMPDIR}/ldd_file_list &>/dev/null
-  rm -rf /tmp/pkg/build_pkg/ &>/dev/null
+  rm -f ${TMPDIR}/missing_dep* ${TMPDIR}/installed_pkg* ${TMPDIR}/all_dep* \
+    ${TMPDIR}/DEP_DONE /tmp/pkg/list_deps_busy ${TMPDIR}/pkg_file_list \
+    ${TMPDIR}/dependents_list ${TMPDIR}/DEP_DONE ${TMPDIR}/ldd_file_list \
+    ./build_pkg/ ~/pkg/build_pkg /tmp/pkg/build_pkg/ &>/dev/null
 
   # prevent double msg output if error=130 (user Ctrl-C)
   if [ -f /tmp/pkg/error130 ] && [ "$2" = '130' ];then
     exit "$2"
   fi
   # make the tmp dir we'll use
-  mkdir -p /tmp/pkg &>/dev/null
+  mkdir -p ${TMPDIR:-/tmp/pkg} &>/dev/null
   # only add line numbers if it was given
   [ "$1" != 'none' ] && lineno="line $1, " || lineno=''
   # get the right error msg
   case "$2" in
-  130) echo; msg="User cancelled operation!"; touch /tmp/pkg/error130;;
+  130) echo; msg="User cancelled operation!"; touch ${TMPDIR:-/tmp/pkg/}error130;;
   8)   msg="Package URL invalid.";;
   7)   msg="Package extraction failed.";;
   6)   msg="Missing package file.";;
@@ -254,6 +258,48 @@ rm -f /tmp/pkg/error130 &>/dev/null
 
 # if not first run, and no options given, print the help
 [ ! -f ~/.pkg/firstrun ] && [ "$1" = "" ] && $SELF -H && exit 1 #200913 more help by default
+
+run_plugins(){
+  [ -z "$1" ] && return 1
+
+  local hook="$1"
+  local hooks='init|pre_install|post_install|pre_uninstall|post_uninstall|pre_build|post_build|exit'
+
+	echo "$hook" | grep -qE "$hooks" || return 1
+
+	if [ ! -d /usr/share/pkg/plugins/$hook/ ];then
+		return 1
+	fi
+
+  # run any post install plugins for this specific package
+  for plugin in /usr/share/pkg/plugins/$hook/*.sh /usr/share/pkg/plugins/$hook/${PKGNAME_ONLY}/*.sh /usr/share/pkg/plugins/$hook/${PKGNAME}/*.sh
+  do
+    # skip plugin if not a file
+    [ -f $plugin ] || continue
+    # skip plugin if not enabled
+    [ -x $plugin ] || continue
+    (
+      # source the plugin, to get its 'run' function
+      source $plugin || return 1
+
+      # plugin have settings, which define when they should run:
+      if [ "${PLUGIN_REQUIRES_ASK:-false}" = true ] && [ "$ASK" != true ];then
+        continue
+      fi
+      if [ "${PLUGIN_REQUIRES_FORCE:-false}" = true ] && [ "$FORCE" != true ];then
+        continue
+      fi
+
+      local plugin_name="$(echo "$plugin" | sed "s#/usr/share/pkg/plugins/##g")"
+      echo -e "${yellow}Plugin: ${plugin_name}${endcolour}: "
+
+      # run the plugin
+      ASK=$ASK FORCE=$FORCE run | sed 's/^/  /g'
+    )
+  done
+
+}
+
 }
 #==================  setup script vars  =====================#
 
@@ -3304,6 +3350,9 @@ pkg_build(){                      # build package ($1) from source (see BUILDTOO
   # get pkg extension
   EX=$(get_pkg_ext "${1:=$EX}")
 
+  # run any relevant plugins
+  ASK=$PLUGIN_ASK FORCE=$FORCE run_plugins 'pre_build'
+
   # we do a different build method for each supported build tool
   case $BUILDTOOL in
 
@@ -3440,6 +3489,10 @@ pkg_build(){                      # build package ($1) from source (see BUILDTOO
     echo "And Tmans buildpet should be installed to /usr/share/buildpet"
   ;;
   esac
+
+  # run any relevant plugins
+  ASK=$PLUGIN_ASK FORCE=$FORCE run_plugins 'post_build'
+
 }
 
 
@@ -4503,9 +4556,6 @@ pkg_download(){                   # download a pkg ($1) to WORKDIR FUNCLIST
         break
       fi
 
-      # only ask once
-      ASK=false
-
       echo # start a new line
 
       # get the subdir (from repo line) that the package lives in
@@ -4785,8 +4835,8 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
   # print new line if we didnt take any user input on tty
   [ "$ASK" != true ] && echo
 
-  # only ask once
-  ASK=false
+  # run any relevant plugins
+  ASK=$PLUGIN_ASK FORCE=$FORCE run_plugins 'pre_install'
 
   #if [ "`pkg_contents "$PKGFILE" 2>/dev/null`" = '' ];then
   # error "$PKGFILE not a valid package."
@@ -5114,6 +5164,9 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
   grep -v "^\$" ${REPO_DIR}/user-installed-packages | uniq > ${REPO_DIR}/user-installed-packages_clean
   mv ${REPO_DIR}/user-installed-packages_clean ${REPO_DIR}/user-installed-packages
 
+  # run any relevant post install plugins
+  ASK=$PLUGIN_ASK FORCE=$FORCE run_plugins 'post_install'
+
   # puppy specific fixes for installed package
   postinstall_hacks "$PKGNAME" "$PKGNAME_ONLY" &
 
@@ -5124,7 +5177,6 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
   cd "$PREVDIR" || exit 1
 
 }
-
 
 postinstall_hacks(){              # fix pkgs after installation
   local PKGNAME="$1"
@@ -5417,9 +5469,6 @@ $PKGS"
 
     # user can now input which actual pkgs to get, chosen by number
     if [ "$ASK" = true ];then
-      # only ask once
-      ASK=false
-
       echo
       echo "Give the numbers of the packages you want to install,"
       echo -n "separated by a comma, or hit ENTER only to skip: "
@@ -5461,9 +5510,6 @@ pkg_get(){                        # find, download and install $1 and its deps F
   local PKGNAME_ONLY=$(get_pkg_name_only "$PKGNAME")
   local PKGLIST="${PKGNAME}"
   local pkg_builtin=''
-
-  # dont ask to download or install pkg or deps, as choose_pkg() already asked
-  ASK=false
 
   # exit if no valid pkg name
   [ ! "$PKGNAME" ] || [ "$PKGNAME" = "" ] || [ "$PKGNAME" = "-" ] && print_usage get && exit 1
@@ -5535,7 +5581,7 @@ pkg_get(){                        # find, download and install $1 and its deps F
     fi
 
     # DOWNLOAD PKG
-    pkg_download "$pkg_name"
+    ASK=false pkg_download "$pkg_name"
 
     # now lets find the downloaded package
     [ ! -f "$PKGFILE" ] && PKGFILE="$(find "$CURDIR" -maxdepth 1 -type f -name "$(get_pkg_filename "$pkg_name")")"
@@ -5561,7 +5607,7 @@ pkg_get(){                        # find, download and install $1 and its deps F
       #if [ "$(pkg_contents "$PKGFILE" 2>/dev/null)" != '' ];then
 
         #INSTALL PKG
-        pkg_install "${PKGFILE}"
+        ASK=false pkg_install "${PKGFILE}"
 
       #fi
 
@@ -5571,7 +5617,7 @@ pkg_get(){                        # find, download and install $1 and its deps F
     if [ "$(is_installed_pkg "$pkg_name")" = true ] || [ "${NO_INSTALL}" = true ];then
 
       # get the dependencies for this package
-      [ "$(has_deps $pkg_name)" = true ] && get_deps "${pkg_name}"
+      [ "$(has_deps $pkg_name)" = true ] && ASK=false get_deps "${pkg_name}"
 
     fi
 
@@ -5803,6 +5849,9 @@ pkg_uninstall(){                  # remove an installed package ($1) FUNCLIST
   # print new line if we didnt take any user input on tty
   [ "$ASK" != true ] && echo
 
+  # run any relevant plugins
+  ASK=$PLUGIN_ASK FORCE=$FORCE run_plugins 'pre_uninstall'
+
   # execute uninstall script.
   if [ -x "${REPO_DIR}/${PKGNAME}.remove" ];then
     ${REPO_DIR}/${PKGNAME}.remove &>/dev/null
@@ -5876,6 +5925,9 @@ pkg_uninstall(){                  # remove an installed package ($1) FUNCLIST
 
   # UNINSTALL DONE .. print message
   echo -e "${green}Uninstalled:${endcolour} $PKGNAME"
+
+  # run any relevant plugins
+  ASK=$PLUGIN_ASK FORCE=$FORCE run_plugins 'post_uninstall'
 
   # log uninstall with the system logs
   [ "$(which logger)" != '' ] && logger "$0 Package $PKGNAME uninstalled by $APP $APPVER"
@@ -6422,9 +6474,6 @@ get_deps(){                       # find, get and install the deps of pkgname ($
     # if user answered yes, we will now download (and maybe install) the deps
     if [ "$DEPCONFIRM" = "y" ] || [ "$FORCE" = true ];then
 
-      # only ask once
-      ASK=false
-
       # make a list of the deps, each on a new line for each dep/newline
       WARNLIBS='';
 
@@ -6485,7 +6534,7 @@ get_deps(){                       # find, get and install the deps of pkgname ($
         local DEPNAME=$(get_pkg_name "$DEP" 2>/dev/null)
 
         #DOWNLOAD THE PKG
-        pkg_download "$DEPNAME" 2>/dev/null
+        ASK=false pkg_download "$DEPNAME" 2>/dev/null
 
         # skip install unless NO_INSTALL=true
         if [ "${NO_INSTALL}" = false ];then
@@ -7425,6 +7474,7 @@ first_run (){                     # welome message on first run
   exit 0
 }
 
+
 }
 #====================  main functions  ======================#
 
@@ -7480,6 +7530,8 @@ first_run
 {
 #====================  main interface  ======================#
 
+# run any relevant plugins
+ASK=$PLUGIN_ASK FORCE=$FORCE run_plugins 'init'
 
 while [ $# != 0 ]; do # get all options ($# means all options)
    I=1
@@ -7503,7 +7555,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
           done
           break
         ;;
-        --ask|-a)         ASK=true ; QTAG="?  (y/N)";;
+        --ask|-a)         ASK=true ; PLUGIN_ASK=true; QTAG="?  (y/N)";;
         --quiet|-q)       QUIET=true ;;
         --force|-f)       FORCE=true ;;
         --no-color)       green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
@@ -7540,7 +7592,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
         fi
       ;;
 
-      --ask|-a)         ASK=true ; QTAG="?  (y/N)";;
+      --ask|-a)         ASK=true ; PLUGIN_ASK=true; QTAG="?  (y/N)";;
       --quiet|-q)       QUIET=true ;;
       --force|-f)       FORCE=true ;;
       --no-color)       green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
@@ -7709,5 +7761,8 @@ rm $TMPDIR/PKGSDONE $TMPDIR/DEP_DONE 2>/dev/null
 # reset lang options as we found them
 LANG=$USER_LANG
 LC_ALL=$USER_LC_ALL
+
+# run any relevant plugins
+ASK=$PLUGIN_ASK FORCE=$FORCE run_plugins 'exit'
 
 exit $code
