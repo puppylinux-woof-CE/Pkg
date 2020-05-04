@@ -1,37 +1,52 @@
 #!/bin/ash
 
-pkgname=pkg-1.9.23-noarch
+# Pkg can be installed in a chroot or elswhere - experts only
+SYSROOT=${SYSROOT:-''}
 
-mkdir -p /tmp/pkg 2>/dev/null
+[ -n "$SYSROOT" ] && \
+  [ "${SYSROOT:0:1}" = '/' ] && \
+  echo "Error: $SYSROOT: must be absolute path to install Pkg" && exit 1
 
-# dont overwrite the existing ~/.pkg/sources[-all] files, if they exist
+# get version from current dir
+VER=$(while read ver; do [ "${ver:0:6}" = 'APPVER' ] && ver=${ver#*=} && ver=${ver/\"/} && ver=${ver/\"/} && echo $ver && break;done < usr/sbin/pkg)
 
-for existing_file in /root/.pkg/sources /root/.pkg/sources-all /root/.pkg/sources-user
-do
-  [ -f "$existing_file" ] && mv "$existing_file" /tmp/pkg/
-done
+pkgname=pkg-${VER}-noarch
+
+if [ -z "$SYSROOT" ] ; then
+  mkdir -p /tmp/pkg 2>/dev/null
+	
+  # dont overwrite the existing ~/.pkg/sources[-all] files, if they exist
+	
+  for existing_file in /root/.pkg/sources /root/.pkg/sources-all /root/.pkg/sources-user
+  do
+    [ -f "$existing_file" ] && mv "$existing_file" /tmp/pkg/
+  done
+	
+  mv /usr/sbin/pkg /usr/sbin/pkg.previous 2>/dev/null
+fi
 
 # copy over our new Pkg files
 
-mv /usr/sbin/pkg /usr/sbin/pkg.previous 2>/dev/null
+cp -r etc/ root/ sbin/ usr/ ${SYSROOT}/ && echo -e "Pkg installed OK \n" || echo -e "Pkg was NOT installed! \n"
 
-cp -r etc/ root/ sbin/ usr/ / && echo -e "Pkg installed OK \n" || echo -e "Pkg was NOT installed! \n"
+if [ -z "$SYSROOT" ] ; then
+  # list all Pkg files (not including sources files, cos user might want to keep their added repos)
+  find etc/ root/ sbin/ usr/ | sed -e 's/^/\//g' > ~/.packages/${pkgname}.files
 
-# list all Pkg files (not including sources files, cos user might want to keep their added repos)
-find etc/ root/ sbin/ usr/ | sed -e 's/^/\//g' > ~/.packages/${pkgname}.files
+  # put the files back again
+  for existing_file in /tmp/pkg/sources /tmp/pkg/sources-all /tmp/pkg/sources-user
+  do
+    [ -f $existing_file ] && mv $existing_file /root/.pkg/
+  done
+fi
 
-# put the files back again
-for existing_file in /tmp/pkg/sources /tmp/pkg/sources-all /tmp/pkg/sources-user
-do
-  [ -f $existing_file ] && mv $existing_file /root/.pkg/
-done
-
-# fix version and date in man page - get version from recently installed
-VER=$(while read ver; do [ "${ver:0:6}" = 'APPVER' ] && ver=${ver#*=} && ver=${ver/\"/} && ver=${ver/\"/} && echo $ver && break;done < /usr/sbin/pkg)
+# fix version and date in man page
 DATE="$(date '+%B %Y')"
 sed -e "s/VERSION_PLACEHOLDER/$VER/g" \
-	-e "s/DATE_PLACEHOLDER/$DATE/" \
-	< usr/share/man/man1/pkg.1 > /usr/share/man/man1/pkg.1
+  -e "s/DATE_PLACEHOLDER/$DATE/" \
+  < usr/share/man/man1/pkg.1 > ${SYSROOT}/usr/share/man/man1/pkg.1
+
+[ -n "${SYSROOT}" ] && exit # silent exit
 
 [ -s ~/.packages/${pkgname}.files ] && echo -e "Package contents listed in ~/.packages/${pkgname}.files \n"
 
