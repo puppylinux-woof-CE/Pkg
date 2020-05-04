@@ -26,7 +26,7 @@ slackware64-14.1-salix|txz|Packages-slackware64-14.1-salix|http://www.gtlib.gate
 slackware64-14.1-patches|txz|Packages-slackware64-14.1-patches|http://ftp.nluug.nl/pub/os/Linux/distr/slackware/slackware64-14.1/|http://slackware.uk/slackware/slackware64-14.1/patches/x86_64/14.1/|http://www.gtlib.gatech.edu/pub/slackware/slackware64-14.1/||slackware64-14.1 slackware64-14.1-salix slackware64-14.1-extra slacko64-14.1 noarch common64
 
 slacko14.2|pet|Packages-puppy-slacko14.2-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-slacko14.2/|http://distro.ibiblio.org/puppylinux/pet_packages-slacko14.2/|||slackware14.2 slackware14.2-salix slackware14.2-extra slacko14.1 slacko14 noarch common32 
-slacko64-14.2|txz|Packages-puppy-slacko6414.2-official|http://distro.ibiblio.org/puppylinux/pet_packages-slacko6414.2/|https://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-slacko6414.2/|||slackware64-14.2 slackware64-14.2-salix slackware64-14.2-patches slackware64-14.2-extra noarch common64
+slacko6414.2|pet|Packages-puppy-slacko6414.2-official|http://distro.ibiblio.org/puppylinux/pet_packages-slacko6414.2/|https://ftp.nluug.nl/os/Linux/distr/puppylinux/pet_packages-slacko6414.2/|||slackware64-14.2 slackware64-14.2-salix slackware64-14.2-patches slackware64-14.2-extra noarch common64
 
 slackware14.2|txz|Packages-slackware-14.2-official|http://slackware.cs.utah.edu/pub/slackware/slackware-14.2/|http://slackware.mirrors.tds.net/pub/slackware/slackware-14.2/|http://ftp.gwdg.de/pub/linux/slackware/slackware-14.2/|http://ftp.isu.edu.tw/pub/Linux/Slackware/slackware-14.2/|slacko14.2 slackware14.2-extra slackware14.2-salix slackware14.1 slackware14.1-patches slackware14.1-salix slacko14.1 slacko14 noarch common32
 slackware14.2-salix|txz|Packages-slackware-14.2-salix|http://ftp.nluug.nl/pub/os/Linux/distr/salix/i486/14.2/|http://slackware.uk/salix/i486/14.2/|http://www.gtlib.gatech.edu/pub/salixos/i486/14.2/||slacko14.2 slackware14.2 slackware14.2-extra slackware14.1 slackware14.1-patches slackware14.1-salix slacko14.1 slacko14 noarch common32
@@ -79,3 +79,11 @@ upupbb-extra|pet|Packages-extra-upupbb|http://smokey01.com/peebee/upupbb/extras/
 bionic-main|deb|Packages-ubuntu-bionic-main|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/||upupbb upupbb-extra noarch common32 common64 bionic-universe bionic-multiverse xenial tahr
 bionic-universe|deb|Packages-ubuntu-bionic-universe|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/||upupbb upupbb-extra noarch common32 common64 bionic-main bionic-multiverse xenial tahr
 bionic-multiverse|deb|Packages-ubuntu-bionic-multiverse|http://archive.ubuntu.com/ubuntu/|http://mirrors.kernel.org/ubuntu/|ftp.osuosl.org/pub/ubuntu/||upupbb upupbb-extra noarch common32 common64 bionic-main bionic-universe xenial tahr
+
+raspup10|pet|Packages-puppy-buster-official|http://ftp.nluug.nl/os/Linux/distr/puppylinux/arm/pet_packages-buster/|https://distro.ibiblio.org/puppylinux/arm/pet_packages-buster/|||noarch
+
+raspbian-buster-main|deb|Packages-raspbian-buster-main|http://archive.raspbian.org/raspbian/|http://mirror.aarnet.edu.au/pub/raspbian/raspbian/|http://downloads.raspberrypi.org/raspbian/raspbian||noarch
+raspbian-buster-nonfree|deb|Packages-raspbian-buster-nonfree|http://archive.raspbian.org/raspbian/|http://mirror.aarnet.edu.au/pub/raspbian/raspbian/|http://downloads.raspberrypi.org/raspbian/raspbian||noarch
+raspbian-buster-contrib|deb|Packages-raspbian-buster-contrib|http://archive.raspbian.org/raspbian/|http://mirror.aarnet.edu.au/pub/raspbian/raspbian/|http://downloads.raspberrypi.org/raspbian/raspbian||noarch
+raspbian-buster-firmware|deb|Packages-raspbian-buster-firmware|http://archive.raspbian.org/raspbian/|http://mirror.aarnet.edu.au/pub/raspbian/raspbian/|http://downloads.raspberrypi.org/raspbian/raspbian||noarch
+raspbian-buster-raspberrypi|deb|Packages-raspbian-buster-raspberrypi|http://archive.raspberrypi.org/debian||||noarch
