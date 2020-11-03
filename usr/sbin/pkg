@@ -3142,7 +3142,7 @@ pkg_status(){                     # print package ($1) name, status, deps, etc F
           -e 's#,$##'   \
           -e 's#,#, #g' \
         | fold -w 50 -s \
-        | sed '2,20 s/^/                /g')${endcolour}"
+        | sed '2,80 s/^/                /g')${endcolour}"
 
       DEPS_ENTRY="Installed deps: ${INSTALLED_DEPS_MSG:-None}
 Missing deps:   ${MISSING_DEPS_MSG:-None}"
@@ -6293,9 +6293,9 @@ find_deps(){                      # given a package name ($1), makes 2 lists: DE
   local pkg_ext=''            # the pkg extension, blank if not a valid extension or none given
   local repo_files=''         # the list of repo files to check, may be current only or all
   local deps_list=''          # deps of PKGNAME in comma-delimited format: dep1,dep2,dep3
-  local deps_on_new_lines=''  # as above, but each dep on a new line
   local deps_missing=''       # comma separated list of missing deps
   local deps_installed=''     # comma separated list of deps already installed
+  local deps_on_new_lines=''  # as above, but each dep on a new line
   local dep=''                # dep name scraped from deps_list, usually the same as dep_name_only
   local dep_name_only=''      # short (generic) pkg name, no version (vlc,htop,etc)
   local dep_full_name=''      # pkg name with version (vlc-2.3.3-i686_s700, etc)
@@ -6308,16 +6308,20 @@ find_deps(){                      # given a package name ($1), makes 2 lists: DE
   PKGNAME="$(basename "$1" .$pkg_ext)"
 
   # we can't rely on the user input, try to get the right pkg names
-  PKGNAME=$(get_pkg_name "$PKGNAME")       # vlc -> 'vlc-2.3-blah_etc
+  PKGNAME=$(get_pkg_name "$PKGNAME")             # vlc -> vlc-2.3-blah_etc
   PKGNAME_ONLY=$(get_pkg_name_only "$PKGNAME")   # vlc-2.3-blah_etc -> vlc
 
   # if PKGNAME still empty, we cant find its deps, move on
   [ -z "$PKGNAME" ] && return 1
 
-  # didn't exit yet, so remove the old tmp dirs
+  # didnt exit yet, so remove the old tmp dirs
+  rm ${TMPDIR}/all_deps     &>/dev/null
   rm $TMPDIR/deps_installed &>/dev/null
   rm $TMPDIR/deps_missing   &>/dev/null
   rm $TMPDIR/deps_missing1  &>/dev/null
+  # reset the ENV vars other funcs listen to
+  export DEPS_INSTALLED=''
+  export DEPS_MISSING=''
 
   # get the list of deps from the repo entry of this pkg
   deps_list="$(LANG=C list_deps "$PKGNAME")"
