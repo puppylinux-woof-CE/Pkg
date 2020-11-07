@@ -1,0 +1,18 @@
+USAGE="Usage: ${bold}pkg [--ask|--force] man PKGNAME${endcolour}
+
+View the man pages in the given package.
+
+NOTE: PKGNAME will be downloaded if needed, then
+it's contents are searched for man pages.
+
+The 'man' command will be used to view any man
+pages found.
+
+If multiple man pages exist in a package, all
+will be loaded.
+
+Packages are downloaded to $WORKDIR. Use -f to
+force re-download of an existing package.
+
+Use --ask to ask before downloading.
+"

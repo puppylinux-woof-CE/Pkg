@@ -355,7 +355,7 @@ extract        status           rdep-check
 force          update           what-needs
 func-list      workdir          rm-repo
 txz2pet        dir2repo         merge
-whitelist      blacklist
+whitelist      blacklist        manpage
 
 Usage: ${bold}$SELF usage CMD${endcolour}"
     #cd /usr/share/pkg/docs/usage/; echo `ls` | fold -w 70 -s
@@ -6127,6 +6127,9 @@ has_deps(){                       # return true if $1 has deps, else false
 list_deps(){                      # list all deps of PKG ($1), space separated on one line FUNCLIST
   [ "$1" = '' ] || [ "$1" = "-" ] && print_usage list-deps && exit 1
 
+  # clean up
+  rm ${TMPDIR}/missing_dep* ${TMPDIR}/installed_pkg* ${TMPDIR}/all_dep* ${TMPDIR}/DEP_DONE /tmp/pkg/list_deps_busy 2>/dev/null
+
   echo true > /tmp/pkg/list_deps_busy
 
   # get current $REPOFILE, $DEPSEARCH
@@ -6155,108 +6158,122 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
   # if no deps, exit with error
   [ "$deps_list" = "" ] && rm /tmp/pkg/list_deps_busy 2>/dev/null && return 1
 
-  # remove the '+' from the start of each dep
-  deps="${deps_list/+/}"           # remove first + at start of line
-  deps="${deps//,+/ }"             # remove others .. DEPS will now be just 'dep1 dep2 dep3'
-  deps="${deps//  / }"             # remove double spaces
-  deps="${deps//.pet/}"            # remove extensions (creeping in from somewhere!)
+  # change "+foo,+bar" to "foo bar"
+  deps="${deps_list/+/}"                    # remove first + at start of line
+  deps="${deps//,+/ }"                      # remove others .. DEPS will now be just 'dep1 dep2 dep3'
+  deps="${deps//  / }"                      # remove double spaces
+  deps="${deps//.pet/}"                     # remove extensions (creeping in from somewhere!)
   deps="${deps//.${EX:-noextension}/}"      # remove extensions (creeping in from somewhere!)
   deps="${deps//.${pkg_ext:-noextension}/}" # remove extensions (creeping in from somewhere!)
 
 
-  if [ "$deps" != '' ] && [ "$deps" != ' ' ];then
+  if [ "$deps" = '' ] || [ "$deps" = ' ' ];then
+    rm /tmp/pkg/list_deps_busy 2>/dev/null
+    return 0
+  fi
 
-    # put all deps of pkg in a tmp file
-    echo "${deps// /,}" | tr ',' '\n' | grep -v ^$ | sort -u > $TMPDIR/all_deps_0
+  # put all deps of pkg in a tmp file
+  echo "${deps// /,}" | tr ',' '\n' | grep -v ^$ | sort -u > $TMPDIR/all_deps_0
 
-    # create list of installed pkgs ($TMPDIR/installed_pkgs)
-    list_all_installed_pkgs
+  # create list of installed pkgs ($TMPDIR/installed_pkgs)
+  list_all_installed_pkgs
 
-    grep -vE "'$PKG_BLACKLIST_REGEX'" ${TMPDIR}/all_deps_0 2>/dev/null | sort -u > ${TMPDIR}/all_deps_1_without_blacklisted_packages
-    mv ${TMPDIR}/all_deps_1_without_blacklisted_packages ${TMPDIR}/all_deps_0
+  grep -vE "'$PKG_BLACKLIST_REGEX'" ${TMPDIR}/all_deps_0 2>/dev/null | sort -u > ${TMPDIR}/all_deps_0_without_blacklisted_packages
+  mv ${TMPDIR}/all_deps_0_without_blacklisted_packages ${TMPDIR}/all_deps_0
 
-    # remove any deps in installed pkgs list from all deps.. to leave only missing deps
-    comm -23 ${TMPDIR}/all_deps_0 ${TMPDIR}/installed_pkgs 2>/dev/null | grep -v ^$ | sort -u > ${TMPDIR}/all_deps_1
+  # remove any deps in installed pkgs list from all deps.. to leave only missing deps
+  comm -23 ${TMPDIR}/all_deps_0 ${TMPDIR}/installed_pkgs 2>/dev/null | grep -v ^$ | sort -u > ${TMPDIR}/all_deps_0_cleaned
+  mv ${TMPDIR}/all_deps_0_cleaned ${TMPDIR}/all_deps_0
 
-    rm -f ${TMPDIR}/DEP_DONE 2>/dev/null
+  rm -f ${TMPDIR}/DEP_DONE 2>/dev/null
 
-    if [ -f $TMPDIR/all_deps_1 ] && [ -s $TMPDIR/all_deps_1 ];then
-      # recursive search deps of deps
-      for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
-      do
-        deps_list_file="${TMPDIR}/all_deps_${i}"
+  if [ ! -f $TMPDIR/all_deps_0 ] || [ ! -s $TMPDIR/all_deps_0 ];then
+    rm /tmp/pkg/list_deps_busy 2>/dev/null
+    return 0
+  fi
 
-        [ ! -f $deps_list_file ] && continue
+  # recursive search deps of deps
+  for i in 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+  do
+    deps_list_file="${TMPDIR}/all_deps_${i}"
 
-        # remove all blacklisted packages from the list
-        grep -vE "'$PKG_BLACKLIST_REGEX'" "$deps_list_file" > ${TMPDIR}/deps_list_file_without_blacklisted_pkgs
-        mv ${TMPDIR}/deps_list_file_without_blacklisted_pkgs  $deps_list_file
-
-        # remove done packages from the list
-        if [ -s ${TMPDIR}/DEP_DONE ];then
-          comm -23 $deps_list_file ${TMPDIR}/DEP_DONE 2>/dev/null | grep -v ^$ | sort -u > ${deps_list_file}_cleaned
-          mv ${deps_list_file}_cleaned ${deps_list_file}
-        fi
-
-        if [ -s ${TMPDIR}/installed_pkgs ];then
-          # remove any deps in installed pkgs list from all deps.. to leave only missing deps
-          comm -23 $deps_list_file ${TMPDIR}/installed_pkgs 2>/dev/null | grep -v ^$ | sort -u > ${deps_list_file}_cleaned
-          mv ${deps_list_file}_cleaned ${deps_list_file}
-        fi
-
-        next_deps_list_file="${TMPDIR}/all_deps_$(($i + 1))"
-
-        # for each dep in $deps, get their deps too
-        for subdep in $(sort -u $deps_list_file | grep -v ^$ | sed -e "s/,$//g")
-        do
-          [ "$subdep" = '' ] || [ "$subdep" = ' ' ] && continue
-
-          grep -q -m1 "$subdep" ${TMPDIR}/DEP_DONE 2>/dev/null && continue
-
-          local subdeps_entry=''
-          local subdeps=''
-          local subdeps_list=''
-
-          subdeps_entry="$(get_deps_entry "$subdep")"
-          subdeps="${subdeps_entry/+/}"           # remove first + at start of line
-          subdeps="${subdeps//,+/ }"              # remove others .. DEPS will now be just 'dep1 dep2 dep3'
-          subdeps="${subdeps//  / }"              # remove double spaces
-          subdeps="${subdeps//.pet/}"             # remove extensions (creeping in from somewhere!)
-          subdeps="${subdeps//.${EX:-noextension}/}"       # remove extensions (creeping in from somewhere!)
-          subdeps="${subdeps//.${pkg_ext:-noextension}/}"  # remove extensions (creeping in from somewhere!)
-
-          if [ "$subdeps" != '' ] && [ "$subdeps" != ' ' ];then
-            # remove everything after the + (if the + is followed by alphanumeric chars), then add to tmp files
-            echo "$subdep" >> ${TMPDIR}/DEP_DONE
-
-            # create the next deps list file to parse, containing the deps of this $subdep
-            subdeps_list="$(echo "${subdeps}" | tr ' ' '\n' | grep -v ^$ | sort -u)"
-            echo "$subdeps_list" >> $next_deps_list_file
-          fi
-        done
-
-      done
-
-      # add all deps together, sorted, duplicated removed
-      cat ${TMPDIR}/all_deps_* 2>/dev/null | sort -u | grep -v ^$ > ${TMPDIR}/all_deps_sorted
-      mv ${TMPDIR}/all_deps_sorted ${TMPDIR}/all_deps
-
+    if [ ! -s $deps_list_file ];then
+      rm /tmp/pkg/list_deps_busy 2>/dev/null
+      continue
     fi
 
-  fi
+    # remove all blacklisted packages from the list
+    grep -vE "'$PKG_BLACKLIST_REGEX'" "$deps_list_file" > ${TMPDIR}/deps_list_file_without_blacklisted_pkgs
+    mv ${TMPDIR}/deps_list_file_without_blacklisted_pkgs  $deps_list_file
+
+    # remove done packages from the $deps_list_file
+    if [ -s ${TMPDIR}/DEP_DONE ];then
+      comm -23 $deps_list_file ${TMPDIR}/DEP_DONE 2>/dev/null | grep -v ^$ | sort -u > ${deps_list_file}_cleaned
+      mv ${deps_list_file}_cleaned ${deps_list_file}
+    fi
+
+    # remove installed pkgs from $deps_list_file
+    if [ -s ${TMPDIR}/installed_pkgs ];then
+      comm -23 $deps_list_file ${TMPDIR}/installed_pkgs 2>/dev/null | grep -v ^$ | sort -u > ${deps_list_file}_cleaned
+      mv ${deps_list_file}_cleaned ${deps_list_file}
+    fi
+
+    # set name of next file
+    next_deps_list_file="${TMPDIR}/all_deps_$(($i + 1))"
+
+    # for each dep in $deps_list_file, put its deps into $next_deps_list_file..
+
+    for current_dep in $(sort -u $deps_list_file | grep -v ^$ | sed -e "s/,$//g")
+    do
+      [ "$current_dep" = '' ] || [ "$current_dep" = ' ' ] && continue
+      grep -q -m1 "$current_dep" ${TMPDIR}/installed_pkgs 2>/dev/null && continue
+      grep -q -m1 "$current_dep" ${TMPDIR}/DEP_DONE 2>/dev/null && continue
+      grep -q -m1 "$current_dep" $HOME/.pkg/blacklisted_packages 2>/dev/null && continue
+
+      local subdeps=''
+      local subdeps_list=''
+      local subdeps_entry="$(get_deps_entry "$current_dep")"
+
+      subdeps="${subdeps_entry/+/}"                   # remove first + at start of line
+      subdeps="${subdeps//,+/ }"                      # remove others .. DEPS will now be just 'dep1 dep2 dep3'
+      subdeps="${subdeps//  / }"                      # remove double spaces
+      subdeps="${subdeps//.pet/}"                     # remove extensions (creeping in from somewhere!)
+      subdeps="${subdeps//.${EX:-noextension}/}"      # remove extensions (creeping in from somewhere!)
+      subdeps="${subdeps//.${pkg_ext:-noextension}/}" # remove extensions (creeping in from somewhere!)
+
+      if [ "$subdeps" != '' ] && [ "$subdeps" != ' ' ];then
+        # create the next deps list file to parse, containing the deps of this $current_dep
+        echo "$subdeps" | tr ' ' '\n' | grep -v ^$ | sort -u >> $next_deps_list_file
+        echo "$current_dep" >> ${TMPDIR}/DEP_DONE
+      fi
+    done
+
+  done
+
+  # add all deps together, sorted, duplicates removed
+  cat ${TMPDIR}/all_deps_* 2>/dev/null | sort -u | grep -v ^$ > ${TMPDIR}/all_deps_sorted
+  mv ${TMPDIR}/all_deps_sorted ${TMPDIR}/all_deps
+
+  # remove tmp files, no longer needed
+  rm ${TMPDIR}/all_deps_*
 
   # remove any deps in installed pkgs list from all deps.. to leave only missing deps
   if [ -f ${TMPDIR}/installed_pkgs ] && [ -s  ${TMPDIR}/installed_pkgs ];then
     comm -23 ${TMPDIR}/all_deps ${TMPDIR}/installed_pkgs 2>/dev/null | sort -u | grep -v ^$ > ${TMPDIR}/missing_deps
   fi
 
+  if [ ! -s ${TMPDIR}/missing_deps ];then
+    rm /tmp/pkg/list_deps_busy 2>/dev/null
+    return 0
+  fi
+
   # remove all blacklisted packages from the list
   grep -vE "'$PKG_BLACKLIST_REGEX'" ${TMPDIR}/missing_deps 2>/dev/null | sort -u > ${TMPDIR}/missing_deps_without_blacklisted_pkgs
   mv ${TMPDIR}/missing_deps_without_blacklisted_pkgs ${TMPDIR}/missing_deps
 
-  if [ ! -f ${TMPDIR}/missing_deps ] || [ ! -s ${TMPDIR}/missing_deps ];then
+  if [ ! -s ${TMPDIR}/missing_deps ];then
     rm /tmp/pkg/list_deps_busy 2>/dev/null
-    return 1
+    return 0
   fi
 
   # get fixed deps list
@@ -6265,7 +6282,8 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
     get_pkg_name_only "$dep"
   done)"
 
-  [ "$deps" != "" ] && echo "$deps" | sed -e 's/^ //g' | tr ' ' '\n' | sort -u | tr '\n' ' '
+  # finally, print deps list
+  [ "$deps" != "" ] && echo "$deps" | sed -e 's/^ //g' | tr '\n' ' '
 
   # clean up
   rm ${TMPDIR}/missing_dep* ${TMPDIR}/installed_pkg* ${TMPDIR}/all_dep* ${TMPDIR}/DEP_DONE /tmp/pkg/list_deps_busy 2>/dev/null
@@ -7479,6 +7497,41 @@ first_run (){                     # welome message on first run
 }
 
 
+function pkg_manpage {
+  if [ ! "$1" ];then
+    $0 usage man
+    exit 1
+  fi
+  local p=$(get_pkg_name "$1")
+  local contents=''
+  if [ "$(is_usr_pkg "$p")" = "true" ];then
+    contents="$(grep -E '/man[1-8]/.*\.gz$' ~/.packages/${p}*.files)"
+  else
+    if [ "$(list_downloaded_pkgs "$p")" = "" ];then
+      pkg d "$p"
+    fi
+    contents="$(pkg_contents $p)"
+  fi
+  [ -z "$contents" ] && return 1
+
+  local manpages=$(echo "$contents" \
+    | grep -E '/man[1-8]/.*\.gz$' \
+    | grep -v ' -> ' \
+    | sed -e 's|.*\./|/|g' -e 's|\.gz$||' -e 's|.*/||' \
+    | sort -u)
+
+  [ -z "$manpages" ] && return 1
+  echo -e "\nOpening these man pages: \n${bold}"
+  echo -e "$manpages${endcolor}" | sed 's/^/  /g'
+  sleep 1
+
+  for manpage in $manpages
+  do
+    man $manpage
+  done
+}
+
+
 }
 #====================  main functions  ======================#
 
@@ -7647,6 +7700,8 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --pkg-merge|merge)                  [ ! "$2" ] && merge_pkg   || merge_pkg "$2" "$3" "$4"; exit 0;;
       --sfs-combine|-sc|sfs-combine|sc)   [ ! "$2" ] && pkg_combine || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && COMBINE2SFS=true  pkg_combine "$x"; done;;
       -PS|PS)                             [ ! "$2" ] && pkg_status  || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && HIDE_USER_PKGS=false FULL_PKG_STATUS=true pkg_status "$x"; done;; # full pkg status, with sorted deps
+
+      --manpage|--man|manpage|man)        [ ! "$2" ] && pkg_manpage || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && pkg_manpage "$x"; done;;
 
       # pkg compiling
       --pkg-build|-pb|build|pb)           [ ! "$2" ] && pkg_build || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && PKG_CONFIGURE="$PKG_CONFIGURE" PKG_CFLAGS="$PKG_CFLAGS" pkg_build "$x"; done;;
