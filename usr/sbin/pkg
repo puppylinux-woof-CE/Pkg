@@ -384,81 +384,93 @@ func_list(){                      # list all functions available in this script 
 
 update_system_cache() {
   # $1 = PKGFILES [ex: ${REPO_DIR}/abiword.files]
-  local PKGFILES=$1
 
-  if grep -q -m 1 '/usr/share/glib-2.0/schemas' $PKGFILES ;then
-    if [ -e /usr/bin/glib-compile-schemas ] ; then
-      /usr/bin/glib-compile-schemas /usr/share/glib-2.0/schemas
-    fi
-  fi
+  PKGFILES=${1}
 
-  if grep -q -m 1 '/usr/lib/gio/modules' $PKGFILES ;then
-    if [ -e /usr/bin/gio-querymodules ] ; then
-      /usr/bin/gio-querymodules /usr/lib/gio/modules
-    fi
-  fi
+  GTKVERLIST="2.0 3.0 4.0"
 
-  if grep -q -m 1 '/usr/share/applications/' $PKGFILES ;then
-    if [ -e /usr/bin/update-desktop-database ] ; then
-      rm -f /usr/share/applications/mimeinfo.cache
-      /usr/bin/update-desktop-database /usr/share/applications
-    fi
-  fi
+  for usrfld in /usr /usr/local
+  do
 
-  if grep -q -m 1 '/usr/share/mime/' $PKGFILES ;then
-    if [ -e /usr/bin/update-mime-database ] ; then
-      /usr/bin/update-mime-database /usr/share/mime
+    if grep -q -m 1 "$usrfld/share/glib-2.0/schemas" $PKGFILES ; then
+  	if [ -e /usr/bin/glib-compile-schemas ] ; then
+  	  /usr/bin/glib-compile-schemas $usrfld/share/glib-2.0/schemas 2>/dev/null
+  	fi
     fi
-  fi
 
-  if grep -q -m 1 '/usr/share/icons/hicolor/' $PKGFILES ;then
-    if [ -e /usr/bin/gtk-update-icon-cache ] ; then
-      /usr/bin/gtk-update-icon-cache /usr/share/icons/hicolor
+    if grep -q -m 1 "$usrfld/share/applications/" $PKGFILES ; then
+  	if [ -e /usr/bin/update-desktop-database ] ; then
+  	 rm -f $usrfld/share/applications/mimeinfo.cache 2>/dev/null
+  	 /usr/bin/update-desktop-database $usrfld/share/applications 2>/dev/null
+  	fi
     fi
-  fi
 
-  if grep -q -m 1 '/usr/lib/gdk-pixbuf' $PKGFILES ;then
-    if [ -e /usr/bin/update-gdk-pixbuf-loaders ] ; then
-      update-gdk-pixbuf-loaders
-    elif [ -e /usr/bin/gdk-pixbuf-query-loaders ] ; then
-      gdk-pixbuf-query-loaders --update-cache
+    if grep -q -m 1 "$usrfld/share/mime/" $PKGFILES ; then
+  	if [ -e /usr/bin/update-mime-database ] ; then
+  	  /usr/bin/update-mime-database $usrfld/share/mime 2>/dev/null
+  	fi
+
+  	if [ -e "$usrfld/share/mime/packages" ] && [ "$(ls -1 "$usrfld/share/mime/packages")" == "" ]; then
+  	 rm -rf $usrfld/share/mime/*
+  	fi
     fi
-  fi
+
+    if grep -q -m 1 "$usrfld/lib/gio/modules" $PKGFILES ; then
+  	if [ -e /usr/bin/gio-querymodules ] ; then
+  	  /usr/bin/gio-querymodules $usrfld/lib/gio/modules 2>/dev/null
+  	fi
+    fi
+
+    if grep -q -m 1 "$usrfld/share/icons/" $PKGFILES ; then
+  	if [ -e /usr/bin/gtk-update-icon-cache ] ; then
+  	  find "$usrfld/share/icons/" -name "icon-theme.cache" -type f -exec rm -f '{}' \;
+  	  find "$usrfld/share/icons" -maxdepth 1 -name "*" -exec gtk-update-icon-cache -f -i '{}' \; 2>/dev/null
+  	fi
+    fi
+
+  done
 
   if grep -q -m 1 '/usr/lib/gconv/' $PKGFILES ;then
     iconvconfig
   fi
 
-  if grep -q -m 1 '/usr/lib/pango/' $PKGFILES; then
-    if [ -e /usr/bin/update-pango-querymodules ] ; then
-      update-pango-querymodules
-    elif [ -e /usr/bin/pango-querymodules ] ; then
-      pango-querymodules --update-cache
-    fi
+  if [ "$(grep -q -m 1 '/usr/lib/gdk-pixbuf' $PKGFILES)" != "" ] || [ "$(grep -q -m 1 '/usr/local/lib/gdk-pixbuf' $PKGFILES)" != "" ]; then
+  	if [ -e /usr/bin/update-gdk-pixbuf-loaders ] ; then
+  	 update-gdk-pixbuf-loaders
+  	elif [ -e /usr/bin/gdk-pixbuf-query-loaders ] ; then
+  	 gdk-pixbuf-query-loaders --update-cache
+  	fi
   fi
 
-  if grep -m 1 "/usr/lib/gtk-2.0" $PKGFILES |grep -q "/immodules" ; then
-    if [ -e /usr/bin/update-gtk-immodules-2.0 ] ; then
-      update-gtk-immodules-2.0
-    elif [ -e /usr/bin/gtk-query-immodules-2.0 ] ; then
-      gtk-query-immodules-2.0 --update-cache
-    fi
+  if [ "$(grep -q -m 1 '/usr/lib/pango/' $PKGFILES)" != "" ] || [ "$(grep -q -m 1 '/usr/local/lib/pango/' $PKGFILES)" != "" ]; then
+  	if [ -e /usr/bin/update-pango-querymodules ] ; then
+  		update-pango-querymodules
+  	elif [ -e /usr/bin/pango-querymodules ] ; then
+  		pango-querymodules --update-cache
+  	fi
   fi
 
-  if grep -m 1 "/usr/lib/gtk-3.0" $PKGFILES |grep -q "/immodules" ; then
-    if [ -e /usr/bin/update-gtk-immodules-3.0 ] ; then
-      update-gtk-immodules-3.0
-    elif [ -e /usr/bin/gtk-query-immodules-3.0 ] ; then
-      gtk-query-immodules-3.0 --update-cache
-    fi
-  fi
-
-  if grep -q -m 1 '/usr/share/fonts/' $PKGFILES ;then
+  if [ "$(grep -q -m 1 '/usr/share/fonts/' $PKGFILES)" != "" ] || [ "$(grep -q -m 1 '/usr/local/share/fonts/' $PKGFILES)" != "" ]; then
     fc-cache -f
   fi
 
-  if grep -q -m 1 "/lib/modules/$(uname -r)/" $PKGFILES ;then
+  if grep -q -m 1 "/lib/modules/$(uname -r)/" $PKGFILES ; then
     depmod -a
+  fi
+
+  for GTKVER in $GTKVERLIST
+  do
+    if [ "$(grep -m 1 "/usr/lib/gtk-$GTKVER" $PKGFILES | grep -q "/immodules")" != "" ] || [ "$(grep -m 1 "/usr/local/lib/gtk-$GTKVER" $PKGFILES | grep -q "/immodules")" != "" ]; then
+  	if [ -e /usr/bin/update-gtk-immodules-$GTKVER ] ; then
+  	  update-gtk-immodules-$GTKVER
+  	elif [ -e /usr/bin/gtk-query-immodules-$GTKVER ] ; then
+  	  gtk-query-immodules-$GTKVER --update-cache
+  	fi
+    fi
+  done
+
+  if [ "$(grep -q -m 1 '/udev/hwdb.d/' $PKGFILES)" != "" ]; then
+    [ "$(udevadm --help 2>&1 | grep hwdb)" != "" ] && udevadm hwdb --update
   fi
 }
 
@@ -480,16 +492,20 @@ get_pkg_ext(){                    # return file extension of $1 FUNCLIST
     *.deb)        echo deb        ;;
     *.pkg.tar.gz) echo pkg.tar.gz ;;
     *.pkg.tar.xz) echo pkg.tar.xz ;;
+    *.pkg.tar.zst) echo pkg.tar.zst ;;
     *.pkg.tgz)    echo pkg.tgz    ;;
     *.pkg.txz)    echo pkg.txz    ;;
+    *.pkg.zst)    echo pkg.zst    ;;
     *.tar.bz2)    echo tar.bz2    ;;
     *.tar.lzma)   echo tar.lzma   ;;
     *.tar.gz)     echo tar.gz     ;;
     *.tar.xz)     echo tar.xz     ;;
+    *.tar.zst)    echo tar.zst    ;;
     *.tbz)        echo tbz        ;;
     *.tgz)        echo tgz        ;;
     *.tlz)        echo tlz        ;;
     *.txz)        echo txz        ;;
+    *.tzst)       echo tzst       ;;
     *.gz)         echo gz         ;;
     *.xz)         echo xz         ;;
     *.rpm)        echo rpm        ;;
@@ -2255,10 +2271,11 @@ convert_repofile(){               # convert repo files formats (pre-woof/post-wo
       [ "$(echo $PKGNAME | grep ".$EX\$")" != "" ]  && PKGNAME="$(echo "$LINE" | cut -f8 -d'|')"
       [ "$(echo $PKGNAME | grep ".deb\$")" != "" ]  && PKGNAME="$(basename $PKGNAME .deb)"
       [ "$(echo $PKGNAME | grep ".rpm\$")" != "" ]  && PKGNAME="$(basename $PKGNAME .rpm)"
-      [ "$(echo $PKGNAME | grep ".txz\$")" != "" ]  && PKGNAME="$(basename $PKGNAME .txz)"
       [ "$(echo $PKGNAME | grep ".tgz\$")" != "" ]  && PKGNAME="$(basename $PKGNAME .tgz)"
-      [ "$(echo $PKGNAME | grep ".tar.xz\$")" != "" ] && PKGNAME="$(basename $PKGNAME .tar.xz)"
+      [ "$(echo $PKGNAME | grep ".txz\$")" != "" ]  && PKGNAME="$(basename $PKGNAME .txz)"
       [ "$(echo $PKGNAME | grep ".tar.gz\$")" != "" ] && PKGNAME="$(basename $PKGNAME .tar.gz)"
+      [ "$(echo $PKGNAME | grep ".tar.xz\$")" != "" ] && PKGNAME="$(basename $PKGNAME .tar.xz)"
+      [ "$(echo $PKGNAME | grep ".tar.zst\$")" != "" ] && PKGNAME="$(basename $PKGNAME .tar.zst)"
       # get size
       SIZE=" $(echo $LINE| cut -f6 -d'|')"
       # get category
@@ -2302,8 +2319,10 @@ convert_repofile(){               # convert repo files formats (pre-woof/post-wo
       [ "$(echo $PKGNAME | grep ".txz\$")" != "" ]    && PKGEXT='.txz'     && PKGNAME="$(basename $PKGNAME .txz)"
       [ "$(echo $PKGNAME | grep ".tar.gz\$")" != "" ] && PKGEXT='.tar.gz'  && PKGNAME="$(basename $PKGNAME .tar.gz)"
       [ "$(echo $PKGNAME | grep ".tar.xz\$")" != "" ] && PKGEXT='.tar.xz'  && PKGNAME="$(basename $PKGNAME .tar.xz)"
+      [ "$(echo $PKGNAME | grep ".tar.zst\$")" != "" ] && PKGEXT='.tar.zst'  && PKGNAME="$(basename $PKGNAME .tar.zst)"
       [ "$(echo $PKGNAME | grep ".pkg.tar.gz\$")" != "" ] && PKGEXT='.pkg.tar.gz' && PKGNAME="$(basename $PKGNAME .pkg.tar.gz)"
       [ "$(echo $PKGNAME | grep ".pkg.tar.xz\$")" != "" ] && PKGEXT='.pkg.tar.xz' && PKGNAME="$(basename $PKGNAME .pkg.tar.xz)"
+      [ "$(echo $PKGNAME | grep ".pkg.tar.zst\$")" != "" ] && PKGEXT='.pkg.tar.zst' && PKGNAME="$(basename $PKGNAME .pkg.tar.zst)"
 
       # get pkg name only .. without versions or suffix
       PKGNAME_ONLY="$(echo "${PKGNAME}" | sed -e 's/-[0-9.]*/-/g' -e 's/-$//')"
@@ -2926,10 +2945,10 @@ pkg_contents(){                   # list package ($1) contents FUNCLIST
     deb)
       dpkg-deb -c "$PKGPATH" 2>/dev/null | grep -v "^/$"
      ;;
-    pet|tar|tar**tcz|*txz|*tgz|*xz|*gz)
+    pet|tar|tar**tcz|*txz|*tgz|*xz|*gz|*tzst)
       # remove leading pkg name from each line of file list
       # (shown if listing *some* pkg file contents)
-      tar -tf "$PKGPATH" 2>/dev/null \
+      tar --force-local -tf "$PKGPATH" 2>/dev/null \
         | sed -e "s#^./${PKGNAME}/#/#g" -e "s#^${PKGNAME}/#/#g" -e "s#^./##g" 2>/dev/null \
         | grep -v ^$ 2>/dev/null \
         | grep -v "^/$"
@@ -3464,6 +3483,7 @@ pkg_build(){                      # build package ($1) from source (see BUILDTOO
         mv /tmp/*.tgz "$WORKDIR" 2>/dev/null
         mv /tmp/*.txz "$WORKDIR" 2>/dev/null
         mv /tmp/*.tar.xz "$WORKDIR" 2>/dev/null
+        mv /tmp/*.tar.zst "$WORKDIR" 2>/dev/null
         echo -e "DONE... The package should be in $WORKDIR."
       fi
 
@@ -3656,20 +3676,22 @@ pkg_unpack(){                     # extract/unpack $1 to current dir FUNCLIST
       return $result
       ;;
     pet)  file -b "$PKGFILE" | grep -i -q "^xz" && comp=xz || comp=gzip ;;
-    tgz)  comp=gzip ;;
-    gz)   comp=gzip ;;
-    tbz)  comp=bzip2 ;;
     bz2)  comp=bzip2 ;;
-    tlz)  comp=lzma ;;
+    gz)   comp=gzip ;;
     lzma) comp=lzma ;;
+    tbz)  comp=bzip2 ;;
+    tgz)  comp=gzip ;;
+    tlz)  comp=lzma ;;
     txz)  comp=xz ;;
+    tzst) comp=zstd ;;
     xz)   comp=xz ;;
+    zst) comp=zstd ;;
   esac
   sync
 
   # if pkg is extractable with tar, then unpack
   case $PKGEXT in
-  pet|tgz|gz|tbz|bz2|tlz|lzma|txz|xz)
+  pet|gz|tbz|bz2|lzma|tlz|tgz|txz|tzst|xz|zst)
     (
       umask 000
       # shellcheck disable=SC2002
@@ -3953,7 +3975,7 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
         sync
         ;;
 
-      *tgz|*txz|*tar.gz|*tar.xz|*xz|*gz)
+      *tgz|*txz|*tar.gz|*tar.xz|*tar.zst|*tzst|*xz|*gz)
 
         pkg_unpack "$i" 1>/dev/null
 
@@ -4853,7 +4875,7 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       PETPKG=${PKGFILE%.pet} #remove trailing ".pet"
 
       head -c -32 ${PETPKG}.pet > ${PETPKG}.tar
-      tar -tf ${PETPKG}.pet 2>/dev/null > /tmp/pkg/file_contents
+      tar --force-local -tf ${PETPKG}.pet 2>/dev/null > /tmp/pkg/file_contents
 
       sort -u /tmp/pkg/file_contents > /tmp/pkg/file_contents_sorted
       mv /tmp/pkg/file_contents_sorted /tmp/pkg/file_contents
@@ -4863,11 +4885,11 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       case "$LINE_PREFIX" in
         "./"*)
           pPATTERN="s%^\\./${PETPKG##*/}%% ; /pet\.specs/d ; /pinstall\.sh/d ; /puninstall\.sh/d ; /^\\/$/d ; "
-          tar --strip=2 --directory="${CURDIR}/${PKGNAME}/" -xf ${PETPKG}.tar
+          tar --force-local --strip=2 --directory="${CURDIR}/${PKGNAME}/" -xf ${PETPKG}.tar
           ;;
         *)
           pPATTERN="s%^${PETPKG##*/}%%     ; /pet\.specs/d ; /pinstall\.sh/d ; /puninstall\.sh/d ; /^\\/$/d ; "
-          tar --strip=1 --directory="${CURDIR}/${PKGNAME}/" -xf ${PETPKG}.tar
+          tar --force-local --strip=1 --directory="${CURDIR}/${PKGNAME}/" -xf ${PETPKG}.tar
           ;;
       esac
 
@@ -4936,7 +4958,7 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       cd - 1>/dev/null || exit 1
     ;;
 
-    *tgz|*txz|*tzst|*tar.gz|*tar.xz|*tar.zst|*tlz|*tar.lzma|*tbz|*tar.bz2)
+    *tgz|*txz|*tzst|*tar.gz|*tar.xz|*tar.zst|*tzst|*tlz|*tar.lzma|*tbz|*tar.bz2|*tar.zst)
       rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
       mkdir -p "${CURDIR}/${PKGNAME}"
       PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.${pkg_ext}")"
@@ -4945,9 +4967,9 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       case "$pkg_ext" in
         *tbz|*tar.bz2)  bzip2 -dc "${PKGNAME}.$pkg_ext" | tar -xf - 2> $TMPDIR/$SELF-cp-errlog ;;
         *tlz|*tar.lzma) lzma -dc "${PKGNAME}.$pkg_ext"  | tar -xf - 2> $TMPDIR/$SELF-cp-errlog ;;
-        *) tar -xf "${PKGNAME}.$pkg_ext" 2> $TMPDIR/$SELF-cp-errlog ;;
+        *) tar --force-local -xf "${PKGNAME}.$pkg_ext" 2> $TMPDIR/$SELF-cp-errlog ;;
       esac
-      tar -tf "${PKGNAME}.$pkg_ext" > ${REPO_DIR}/${PKGNAME}.files
+      tar --force-local -tf "${PKGNAME}.$pkg_ext" > ${REPO_DIR}/${PKGNAME}.files
       rm "${PKGNAME}.$pkg_ext"
       cd - 1>/dev/null || exit 1
     ;;
@@ -5743,8 +5765,10 @@ pkg_uninstall(){                  # remove an installed package ($1) FUNCLIST
   PKGNAME="$(basename "$PKGNAME" .sfs)"
   PKGNAME="$(basename "$PKGNAME" .tar.gz)"
   PKGNAME="$(basename "$PKGNAME" .tar.xz)"
+  PKGNAME="$(basename "$PKGNAME" .tar.zst)"
   PKGNAME="$(basename "$PKGNAME" .tgz)"
   PKGNAME="$(basename "$PKGNAME" .txz)"
+  PKGNAME="$(basename "$PKGNAME" .tzst)"
   PKGNAME=$(get_pkg_name "$PKGNAME")
 
   # get pkg name only .. without versions or suffix
@@ -7090,7 +7114,7 @@ pet2sfs(){                        # convert pet to sfs, $1 must be file or repo 
   pet2tgz "${PKGFILE}" 1>/dev/null
 
   # now extract the files into $CURDIR/$PKGNAME/
-  tar $taropts "${PKGFILE//.pet/.tar.$TAREXT}" 2> $TMPDIR/$SELF-cp-errlog
+  tar --force-local $taropts "${PKGFILE//.pet/.tar.$TAREXT}" 2> $TMPDIR/$SELF-cp-errlog
 
   # if DISTRO_VERSION found, the sfs will prob have a suffix
   [ "$DISTRO_VERSION" != "" ] && SFS_SUFFIX="_${DISTRO_VERSION}" || SFS_SUFFIX=''
@@ -7270,9 +7294,9 @@ tgz2pet(){                        # convert $1 (a tar.gz or tgz) to .pet FUNCLIS
 
   # if tarball expands direct to '/' want to wrap around it (slackware pkg)... 100628 add -z ...
   # man bad bug here... the thing isn't expanded! #131122
-  if [ "`tar ${OPT} --list -f ${TARBALL} | head -n 1`" = "./" ];then
-    tar --one-top-level=${BASEPKG} -xf ${TARBALL}
-    tar --remove-files -c -f ${DIRPKG}/${BASEPKG}.tar ${BASEPKG}/
+  if [ "`tar --force-local ${OPT} --list -f ${TARBALL} | head -n 1`" = "./" ];then
+    tar --force-local --one-top-level=${BASEPKG} -xf ${TARBALL}
+    tar --force-local --remove-files -c -f ${DIRPKG}/${BASEPKG}.tar ${BASEPKG}/
     case $EXT in
     *gz) gzip --force --best ${DIRPKG}/${BASEPKG}.tar ;;
     *xz) xz --force -z -9 -e ${DIRPKG}/${BASEPKG}.tar ;;
@@ -7317,7 +7341,7 @@ txz2pet(){                        # convert txz to pet, requires $1 as valid fil
   mkdir -p "${CURDIR}/${BARENAME}"
   [ ! -d "${CURDIR}/${BARENAME}" ] && { echo "PET directory not created or found."; exit 1; }
   # unpack the file
-  [ -f "$FILENAME" ] && tar -Jxvf "$FILENAME" -C "${BARENAME}/" 1>/dev/null || echo "Cannot untar $FILENAME"
+  [ -f "$FILENAME" ] && tar --force-local -Jxvf "$FILENAME" -C "${BARENAME}/" 1>/dev/null || echo "Cannot untar $FILENAME"
   # create the pet file
   dir2pet "$BARENAME" || echo "PET working directory not found"
 
