@@ -4843,7 +4843,6 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
 
   # get filename from download file
   PKGNAME=$(basename "$PKGFILE" .$pkg_ext)
-
   # ask/inform user before install
   echo -n "Install package ${PKGNAME}$QTAG:  "
   [ "$ASK" = true ] && read -n 1 CONFIRM </dev/tty || CONFIRM=y
@@ -4871,7 +4870,7 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
     pet) # needs tar 1.26+
       rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
       mkdir -p "${CURDIR}/${PKGNAME}"
-      PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.pet")"
+      [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.pet")"
       PETPKG=${PKGFILE%.pet} #remove trailing ".pet"
 
       head -c -32 ${PETPKG}.pet > ${PETPKG}.tar
@@ -4919,7 +4918,7 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
     ;;
 
     sfs)
-      PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.sfs")"
+      [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.sfs")"
       [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${WORKDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.sfs")"
       echo sfs_load -q --cli +"$PKGFILE" #2>/dev/null
       sfs_load -q --cli +"$PKGFILE" #2>/dev/null
@@ -4961,7 +4960,7 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
     *tgz|*txz|*tzst|*tar.gz|*tar.xz|*tar.zst|*tzst|*tlz|*tar.lzma|*tbz|*tar.bz2|*tar.zst)
       rmdir "${CURDIR}/${PKGNAME}" &>/dev/null
       mkdir -p "${CURDIR}/${PKGNAME}"
-      PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.${pkg_ext}")"
+      [ ! -f "$PKGFILE" ] && PKGFILE="$(find ${CURDIR} -mount -maxdepth 1 -type f -name "${PKGNAME}*.${pkg_ext}")"
       cp "$PKGFILE" "${CURDIR}/${PKGNAME}/${PKGNAME}.$pkg_ext" || exit 4
       cd "${CURDIR}/${PKGNAME}/" || exit 1
       case "$pkg_ext" in
