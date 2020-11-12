@@ -6278,7 +6278,7 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
   mv ${TMPDIR}/all_deps_sorted ${TMPDIR}/all_deps
 
   # remove tmp files, no longer needed
-  rm ${TMPDIR}/all_deps_*
+  rm ${TMPDIR}/all_deps_* &>/dev/null
 
   # remove any deps in installed pkgs list from all deps.. to leave only missing deps
   if [ -f ${TMPDIR}/installed_pkgs ] && [ -s  ${TMPDIR}/installed_pkgs ];then
