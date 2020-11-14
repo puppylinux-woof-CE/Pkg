@@ -2931,8 +2931,13 @@ pkg_contents(){                   # list package ($1) contents FUNCLIST
     return 0
   fi
 
+  if [ -f "$1" ];then
+    PKGPATH="$1"
+  fi
+
   # try a file in the current dir if needed
   [ ! -f "${PKGPATH}" ] && PKGPATH="$(find "$WORKDIR" -type f -name "${PKGFILE}")"
+  [ ! -f "${PKGPATH}" ] && PKGPATH="$(find "$CURDIR" -type f -name "${PKGFILE}")"
   [ ! -f "${PKGPATH}" ] && PKGPATH="$(find ~/pkg/ -type f -name "${PKGFILE}")"
 
   # if the pkg is a local file
@@ -2944,14 +2949,15 @@ pkg_contents(){                   # list package ($1) contents FUNCLIST
     ;;
     deb)
       dpkg-deb -c "$PKGPATH" 2>/dev/null | grep -v "^/$"
-     ;;
-    pet|tar|tar**tcz|*txz|*tgz|*xz|*gz|*tzst)
+    ;;
+    pet|tar|tar**tcz|*txz|*tgz|*xz|*gz|*tzst|*zst)
       # remove leading pkg name from each line of file list
       # (shown if listing *some* pkg file contents)
-      tar --force-local -tf "$PKGPATH" 2>/dev/null \
-        | sed -e "s#^./${PKGNAME}/#/#g" -e "s#^${PKGNAME}/#/#g" -e "s#^./##g" 2>/dev/null \
+      tar --force-local -tvf "$PKGPATH" 2>/dev/null \
+        | sed -e "s#.*\./${PKGNAME}/#/#g" -e "s#^${PKGNAME}/#/#g" -e "s#^./##g" 2>/dev/null \
         | grep -v ^$ 2>/dev/null \
-        | grep -v "^/$"
+        | grep -v "^/$" \
+        | sort -u
     ;;
     rpm)
       busybox rpm -qlp "$PKGPATH" 2>/dev/null | grep -v "^/$"
