@@ -577,6 +577,10 @@ get_pkg_version(){                # returns version of PKGNAME ($1) FUNCLIST
         -e "s/^nls-//g" \
         -e "s/+deb.*//g" \
         -e "s/+ubuntu.*//g" \
+        -e "s/_amd64.*//g"  \
+        -e "s/_arm64.*//g"  \
+        -e "s/_armel.*//g"  \
+        -e "s/_armhf.*//g"  \
         -e "s/-i[346].*//g" \
         -e "s/-x[86].*//g" \
         -e "s/-pup.*//g" \
@@ -652,16 +656,7 @@ get_pkg_name_only_from_ext(){     # return package name from $1 (must include fi
     ;;
   esac
 
-  PKGNAME_ONLY="${PKGNAME_ONLY//.pet/}"
-  PKGNAME_ONLY="${PKGNAME_ONLY//\.${EX:-noextension}/}"
-  PKGNAME_ONLY="${PKGNAME_ONLY//\.${pkg_ext:-noextension}/}"
-  PKGNAME_ONLY="${PKGNAME_ONLY//_amd64/}"
-  PKGNAME_ONLY="${PKGNAME_ONLY//_arm64/}"
-  PKGNAME_ONLY="${PKGNAME_ONLY//_armel/}"
-  PKGNAME_ONLY="${PKGNAME_ONLY//_armhf/}"
-  PKGNAME_ONLY="${PKGNAME_ONLY//_i[3-6]86/}"
-  PKGNAME_ONLY="${PKGNAME_ONLY//_x84_64/}"
-  PKGNAME_ONLY="${PKGNAME_ONLY//_all/}"
+  PKGNAME_ONLY="$(strip_package_filename $PKGNAME_ONLY)"
 
   # remove the +20080738 from packages with dates in the version
   PKGNAME_ONLY="$(echo "$PKGNAME_ONLY" | sed -e 's/+19.*//g' -e 's/+20.*//g')"
@@ -705,16 +700,7 @@ get_pkg_name_only(){              # return pkg name only from $1, with no versio
         name_only=$(get_pkg_name_only_from_ext "$(basename "${1}.${pkg_ext:-$EX}")"| head -1)
 
         name_only="${name_only// */}"
-        name_only="${name_only//.pet/}"
-        name_only="${name_only//\.${EX:-noextension}/}"
-        name_only="${name_only//\.${pkg_ext:-noextension}/}"
-        name_only="${name_only//_amd64/}"
-        name_only="${name_only//_arm64/}"
-        name_only="${name_only//_armel/}"
-        name_only="${name_only//_armhf/}"
-        name_only="${name_only//_i[3-6]86/}"
-        name_only="${name_only//_x84_64/}"
-        name_only="${name_only//_all/}"
+        name_only="$(strip_package_filename $name_only)"
 
         [ "$name_only" != '' ] && [ "$name_only" != "$1" ] && echo "$name_only" && return 0
         ;;
@@ -778,16 +764,7 @@ get_pkg_name_only(){              # return pkg name only from $1, with no versio
   # remove the +20080738 from packages with dates in the version
   pkg_name_only="$(echo "$pkg_name_only" | sed -e 's/\+19.*//g' -e 's/\+20.*//g')"
 
-  pkg_name_only="${pkg_name_only//.pet/}"
-  pkg_name_only="${pkg_name_only//\.${EX:-noextension}/}"
-  pkg_name_only="${pkg_name_only//\.${pkg_ext:-noextension}/}"
-  pkg_name_only="${pkg_name_only//_amd64/}"
-  pkg_name_only="${pkg_name_only//_arm64/}"
-  pkg_name_only="${pkg_name_only//_armel/}"
-  pkg_name_only="${pkg_name_only//_armhf/}"
-  pkg_name_only="${pkg_name_only//_i[3-6]86/}"
-  pkg_name_only="${pkg_name_only//_x84_64/}"
-  pkg_name_only="${pkg_name_only//_all/}"
+  pkg_name_only="$(strip_package_filename $pkg_name_only)"
 
   # the sed bit changes 'liblzma5+20120614' to 'liblzma5'
   # shellcheck disable=SC2001
@@ -816,60 +793,48 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
   # get the relevant repo contents (fields 1,2,8) from all repos,
   # then add pipes to line start/end for easier parsing later, then do
   # a basic search, for $pkg* (we'll refine it later), to avoid 'Argument list too long'..
-  cut -f1,2,8 $supported_repo_files ${REPO_DIR}/woof-installed-packages \
-    | sed \
-      -e "s/^/|/g" \
-      -e "s/$/|/g" 2>/dev/null \
-    | grep -i "|$pkg_name" > ${TMPDIR}/repo_contents
-
+  if [ ! -f ${TMPDIR}/repo_contents ];then
+    cut -f1,2,8 $supported_repo_files ${REPO_DIR}/woof-installed-packages \
+      | sed \
+        -e "s/^/|/g" \
+        -e "s/$/|/g" 2>/dev/null \
+      | grep -i "|$pkg_name" > ${TMPDIR}/repo_contents
+  fi
 
   # get fields 1,2 and 8 (the 3 name fields) from all supported repo files, then
   # add '|' to start and end of lines, then find exact match of $pkg_name..
   # if no exact match, look for $pkg_name-*, then $pkg_name_*
   if [ -f ${TMPDIR}/repo_contents ];then
 
-    full_name=$(  grep -m1 "|${pkg_name}|"      "${TMPDIR}/repo_contents" 2>/dev/null)  || \
-      full_name=$(grep -m1 "|${pkg_name//-*/}|" "${TMPDIR}/repo_contents" 2>/dev/null)  || \
-      full_name=$(grep -m1 "|${pkg_name//_*/}|" "${TMPDIR}/repo_contents" 2>/dev/null)  || \
-      full_name=$(grep -m1 "|${pkg_name}-"      "${TMPDIR}/repo_contents" 2>/dev/null)  || \
-      full_name=$(grep -m1 "|${pkg_name}_"      "${TMPDIR}/repo_contents" 2>/dev/null)  || \
-      full_name=$(grep -m1 "|${pkg_name}"       "${TMPDIR}/repo_contents" 2>/dev/null)  || \
-      full_name=$(grep -m1 "^${pkg_name}|"      "${TMPDIR}/repo_contents" 2>/dev/null)  || \
-      full_name=$(grep -m1 "^${pkg_name}-"      "${TMPDIR}/repo_contents" 2>/dev/null)  || \
-      full_name=$(grep -m1 "^${pkg_name}_"      "${TMPDIR}/repo_contents" 2>/dev/null)
-
-      full_name="${full_name//.pet/}"
-      full_name="${full_name//.${EX:-noextension}/}"
-      full_name="${full_name//.${pkg_ext:-noextension}/}"
-      full_name="${full_name//_amd64/}"
-      full_name="${full_name//_arm64/}"
-      full_name="${full_name//_armel/}"
-      full_name="${full_name//_armhf/}"
-      full_name="${full_name//_i[3-6]86/}"
-      full_name="${full_name//_x84_64/}"
-      full_name="${full_name//_all/}"
+    full_name=$(grep -m1 "|${pkg_name}|"           "${TMPDIR}/repo_contents" 2>/dev/null) \
+      || full_name=$(grep -m1 "|${pkg_name//-*/}|" "${TMPDIR}/repo_contents" 2>/dev/null) \
+      || full_name=$(grep -m1 "|${pkg_name//_*/}|" "${TMPDIR}/repo_contents" 2>/dev/null) \
+      || full_name=$(grep -m1 "|${pkg_name}-"      "${TMPDIR}/repo_contents" 2>/dev/null) \
+      || full_name=$(grep -m1 "|${pkg_name}_"      "${TMPDIR}/repo_contents" 2>/dev/null) \
+      || full_name=$(grep -m1 "|${pkg_name}"       "${TMPDIR}/repo_contents" 2>/dev/null) \
+      || full_name=$(grep -m1 "^${pkg_name}|"      "${TMPDIR}/repo_contents" 2>/dev/null) \
+      || full_name=$(grep -m1 "^${pkg_name}-"      "${TMPDIR}/repo_contents" 2>/dev/null) \
+      || full_name=$(grep -m1 "^${pkg_name}_"      "${TMPDIR}/repo_contents" 2>/dev/null)
   fi
 
   rm ${TMPDIR}/repo_contents &>/dev/null
   # if we found pkg in repo, keep only the package name ('|pkg-123|pkg|blah|' -> 'pkg-123')
-  [ "$full_name" != '' ] && full_name=$(echo $full_name| cut -f2 -d '|' | tr -d '|') || full_name="$pkg_name"
+  if [ "$full_name" != '' ];then
+    full_name=$(echo $full_name | cut -f2 -d '|' | tr -d '|')
+  else
+    full_name="$pkg_name"
+  fi
 
   # if we have a package name, return it here and leave the func
   [ "$full_name" != '' ] && echo $full_name && return 0
 
   # if dealing with local files, .deb packages have the arch appended at
   # the end, before the extension, so we'll need to remove that (if there)
-  pkg_name="${pkg_name//_amd64/}"
-  pkg_name="${pkg_name//_arm64/}"
-  pkg_name="${pkg_name//_armel/}"
-  pkg_name="${pkg_name//_armhf/}"
-  pkg_name="${pkg_name//_i[3-6]86/}"
-  pkg_name="${pkg_name//_x84_64/}"
-  pkg_name="${pkg_name//all/}"
+  pkg_name="$(strip_package_filename $pkg_name)"
 
   # if no pkg found in repos, we cant translate/lookup its longer name,
   # so just return what we got, without path, without pkg extension
-  [ "$full_name" = '' ] && basename "$pkg_name" .${pkg_ext:-${EX:-noextension}}
+  [ "$full_name" = '' ] && basename "$pkg_name" .${pkg_ext:-$EX}
 }
 
 
@@ -909,6 +874,24 @@ get_pkg_filename(){              # return filename of $1, if its a local file or
   [ ! -z "$pkgname" ] && echo "$pkgname" | grep -v ^$ | head -1
 }
 
+strip_package_filename() {
+  [ -z "$1" ] && return 1
+  local p="${1//_all/}"
+  p="${p//.pet/}"
+  p="${p//.${EX:-noextension}/}"
+  p="${p//.${pkg_ext:-noextension}/}"
+  p="${p//_amd64/}"
+  p="${p//_arm64/}"
+  p="${p//_armel/}"
+  p="${p//_armhf/}"
+  p="${p//_i[3-6]86/}"
+  p="${p//_x64/}"
+  p="${p//_x84_64/}"
+  p="${p//~dfsg-[0-9]/}"
+  p="${p//~dsfg-[0-9]/}"
+  p="${p//~[a-z]*[0-9]/}"
+  echo "$pkgdir"
+}
 
 get_pkg_category(){
   # $1 must be PKGNAME_ONLY ('gimp', 'vlc', etc)
@@ -1548,8 +1531,21 @@ repo_file_list(){                 # list available repo files, $1 optional FUNCL
   # set vars for this func
   local list=''
   local repo_file=''
-  local repo_files=$(cut -f3 -d'|' ${HOME}/.pkg/sources)
+  local repo_files=""
+  local repo_files_init=$(cut -f3 -d'|' ${HOME}/.pkg/sources)
   local current_fallback_list=$(grep "^$REPONAME|" ${HOME}/.pkg/sources | cut -f8 -d'|' | grep -v "^\$")
+
+  # filter out repo files not available on this system.
+  for repo in $repo_files_init
+  do
+  if [ -f "${REPODIR}/${repo}" ]; then
+  	if [ -z "$repo_files" ]; then
+  		repo_files="${repo}"
+  	else
+  		repo_files="${repo_files}"$'\n'"${repo}"
+  	fi
+  fi
+  done
 
   # get current repo fallback list order.. note if repo not listed in fallback list, it will be appended after
   for line in $current_fallback_list
@@ -3746,7 +3742,7 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
   PKGNAME=$(get_pkg_name "$PKGNAME")
   PKGNAME_ONLY=$(get_pkg_name_only "$PKGNAME")
 
-  PKG_FILE="${WORKDIR}/${PKGNAME}.$EX" #the file to install
+  PKG_FILE="${WORKDIR}/${PKGNAME}.$EX"
 
   # we want to include all deps, except builtins, by default
   # we dont set HIDE_BUILTINS here, we leave that up to user
@@ -3837,8 +3833,10 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
 
       # re-try download in other repos if needed
       if [ ! -f "$PKGDEP" ];then
-        PKGREPO=''; PKGREPO="$(LANG=C which_repo $LINE | cut -f2 -d' ' | head -1)"
+        OLDPKGREPO=$PKGREPO
+        PKGREPO="$(LANG=C which_repo $LINE | cut -f2 -d' ' | head -1)"
         [ "$PKGREPO" != "" ] && ASK=false pkg_download "$LINE"
+        PKGREPO=$OLDPKGREPO
       fi
 
       #if downloaded
@@ -3862,14 +3860,13 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
 
     PARENTPKG=${PKGNAME}
 
-    # for all pkgs in the tmp dir (nto including any 'combined' pkgs)
+    # for all pkgs in the tmp dir (not including any 'combined' pkgs)
     TMP_PKGS="$(find "$BUILD_DIR/" -maxdepth 1 -type f -name "*" | grep -v $SUFFIX | grep -v ^$ | grep -v ' ' | sort -u)"
 
     local count=1
 
     for i in $TMP_PKGS
     do
-
       # skip if not a valid pkg file
       [ -z "$i" ] || [ "$i" = ' ' ] || [ ! -f "$i" ] && continue
 
@@ -3879,18 +3876,23 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
       # get the extensions of each file .. they might be from different repos, so cant use $EX
       base="$(basename "$i" 2>/dev/null)"
       FILE_EXT=$(get_pkg_ext "$base")
+      if [ ! "$FILE_EXT" ] || [ "$FILE_EXT" = ' ' ] || [ "$FILE_EXT" = '' ];then
+        error "Skipping $i: could not get extension"
+        continue
+      fi
 
-      [ ! "$base" ] || [ "$base" = ' ' ] || [ "$base" = '' ] && continue
-
-      # get name without version for this pkg ($i)
-      name_only=$(get_pkg_name_only "$i")
-
-      [ ! "$name_only" ] || [ "$name_only" = ' ' ] || [ "$name_only" = '' ] && continue
+      # get name without version for this pkg ($base is name without extension)
+      name_only=$(get_pkg_name_only "$base")
+      if [ ! "$name_only" ] || [ "$name_only" = ' ' ] || [ "$name_only" = '' ];then
+        error "Skipping $i: could not get package name"
+        continue
+      fi
 
       if [ "$(is_blacklisted_pkg "$name_only")" = true ];then
         continue
       fi
 
+      # ask to add package if --ask was given
       CONFIRM=y
       if [ "$ask_opt" = true ];then
         echo -n "Add package: $name_only  ($FILE_EXT)  (y/N):  "
@@ -3933,30 +3935,30 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
 
       deb)
 
-        #cp "$i" "$BUILD_DIR/${PARENTPKG}-${SUFFIX}"
         pkg_unpack "$i" 2>$TMPDIR/$SELF-cp-errlog
+        sync
+
         dpkg-deb -e "$i" "$BUILD_DIR/${PARENTPKG}-${SUFFIX}/DEBIAN"
+
+        local pkg_dir="${i/.deb/}/"
+
+        if [ ! -d "$pkg_dir" ];then
+          needle="$(get_pkg_name "$i")"
+          pkg_dir="$(find "${BUILD_DIR}" -type d -iname "$needle" | head -1)"
+        fi
 
         # .deb package names often have extra stuff at the end of the file name
         # that does not exist in the root folder name, inside the package.. so
         # we need to strip off that extra stuff to get the correct unpacked
         # package dir
-        local pkg_dir="${i/.deb/}/"
-        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_all/}"
-        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_i[3-6]86/}"
-        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_amd64/}"
-        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_amd64/}"
-        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_x64/}"
-        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_arm64/}"
-        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_armel/}"
-        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/_armhf/}"
-        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/~dfsg-[0-9]/}"
-        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/~dsfg-[0-9]/}"
-        [ ! -d "$pkg_dir" ] && pkg_dir="${pkg_dir/~[a-z]*[0-9]/}"
+        if [ ! -d "$pkg_dir" ];then
+          pkg_dir=$(strip_package_filename "$pkg_dir")
+        fi
 
         if [ ! -d "$pkg_dir" ];then
-          needle="$(get_pkg_name "$i")"
-          pkg_dir="$(find "${BUILD_DIR}" -type d -iname "$needle" | head -1)"
+          # the folders unpacked do not always match $PKGNAME, so look for it
+          pkg_dir_FIRST5CHARS=$(echo "${pkg_dir:0:5}")
+          pkg_dir=$(find "$BUILD_DIR" -maxdepth 1 -type d -name "$pkg_dir_FIRST5CHARS*" | sed 's#.*/##g')
         fi
 
         if [ ! -d "$pkg_dir" ];then
@@ -3966,10 +3968,12 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
         # copy extracted contents (only the stuff inside the extracted folders)
         cp -a --preserve=all -fr -L "${pkg_dir}/"* "${PARENTPKG}-${SUFFIX}/"
 
+        # move the post install of this package into dir of new combined package
         if [ -f "${pkg_dir}DEBIAN/postinst" ];then
           mv "${pkg_dir}DEBIAN/postinst" "${PARENTPKG}-${SUFFIX}/DEBIAN/postinst_${count}"
         fi
 
+        # move the pre install of this package into dir of new combined package
         if [ -f "${pkg_dir}DEBIAN/preinst" ];then
           mv "${pkg_dir}DEBIAN/preinst" "${PARENTPKG}-${SUFFIX}/DEBIAN/preinst_${count}"
         fi
@@ -3984,10 +3988,12 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
       *tgz|*txz|*tar.gz|*tar.xz|*tar.zst|*tzst|*xz|*gz)
 
         pkg_unpack "$i" 1>/dev/null
+        sync
 
         # now copy $BUILD_DIR/$PKGNAME/* into our output (combined pkg) dir
         cp -a --preserve=all -fr -L "${name_only}/"* "${PARENTPKG}-${SUFFIX}/" || error "Dir '${name_only}/' does not exist!"
 
+        # move the pre install of this package into dir of new combined package
         if [ -f "${PARENTPKG}-${SUFFIX}/install/doinst.sh" ];then
           mv "${PARENTPKG}-${SUFFIX}/install/doinst.sh" "${PARENTPKG}-${SUFFIX}/install/doinst_${count}.sh"
         fi
@@ -4001,10 +4007,12 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
 
       rpm)
         pkg_unpack "$i" 1>/dev/null
+        sync
 
         # now copy $BUILD_DIR/$PKGNAME/* into our output (combined pkg) dir
         cp -a --preserve=all -fr -L "${name_only}/"* "${PARENTPKG}-${SUFFIX}/"
 
+        # move the pre install of this package into dir of new combined package
         if [ -f "${PARENTPKG}-${SUFFIX}/install/doinst.sh" ];then
           mv "${PARENTPKG}-${SUFFIX}/install/doinst.sh" "${PARENTPKG}-${SUFFIX}/install/doinst_${count}.sh"
         fi
@@ -4025,30 +4033,44 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
     local pinstall_file="$BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall.sh"
 
     # append this pinstall/postinst/doinst script to a new pinstall.sh
-    echo '#!/bin/sh' > "$pinstall_file"
+    if [ ! -f $pinstall_file ];then
+      echo '#!/bin/sh' > "$pinstall_file"
+      echo 'set -e'   >> "$pinstall_file"
+    fi
 
     # concat the post install scripts (for puppy, slackware, arch, debian/ubuntu, etc) into 'pinstall.sh'
-    for i in ${PARENTPKG}-${SUFFIX}/pinstall_* ${PARENTPKG}-${SUFFIX}/install/doinst_* ${PARENTPKG}-${SUFFIX}/DEBIAN/postinst_*
+    for i in ${PARENTPKG}-${SUFFIX}/pinstall_* ${PARENTPKG}-${SUFFIX}/install/doinst_* ${PARENTPKG}-${SUFFIX}/DEBIAN/postinst_* ${PARENTPKG}-${SUFFIX}/DEBIAN/preinst_*
     do
-      [ ! -f ${PARENTPKG}-${SUFFIX}/${i} ] && continue
+      # not all packages have these post install files, so skip if its not there
+      [ ! -f ${i} ] && continue
+      # if we have a post or preinstall script, append it to pinstall.sh
+      (
+        # process into a pinstall file:
+        # - change /usr/bin/foo to usr/bin/foo
+        # - remove exits
+        grep -vE '^#!|^set \-e|^exit|exit 0|exit 1' ${i} \
+          | sed \
+            -e "s# /bin# bin#g" \
+            -e "s# /etc# etc#g" \
+            -e "s# /lib# lib#g" \
+            -e "s# /lib32# lib32#g" \
+            -e "s# /lib32# lib32#g" \
+            -e "s# /lib64# lib64#g" \
+            -e "s# /opt# opt#g" \
+            -e "s# /sbin# sbin#g" \
+            -e "s# /usr# usr#g" \
+            -e "s# /var# var#g" >> "$pinstall_file"
 
-      cd ${PARENTPKG}-${SUFFIX}/ 2>/dev/null || exit 1
-
-      for file in find . -type f -iname "$(basename "$i")"
-      do
-        if [ -f "$file" ];then
-          echo "Appending ${file} to $pinstall_file"
-          grep -vE '^#!|^exit|exit 0|exit 1' ${file} >> "$pinstall_file"
-          echo '' >> "$pinstall_file"
-        fi
-      done
-      # we have combined the pre/post install stuff in $i into a new, combined file,
-      # so remove the original
-      rm -f ${PARENTPKG}-${SUFFIX}/${i}
+        echo '' >> "$pinstall_file"
+        # we have combined the pre/post install stuff in $i into a new,
+        # combined file, so remove the original
+        rm -f ${i}
+      )
     done
 
-    chmod +x $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall.sh 2>/dev/null
-
+    if [ -f $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall.sh ];then
+      chmod +x $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall.sh
+    fi
     # remove any debian/ubuntu/slackware pre/post install stuff left in the package
     rm -rf $BUILD_DIR/${PARENTPKG}-${SUFFIX}/pinstall_*
     rm -rf $BUILD_DIR/${PARENTPKG}-${SUFFIX}/install
@@ -4066,7 +4088,6 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
         )
       fi
     done
-
 
     # now we are ready to build our combined pkg
     [ "$PWD" != "$BUILD_DIR" ] && { cd "$BUILD_DIR/" || exit 1; }
@@ -4116,7 +4137,7 @@ pkg_combine(){                    # combine a pkg ($1) and deps into one single 
       dir2sfs "${PKGNAME}-${SUFFIX}" 1>/dev/null
 
       # get the full file name, it may (or not) have been appended with '-DISTRO_VERSION'
-      SFS_FILE=$(find . -maxdepth 1 -type f -name "*${PKGNAME}-${SUFFIX}*.sfs" | head -1)
+      SFS_FILE=$(find . -maxdepth 1 -type f -name "*${PKGNAME}*-${SUFFIX}*.sfs" | head -1)
 
       s=$(LANG=C du -m "${SFS_FILE}" | sed "s/\s.*//")
       MD5SUM=$(md5sum "$SFS_FILE" | cut -f1 -d ' ')
@@ -5039,7 +5060,7 @@ pkg_install(){                    # install downloaded package ($1) FUNCLIST
       chmod +x /${i}
       cd /
       nohup sh ${i} &>/dev/null
-      sleep 0.2
+      sleep 0.1
       rm -f ${i:-?}
       cd ${CURDIR}/ || exit 1
     done
@@ -6812,7 +6833,7 @@ deb2pet(){                        # $1 must be valid deb file or repo pkg FUNCLI
     #example, will be something like FOLDR=$HOME/Desktop/atari800_3.1.0-2+b2_i386
     FOLDR="$(echo "$DEB"|sed 's/\.deb$//')"
 
-    #make the new dir, copy the deb file into it, and ci into it
+    #make the new dir, copy the deb file into it, and cd into it
     mkdir -p "$FOLDR"; cp "$DEB" "$FOLDR"; cd "$FOLDR";
 
     #get the new full path and filename
@@ -6824,12 +6845,19 @@ deb2pet(){                        # $1 must be valid deb file or repo pkg FUNCLI
     #this will be something like  PKGNAME=atari800_3.1.0-2+b2_i386
     PKGNAME="`basename "$DEB" .deb`"
 
+    # the folders unpacked do not always match $PKGNAME, so look for it
+    FOLDR_FIRST5CHARS=$(echo "${FOLDR:0:5}")
+    PKGNAME=$(find "$CURDIR/$FOLDR" -maxdepth 1 -type d -name "$FOLDR_FIRST5CHARS*" | sed 's#.*/##g')
+
     #now we package up the stuff into a pet
-    [ -d "${FOLDR}/$PKGNAME" ] && dir2pet "${FOLDR}/$PKGNAME" || dir2pet "$PKGNAME"
+    [ -d "${CURDIR}/${FOLDR}/${PKGNAME}" ] \
+      && dir2pet "${CURDIR}/${FOLDR}/${PKGNAME}" \
+      || error "Directory '${CURDIR}/${FOLDR}/${PKGNAME}' could not be found after unpacking '$DEB'."
 
     [ ! -f "$FOLDR.pet" ] && [ ! -f "${CURDIR}/${PKGNAME}.pet" ] && error "$FOLDR.deb NOT converted to PET package!"
 
     #clean up
+    cd "$CURDIR"
     rm -rf "$FOLDR"
 
   else
