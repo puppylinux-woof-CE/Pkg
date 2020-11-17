@@ -250,7 +250,7 @@ get_blacklist(){
 
 get_blacklist
 # create a list like "foo|bar|baz", to be used in grep commands
-PKG_BLACKLIST_REGEX="$(echo "$PKG_BLACKLIST" | tr '\n' '|' | sed -e 's/^|//' -e 's/|$//')"
+PKG_BLACKLIST_REGEX="$(echo "$PKG_BLACKLIST" | tr '\n' '|' | sed -e 's/^|//' -e 's/|$//' -e 's#|#|^#g')"
 export PKG_BLACKLIST_REGEX
 
 # remove error code flag if we got here
@@ -834,7 +834,7 @@ get_pkg_name(){                   # return full pkg name (with version) from $1 
 
   # if no pkg found in repos, we cant translate/lookup its longer name,
   # so just return what we got, without path, without pkg extension
-  [ "$full_name" = '' ] && basename "$pkg_name" .${pkg_ext:-$EX}
+  [ "$full_name" = '' ] && basename "$pkg_name" .${pkg_ext:-${EX:-noextension}}
 }
 
 
@@ -2449,7 +2449,6 @@ list_pkg_names(){                 # list pkg names in current repo only ($1 is o
   if [ $HIDE_INSTALLED = true ];then
     hide_installed_pkgs_from_search_results
   fi
-
   hide_blacklisted_pkgs_from_search_results
 
   # support pkg name aliases in finding packages
@@ -5601,7 +5600,7 @@ pkg_get(){                        # find, download and install $1 and its deps F
     fi
 
     # get deps early (if any)
-    list_deps "$pkg_name" > ${TMPDIR}/${pkg_name}_dep_list &
+    list_deps "$pkg_name" > ${TMPDIR}/${pkg_name}_bgdep_list &
 
     local pkg_is_builtin=$(is_builtin_pkg "$pkg_name_only")
     local pkg_is_in_devx=$(is_devx_pkg "$pkg_name_only")
@@ -6248,7 +6247,6 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
     deps_list_file="${TMPDIR}/all_deps_${i}"
 
     if [ ! -s $deps_list_file ];then
-      rm /tmp/pkg/list_deps_busy 2>/dev/null
       continue
     fi
 
@@ -6341,7 +6339,6 @@ list_deps(){                      # list all deps of PKG ($1), space separated o
 
 
 find_deps(){                      # given a package name ($1), makes 2 lists: DEPS_INSTALLED and DEPS_MISSING FUNCLIST
-
   # This function takes 1 argument: PKGNAME
   #
   # PKGNAME should be the name of a package in one of your repos,
@@ -6523,15 +6520,14 @@ get_deps(){                       # find, get and install the deps of pkgname ($
   echo
 
   # if list_deps() created a file listing the deps, get it from the file created, else, run list deps to be sure
-  if [ -f ${TMPDIR}/${PKGNAME}_dep_list ];then
-    DEPS_MISSING="$(cat ${TMPDIR}/${PKGNAME}_dep_list 2>/dev/null)"
+  if [ -s ${TMPDIR}/${PKGNAME}_bgdep_list ];then
+    DEPS_MISSING="$(cat ${TMPDIR}/${PKGNAME}_bgdep_list)"
   else
     DEPS_MISSING="$(list_deps "$PKGNAME" 2>/dev/null)"
   fi
 
   # if we have missing deps, or are downloading them all regardless (INSTALLDEPS=false), or using --force
   if [ "$DEPS_MISSING" != "" ] || [ "${NO_INSTALL}" = true ] || [ "$FORCE" = true ];then
-
     # ask to download (and maybe install) the deps
     DEPCONFIRM=y
     if [ "$ASK" = true ];then
@@ -6554,7 +6550,6 @@ get_deps(){                       # find, get and install the deps of pkgname ($
       DEPS_MISSING="${DEPS_MISSING//.pet/}"             # remove extensions (creeping in from somewhere!)
       DEPS_MISSING="${DEPS_MISSING//.${EX:-noextension}/}"       # remove extensions (creeping in from somewhere!)
       DEPS_MISSING="${DEPS_MISSING//.${pkg_ext:-noextension}/}"  # remove extensions (creeping in from somewhere!)
-
 
       # show deps info, if any available
       [ "${DEPS_MISSING}" != ""  ]   && echo "Dependencies to get: ${DEPS_MISSING//,/, }"
