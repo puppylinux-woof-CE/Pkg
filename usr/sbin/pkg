@@ -7406,7 +7406,12 @@ menu_entry_msg(){                 # show menu entry details of installed pkg FUN
   # get the menu file, if it exists
   pkg_file_list=`find ${REPO_DIR}/ -maxdepth 1 -type f -name "${1}*.files"`
 
-  [ -f "$pkg_file_list" ] && MENUFILE="`LANG=C grep -m1 '/usr/share/applications/' "$pkg_file_list" | grep -i -m1 ".desktop\$"`" || return 1
+  if [ -f "$pkg_file_list" ];then
+    MENUFILE="`LANG=C grep -m1 '/usr/share/applications/' "$pkg_file_list" \
+      | grep -i -m1 ".desktop\$"`"
+  else
+    return 1
+  fi
 
   # if pkg has a .desktop file
    if [ -f "$MENUFILE" ];then
@@ -7445,13 +7450,27 @@ menu_entry_msg(){                 # show menu entry details of installed pkg FUN
 
     # print msg
     if [ "$no_display" != "" ] || [ "$terminal_only" != '' ];then
-      pkg_command="`grep -m1 ^Exec= "$MENUFILE" | cut -f2 -d'='`"
-      [ "$pkg_command" != '' ] && echo -e "To run, type:  ${bold}${pkg_command}${endcolour}"
+      pkg_command="$(grep -m1 ^Exec= "$MENUFILE" | cut -f2 -d'=')"
+      if [ "$pkg_command" != '' ];then
+        echo -e "To run, type:  ${bold}${pkg_command}${endcolour}"
+      fi
     else
       echo -e "Menu entry:     ${lightblue}${TOPMENU:-[None]}${endcolour} -> ${lightblue}${MENU_NAME:-[None]}${endcolour}"
     fi
-
     return 0
+  fi
+  # if no .desktop file, list the commands in $PATH
+  pkg_command="$(cat "$pkg_file_list" | grep -E '/bin/|/sbin/' | sort -u | sed -e 's#.*/#  #g')"
+  if [ "$pkg_command" != "" ];then
+    echo -e "To run, type any of these commands:  "
+    echo -e "${bold}${pkg_command}${endcolour}"
+  fi
+  # also list any man pages
+  pkg_docs="$(cat "$pkg_file_list" | grep -E '/man[1-8]/' | sort -u | sed -e 's#.*/#  man #g' -e 's/\.gz$//g')"
+  if [ "$pkg_docs" != "" ];then
+    echo -e "To view the docs, type any of these commands:  "
+    echo -e "${bold}${pkg_docs}${endcolour}"
+    echo
   fi
   return 1
 }
