@@ -2680,6 +2680,16 @@ search_pkgs(){                    # given $1, searches current repo, shows name 
   local desc
   local descfull
   local search
+  local cols
+  local name_width
+  local desc_width
+
+  # get terminal width
+  cols=$(tput cols 2>/dev/null)
+  cols=${cols:-${COLS:-80}}
+  # allow wider names if terminal is larger than 90
+  name_width=$([ $cols -ge 90 ] && echo 35 || echo 20)
+  desc_width=$(($cols - $name_width - 3))
 
   # convert "foo[ -_]bar" into "foo.*bar"
   search=$(echo "$1" | sed -e 's| |.*|g' -e 's|-|.*|g' -e 's|_|.*|g')
@@ -2689,9 +2699,9 @@ search_pkgs(){                    # given $1, searches current repo, shows name 
   do
     name=$(echo  "$repo_line"|cut -f2  -d'|')
     descfull="$(echo "$repo_line"|cut -f10 -d'|')"
-    desc="$(echo "$descfull"| head -c 57)"
+    desc="$(echo "$descfull"| head -c $(($desc_width)))"
     [ "$desc" != "$descfull" ] && desc="${desc}.."
-    printf "%-20s" "$name" " ${desc:-No description}"
+    printf "%-"${name_width}"s" "$name" " ${desc:-No description}"
     echo
   done
 }
@@ -2730,11 +2740,20 @@ search_fast(){                    # given $1, searches current repo, show pkg na
 
 
 search_all_pkgs(){                # given $1, search all repos, show name and desc columns FUNCLIST
-
   local name
   local desc
   local descfull
   local search
+  local cols
+  local name_width
+  local desc_width
+
+  # get terminal width
+  cols=$(tput cols 2>/dev/null)
+  cols=${cols:-${COLS:-80}}
+  # allow wider names if terminal is larger than 90
+  name_width=$([ $cols -ge 90 ] && echo 35 || echo 20)
+  desc_width=$(($cols - $name_width - 3))
 
   # convert "foo[ -_]bar" into "foo.*bar"
   search=$(echo "$1" | sed -e 's| |.*|g' -e 's|-|.*|g' -e 's|_|.*|g')
@@ -2747,14 +2766,14 @@ search_all_pkgs(){                # given $1, search all repos, show name and de
       # get details from repo
       name=$(echo  "$repo_line"|cut -f2  -d'|')
       descfull="$(echo "$repo_line"|cut -f10 -d'|')"
-      desc="$(echo "$descfull" | head -c 57)"
+      desc="$(echo "$descfull" | head -c $desc_width)"
       [ "$desc" != "$descfull" ] && desc="${desc}.."
       # remove spaces and comments (slackware-extra repo has some dodgy entries.. dogy names, descriptions with comments, etc)
       name="${name// /}"
       name="${name//#/}"
       [ "$name" = '' ] && continue
       # print columnised output
-      printf "%-20s" "$name" " ${desc:-No description}"
+      printf "%-"$name_width"s" "$name" " ${desc:-No description}"
       echo
     done
   done
@@ -2823,17 +2842,8 @@ which_repo(){                     # list repo of given package ($1) FUNCLIST
   repo_file="$(grep -l "^$PKGNAME|" ${REPO_DIR}/Packages-* | head -1)"
 
   if [ -z "$repo_file" ];then
-    PKGFILENAME=$(get_pkg_filename "$PKGNAME")
-    repo_file="$(grep -l "|$PKGFILENAME|" ${REPO_DIR}/Packages-* | head -1)"
-  fi
-
-  if [ -z "$repo_file" ];then
     repo_file="$(grep -l "^$PKGNAME|" ${REPO_DIR}/user-installed* | head -1)"
     [ ! -z "$repo_file" ] && return 1
-  fi
-
-  if [ -z "$repo_file" ];then
-    repo_file="$(grep -l "|$PKGNAME_ONLY|" ${REPO_DIR}/Packages-* | head -1)"
   fi
 
   if [ ! -z "$repo_file" ];then

@@ -4,7 +4,7 @@
 
 rm /tmp/command_not_found_lock_file &>/dev/null
 
-if [ "${BASH_VERSINFO[0]}" = '4' ];then
+if [ "${BASH_VERSINFO[0]}" = '4' ] || [ "${BASH_VERSINFO[0]}" = '5' ];then
 
   cat=$(which cat)
   grep=$(which grep)
