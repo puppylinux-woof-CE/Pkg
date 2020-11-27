@@ -2930,7 +2930,6 @@ pkg_contents(){                   # list package ($1) contents FUNCLIST
   fi
 
   if [ "$pkg_is_installed" = true ] && [ -f "${REPO_DIR}/${PKGNAME}.files" ];then
-    #PKGNAME=$(list_installed_ $PKGNAME | head -1)
     cat "${REPO_DIR}/${PKGNAME}.files"
     return 0
   fi
