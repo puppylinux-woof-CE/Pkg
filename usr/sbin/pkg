@@ -762,11 +762,12 @@ get_pkg_name_only(){              # return pkg name only from $1, with no versio
   # remove the +20080738 from packages with dates in the version
   pkg_name_only="$(echo "$pkg_name_only" | sed -e 's/\+19.*//g' -e 's/\+20.*//g')"
 
-  pkg_name_only="$(strip_package_filename $pkg_name_only)"
+  pkg_name_only_stripped="$(strip_package_filename $pkg_name_only)"
+  pkg_name_only="${pkg_name_only_stripped:-$pkg_name_only}"
 
   # the sed bit changes 'liblzma5+20120614' to 'liblzma5'
   # shellcheck disable=SC2001
-  [ "$pkg_name_only" != '' ] && echo "$pkg_name_only" | sed -e 's/\+[a-z0-9].*//g' || return 1
+  [ "$pkg_name_only" != '' ] && echo "${pkg_name_only:-$1}" | sed -e 's/\+[a-z0-9].*//g' || return 1
 }
 
 
@@ -2929,8 +2930,19 @@ pkg_contents(){                   # list package ($1) contents FUNCLIST
   fi
 
   if [ "$pkg_is_installed" = true ] && [ -f "${REPO_DIR}/${PKGNAME}.files" ];then
-    PKGNAME=$(list_installed_ $PKGNAME | head -1)
+    #PKGNAME=$(list_installed_ $PKGNAME | head -1)
     cat "${REPO_DIR}/${PKGNAME}.files"
+    return 0
+  fi
+
+  # get pkg name without version
+  PKGNAME_ONLY=$(get_pkg_name_only "$PKGNAME")
+  PKGNAME_ONLY="${PKGNAME_ONLY:-$PKGNAME}"
+
+  local file_list=$(find ${REPO_DIR}/ -maxdepth 1 -type f -wholename "*/$PKGNAME_ONLY[\-_]*.files")
+
+  if [ -f "$file_list" ] && [ -s "$file_list" ];then
+    cat "$file_list"
     return 0
   fi
 
@@ -2971,9 +2983,6 @@ pkg_contents(){                   # list package ($1) contents FUNCLIST
 
   # if we are here, the pkg is not a user installed or downloaded pkg..
   # but it might be a "builtin" package..
-
-  # get pkg name without version
-  PKGNAME_ONLY=$(get_pkg_name_only "$PKGNAME")
 
   # if the pkg is a builtin, we will re-format the output of LIST to match the others (full paths on each line)
   if [ -f "${REPO_DIR}/builtin_files/$PKGNAME_ONLY" ];then
