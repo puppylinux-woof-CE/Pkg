@@ -6664,7 +6664,7 @@ get_deps(){                       # find, get and install the deps of pkgname ($
 }
 
 
-pkg_ldd_msg(){                    # check given package ($1) for missing deps FUNCLIST
+pkg_ldd(){                    # check given package ($1) for missing deps FUNCLIST
 
   # exit if no valid usage
   [ ! "$1" ] || [ "$1" = "-" ] && print_usage deps-check && exit 1
@@ -6686,8 +6686,12 @@ pkg_ldd_msg(){                    # check given package ($1) for missing deps FU
 
   local list="$PKGNAME $(list_deps $PKGNAME)"
 
+  [ -f $TMPDIR/ldd_done ] && rm $TMPDIR/ldd_done
   for pkg_name in $list
   do
+    if [ -f $TMPDIR/ldd_done ];then
+      grep -q -m1 "$pkg_name" $TMPDIR/ldd_done && continue
+    fi
     local pkg_name_only=$(get_pkg_name_only "$pkg_name")
     # get the *.files for this pkg
     FNDFILES="$(find ${REPO_DIR}/ -iname "${pkg_name}.files" 2>/dev/null)"
@@ -6707,8 +6711,8 @@ pkg_ldd_msg(){                    # check given package ($1) for missing deps FU
       RES="$(ldd $file 2>/dev/null)"
       MISSING="$(echo "$RES" | grep found)"
       if [ "$MISSING" != "" ] && [ "$MISSING" != " " ];then
-        echo "  $file:
-  $MISSING" >> $TMPDIR/${pkg_name}-MISSINGLIBS.txt
+        echo "  $file: " >> $TMPDIR/${pkg_name}-MISSINGLIBS.txt
+        echo "$MISSING" | sed 's/^/  /g' >> $TMPDIR/${pkg_name}-MISSINGLIBS.txt
       fi
     done
 
@@ -6717,10 +6721,21 @@ pkg_ldd_msg(){                    # check given package ($1) for missing deps FU
       echo -e "${yellow}WARNING${endcolour}: ${magenta}${pkg_name_only}${endcolour} has missing dependencies: "
       echo -e "$(cat $TMPDIR/${pkg_name}-MISSINGLIBS.txt)"
     else
-      echo -e "${green}OK:${endcolour} ${pkg_name} has no missing dependencies."
+      [ "$PKGFIX" = "" ] && echo -e "${green}OK:${endcolour} ${pkg_name} has no missing dependencies."
     fi
     rm -f ${TMPDIR}/ldd_file_list* $TMPDIR/${pkg_name}-MISSINGLIBS.txt 2>/dev/null
+    echo "$pkg_name" >> $TMPDIR/ldd_done
   done
+  # install any missing packages, if possible
+  if [ "$PKGFIX" != "" ] && [ ! -z "$MISSING" ];then
+    echo "Installing missing packages:"
+    echo "$MISSING" | sed 's/\.so.*//g' | while read dep
+    do
+      depname=$(list_all_pkg_names $dep | head -1)
+      [ ! -z "$depname" ] && pkg_get $depname
+    done
+  fi
+  [ -f $TMPDIR/ldd_done ] && rm $TMPDIR/ldd_done
 }
 
 
@@ -7714,6 +7729,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
         --ask|-a)         ASK=true ; PLUGIN_ASK=true; QTAG="?  (y/N)";;
         --quiet|-q)       QUIET=true ;;
         --force|-f)       FORCE=true ;;
+        --fix)            PKGFIX=true ;;
         --no-color)       green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
         --no-colour|-nc)  green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
         '--configure='*)  PKG_CONFIGURE="$(echo "$x" | sed -e 's/^--configure=//')" ;;
@@ -7751,6 +7767,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --ask|-a)         ASK=true ; PLUGIN_ASK=true; QTAG="?  (y/N)";;
       --quiet|-q)       QUIET=true ;;
       --force|-f)       FORCE=true ;;
+      --fix)            PKGFIX=true ;;
       --no-color)       green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
       --no-colour|-nc)  green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
       '--configure='*)  PKG_CONFIGURE="$(echo "$1" | sed -e 's/^--configure=//')" ;;
@@ -7817,7 +7834,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
     --deps-download|-ed|deps-download|ed) [ ! "$2" ] && get_deps;  for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && NO_INSTALL=true get_deps "$x"; done ;;
       --has-deps|-he|has-deps|he)         [ ! "$2" ] && has_deps;  for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && has_deps  "$x";                done ;;
       --deps-all|-ea|deps-all|ea)         [ ! "$2" ] && get_deps;  [ "$2" != "-" ] && NO_INSTALL=false get_all_deps "$2" ;;
-      --deps-check|-ec|deps-check|ec|ldd) [ ! "$2" ] && print_usage deps-check || pkg_ldd_msg "$2" ;;
+      --deps-check|-ec|deps-check|ec|ldd) [ ! "$2" ] && print_usage deps-check || pkg_ldd "$2" ;;
       -LE|LE)                             [ ! "$2" ] && HIDE_BUILTINS=false list_deps || for x in $opt; do [ "$x" ] && [ "$x" != "-" ] && HIDE_BUILTINS=false list_deps "$x"; done ;;  # list a pkg deps, including builtins
 
       # repo
