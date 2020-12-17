@@ -6675,6 +6675,7 @@ pkg_ldd(){                    # check given package ($1) for missing deps FUNCLI
   local FNDFILES
   local RES
   local MISSING
+  local list
 
   # get pkg name
   PKGNAME=$(get_pkg_name "$1")
@@ -6684,7 +6685,11 @@ pkg_ldd(){                    # check given package ($1) for missing deps FUNCLI
 
   echo "Searching for missing dependencies.. Please wait."
 
-  local list="$PKGNAME $(list_deps $PKGNAME)"
+  if [ "$NON_RECURSIVE" = true ];then
+    list="$PKGNAME"
+  else
+    list="$PKGNAME $(list_deps $PKGNAME)"
+  fi
 
   [ -f $TMPDIR/ldd_done ] && rm $TMPDIR/ldd_done
   for pkg_name in $list
@@ -7730,6 +7735,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
         --quiet|-q)       QUIET=true ;;
         --force|-f)       FORCE=true ;;
         --fix)            PKGFIX=true ;;
+        --non-recursive)  NON_RECURSIVE=true ;;
         --no-color)       green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
         --no-colour|-nc)  green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
         '--configure='*)  PKG_CONFIGURE="$(echo "$x" | sed -e 's/^--configure=//')" ;;
@@ -7768,6 +7774,7 @@ while [ $# != 0 ]; do # get all options ($# means all options)
       --quiet|-q)       QUIET=true ;;
       --force|-f)       FORCE=true ;;
       --fix)            PKGFIX=true ;;
+      --non-recursive)  NON_RECURSIVE=true ;;
       --no-color)       green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
       --no-colour|-nc)  green='' red='' magenta='' lightblue='' yellow='' bold='' endcolour='' ;;
       '--configure='*)  PKG_CONFIGURE="$(echo "$1" | sed -e 's/^--configure=//')" ;;
