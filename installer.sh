@@ -4,7 +4,7 @@
 SYSROOT=${SYSROOT:-''}
 
 [ -n "$SYSROOT" ] && \
-  [ "${SYSROOT:0:1}" = '/' ] && \
+  [ "${SYSROOT:0:1}" != '/' ] && \
   echo "Error: $SYSROOT: must be absolute path to install Pkg" && exit 1
 
 # get version from current dir
