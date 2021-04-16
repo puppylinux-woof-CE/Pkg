@@ -1,4 +1,7 @@
-USAGE="Usage: ${bold}pkg ldd PKGNAME${endcolour}
+USAGE="Usage: ${bold}pkg ldd PKGNAME [--fix]${endcolour}
 
 List missing dependencies of PKGNAME, using 'ldd'.
-PKGNAME must be an installed package."
+PKGNAME must be an installed package.
+
+If '--fix' is given, any missing dependencies will
+be installed for you."

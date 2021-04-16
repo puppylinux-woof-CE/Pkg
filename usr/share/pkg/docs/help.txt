@@ -63,6 +63,7 @@ These commands can be used with the options above, but not each other:
  contents|c PKG             list the contents of a downloaded package
  entry|pe PKG               show package repo entry (if in current repo)
  installed|pi PKG           return true if package installed, false if not
+ manpage|man PKG            show the man page for the given package
 
  all-pkgs                   list details of all packages in CURRENT repo
  names-exact|ne [PKG]       list EXACT package name matches in CURRENT repo
