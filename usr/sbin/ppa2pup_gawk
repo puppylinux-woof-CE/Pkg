@@ -14,9 +14,9 @@
 #fi
 
 #Consider /looking to see if /root/.packages/repo exists. See: https://github.com/s243a/woof-CE/blob/8e44442ca9144b202b73737101231115a87488f1/woof-code/rootfs-packages/PKG/usr/sbin/ppa2pup#L17
-[ -z "$REPO_DIR" ] && REPO_DIR="$(realpath /root/.packages)"
-[ -z "$REPO_DIR" ]  && REPO_DIR="$(readlink /root/.packages)"
-[ -z "$REPO_DIR" ]  && REPO_DIR="/root/.packages)"
+[ -z "$REPO_DIR" ] && REPO_DIR="$(realpath $HOME/.packages)"
+[ -z "$REPO_DIR" ]  && REPO_DIR="$(readlink $HOME/.packages)"
+[ -z "$REPO_DIR" ]  && REPO_DIR="$HOME/.packages)"
 
 if [ ! "$1" ] || [ "$1" = "-h" ] || [ "$1" = "-help" ]
 then
@@ -97,9 +97,13 @@ then
   repo_stream2=''
   repo_stream3=''
   repo_stream4=''
+  repo_stream5=''
+  repo_stream6=''
   [ "$5" != '' ] && repo_stream2=${5}
   [ "$6" != '' ] && repo_stream3=${6}
   [ "$7" != '' ] && repo_stream4=${7}
+  [ "$8" != '' ] && repo_stream5=${8}
+  [ "$9" != '' ] && repo_stream6=${9}
 
 
   URL=http://ppa.launchpad.net/${username}/${ppaname}/${distro}/dists/${distro_ver}/${repo_stream}/binary-${arch}/Packages.gz
@@ -116,9 +120,15 @@ elif [[ "$1" =~ 'http://' ]] || [[ "$1" =~ 'https://' ]];then
   repo_stream2=''
   repo_stream3=''
   repo_stream4=''
+  repo_stream5=''
+  repo_stream6=''
+  repo_stream7=''
   [ "$4" != '' ] && repo_stream2=${4}
   [ "$5" != '' ] && repo_stream3=${5}
   [ "$6" != '' ] && repo_stream4=${6}
+  [ "$7" != '' ] && repo_stream5=${7}
+  [ "$8" != '' ] && repo_stream6=${8}
+  [ "$9" != '' ] && repo_stream7=${9}
 
   URL=$(echo $1 | sed -e 's#/$##g')/dists/${distro_ver}/${repo_stream}/binary-${arch}/Packages.gz
 
@@ -147,7 +157,7 @@ do
 
   if [ ! -f /tmp/ppa_Packages.gz ] || [ $download_failed = true ];then
     echo
-    echo "ERROR: the PPA repo '$repo_name' not found for $distro $distro_ver:"
+    echo "ERROR: the PPA repo '${repo_name:-$repo_url}' not found for $distro $distro_ver:"
     echo
     echo "  $download_url"
     echo
@@ -171,15 +181,58 @@ do
   then
 
     # check if this repo is already installed (find its name in Pkg sources files)
-    PPA_NAME="$(grep -m1 "^${distro_ver}-${stream:-main}|" /root/.pkg/sources-all | cut -f1 -d'|' 2>/dev/null)"
+    PPA_NAME="$(grep -m1 "^${distro_ver}-${stream:-main}|" $HOME/.pkg/sources-all | cut -f1 -d'|' 2>/dev/null)"
 
+    PPA_NOT_YET_INSTALLED=false
     # get repo name and filename
     if [ "$PPA_NAME" = "" ];then
+      PPA_NOT_YET_INSTALLED=true
       echo
       read -e -p "Enter a repo name, such as '${distro_ver}-${stream:-main}':  " -i "${distro_ver}-${stream:-main}" PPA_NAME
     fi
     # replace any spaces or underscores with dashes, all lower case
     PPA_NAME="$( echo "${PPA_NAME// /-}" | tr '_' '-' | tr '[:upper:]' '[:lower:]' )"
+
+    # PRECAUTION: if repo name is "bionic-main", "stretch-main" (etc), it may override
+    # another, much more important repo.. let's prevent that by renaming the repo
+    if [ "$PPA_NAME" = "${distro_ver}-main"            ] ||
+       [ "$PPA_NAME" = "${DISTRO_BINARY_COMPAT}-main"  ] ||
+       [ "$PPA_NAME" = "${DISTRO_FILE_PREFIX}-main"    ] ||
+       [ "$PPA_NAME" = "${DISTRO_COMPAT_VERSION}-main" ]
+    then
+      # if a launchpad.net URL, build a new name from the URL
+      if [[ "$1" =~ 'launchpad' ]];then
+        PPA_NAME="$2-$(echo "$1" | cut -f4 -d'/')"
+        PPA_NAME="${PPA_NAME//-debian/}"
+        PPA_NAME="${PPA_NAME//-ubuntu/}"
+        DUPED_PPA_NAME="$(grep -m1 "^$PPA_NAME|" $HOME/.pkg/sources-all | cut -f1 -d'|' 2>/dev/null)"
+        if [ $PPA_NOT_YET_INSTALLED = false ] && [ "$DUPED_PPA_NAME" != "" ];then
+          EXISTING_PPA_NAME="$(grep -m1 "$repo_url" ~/.pkg/sources-all | cut -f1 -d'|')"
+          if [ "$EXISTING_PPA_NAME" = "" ];then
+            echo
+            echo "The auto-generated repo name of '$PPA_NAME' is already taken, and may override other repos."
+            echo
+            read -e -p "Enter a new repo name, such as '${distro_ver}-reponame':  " -i "${distro_ver}-reponame" PPA_NAME
+          else
+            PPA_NAME="$EXISTING_PPA_NAME"
+          fi
+        fi
+      # if not launchpad URL, just ask for a new name
+      elif [ $PPA_NOT_YET_INSTALLED = false ];then
+        DUPED_PPA_NAME="$(grep -m1 "^$PPA_NAME|" $HOME/.pkg/sources-all | cut -f1 -d'|' 2>/dev/null)"
+        if [ $PPA_NOT_YET_INSTALLED = false ] && [ "$DUPED_PPA_NAME" != "" ];then
+          EXISTING_PPA_NAME="$(grep -m1 "$repo_url" ~/.pkg/sources-all | cut -f1 -d'|')"
+          if [ "$EXISTING_PPA_NAME" = "" ];then
+            echo
+            echo "The auto-generated repo name of '$PPA_NAME' is unsafe, and may override other repos."
+            echo
+            read -e -p "Enter a new repo name, such as '${distro_ver}-reponame':  " -i "${distro_ver}-reponame" PPA_NAME
+          else
+            PPA_NAME="$EXISTING_PPA_NAME"
+          fi
+        fi
+      fi
+    fi
 
     repo_name="$PPA_NAME"
     repo_filename="Packages-$distro-${PPA_NAME}"
